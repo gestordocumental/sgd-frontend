@@ -12,7 +12,6 @@ export interface ApiUser {
 export interface CreateUserDto {
   position: string
   email: string
-  password: string
 }
 
 export interface UpdateUserDto {

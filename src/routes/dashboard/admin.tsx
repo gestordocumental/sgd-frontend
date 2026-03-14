@@ -27,7 +27,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { authApi } from '@/lib/api/auth'
 import { usersApi, type ApiUser, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
 import { useAuthStore } from '@/store/authStore'
-import { emailField, newPasswordField, requiredString } from '@/lib/validations/schemas'
+import { emailField, requiredString } from '@/lib/validations/schemas'
 
 export const Route = createFileRoute('/dashboard/admin')({
   beforeLoad: () => {
@@ -43,7 +43,6 @@ export const Route = createFileRoute('/dashboard/admin')({
 const createUserSchema = z.object({
   position: requiredString('El cargo o posición'),
   email: emailField,
-  password: newPasswordField,
 })
 type CreateUserForm = z.infer<typeof createUserSchema>
 
@@ -380,18 +379,6 @@ function AdminDashboard() {
                 id="create-position"
                 placeholder="Gerente de Ventas"
                 {...createForm.register('position')}
-              />
-            </FormField>
-            <FormField
-              id="create-password"
-              label="Contraseña inicial"
-              error={createForm.formState.errors.password?.message}
-            >
-              <Input
-                id="create-password"
-                type="password"
-                placeholder="••••••••"
-                {...createForm.register('password')}
               />
             </FormField>
             <DialogFooter className="pt-2">
