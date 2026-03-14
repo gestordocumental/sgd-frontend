@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/store/authStore'
+import { decodeJwt } from '@/lib/jwt'
 import { loginSchema, type LoginFormValues } from '@/lib/validations/schemas'
 
 export const Route = createFileRoute('/login')({
@@ -41,8 +42,20 @@ function LoginPage() {
   const { mutate: login, isPending } = useMutation({
     mutationFn: authApi.login,
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken)
-      navigate({ to: '/dashboard' })
+      // Log temporal para verificar la estructura real de la respuesta del backend
+      console.log('[login response]', data)
+
+      const token = data.accessToken
+      const payload = token ? decodeJwt(token) : null
+      const isSuperAdmin = payload?.isSuperAdmin === true
+
+      setAuth(data.user, token, data.refreshToken, isSuperAdmin)
+      if (isSuperAdmin) {
+        navigate({ to: '/dashboard/admin' })
+      } else {
+        // TODO: manejar selector de empresa cuando haya múltiples orgs
+        navigate({ to: '/dashboard' })
+      }
     },
     onError: (error: AxiosError<{ message: string | string[] }>) => {
       const raw = error.response?.data?.message

@@ -7,13 +7,15 @@ interface PersistedAuth {
   user: AuthUser
   accessToken: string
   isAuthenticated: boolean
+  isSuperAdmin: boolean
 }
 
 interface AuthStore {
   user: AuthUser | null
   accessToken: string | null
   isAuthenticated: boolean
-  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void
+  isSuperAdmin: boolean
+  setAuth: (user: AuthUser, accessToken: string, refreshToken: string, isSuperAdmin: boolean) => void
   clearAuth: () => void
 }
 
@@ -33,17 +35,21 @@ export const useAuthStore = create<AuthStore>()((set) => {
     user: stored.user ?? null,
     accessToken: stored.accessToken ?? null,
     isAuthenticated: stored.isAuthenticated ?? false,
+    isSuperAdmin: stored.isSuperAdmin ?? false,
 
-    setAuth: (user, accessToken, refreshToken) => {
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ user, accessToken, isAuthenticated: true } satisfies PersistedAuth))
+    setAuth: (user, accessToken, refreshToken, isSuperAdmin) => {
+      localStorage.setItem(
+        AUTH_KEY,
+        JSON.stringify({ user, accessToken, isAuthenticated: true, isSuperAdmin } satisfies PersistedAuth),
+      )
       localStorage.setItem('sgd-refresh-token', refreshToken)
-      set({ user, accessToken, isAuthenticated: true })
+      set({ user, accessToken, isAuthenticated: true, isSuperAdmin })
     },
 
     clearAuth: () => {
       localStorage.removeItem(AUTH_KEY)
       localStorage.removeItem('sgd-refresh-token')
-      set({ user: null, accessToken: null, isAuthenticated: false })
+      set({ user: null, accessToken: null, isAuthenticated: false, isSuperAdmin: false })
     },
   }
 })

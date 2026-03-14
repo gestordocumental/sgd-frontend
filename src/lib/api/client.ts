@@ -18,11 +18,13 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Si el servidor responde 401, limpia la sesión y redirige al login
+// Si el servidor responde 401 (sesión expirada), limpia la sesión y redirige al login.
+// Se excluye /auth/login para que las credenciales incorrectas sean manejadas por el formulario.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login')
+    if (error.response?.status === 401 && !isLoginEndpoint) {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
     }
