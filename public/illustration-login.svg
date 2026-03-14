@@ -1,0 +1,64 @@
+<!--
+  PLACEHOLDER — Ilustración panel izquierdo del login
+  Reemplazar este archivo con la ilustración definitiva entregada por el diseñador.
+  Tamaño recomendado: 480×420px (o proporcional). Formato SVG o PNG.
+  Si se usa PNG, actualizar el src en src/routes/login.tsx:
+    <img src="/illustration-login.png" ... />
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" fill="none">
+
+  <!-- Fondo decorativo sutil -->
+  <circle cx="380" cy="60"  r="80" fill="#f4f4f5"/>
+  <circle cx="80"  cy="360" r="60" fill="#f4f4f5"/>
+
+  <!-- Documento principal -->
+  <rect x="100" y="70" width="200" height="260" rx="14"
+    fill="white" stroke="#e4e4e7" stroke-width="1.5"
+    filter="url(#shadow)"/>
+  <rect x="124" y="108" width="100" height="12" rx="6" fill="#d4d4d8"/>
+  <rect x="124" y="130" width="152" height="8"  rx="4" fill="#ebebeb"/>
+  <rect x="124" y="148" width="130" height="8"  rx="4" fill="#ebebeb"/>
+  <rect x="124" y="166" width="110" height="8"  rx="4" fill="#ebebeb"/>
+  <rect x="124" y="192" width="152" height="8"  rx="4" fill="#ebebeb"/>
+  <rect x="124" y="210" width="90"  height="8"  rx="4" fill="#ebebeb"/>
+
+  <!-- Badge de aprobación -->
+  <circle cx="284" cy="250" r="30" fill="#18181b"/>
+  <path d="M272 250 l10 10 l20-20"
+    stroke="white" stroke-width="2.5"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Documento secundario (detrás a la derecha) -->
+  <rect x="260" y="100" width="150" height="200" rx="12"
+    fill="#fafafa" stroke="#e4e4e7" stroke-width="1.5"/>
+  <rect x="280" y="128" width="80"  height="10" rx="5" fill="#d4d4d8"/>
+  <rect x="280" y="148" width="110" height="7"  rx="3.5" fill="#ebebeb"/>
+  <rect x="280" y="164" width="95"  height="7"  rx="3.5" fill="#ebebeb"/>
+  <rect x="280" y="180" width="70"  height="7"  rx="3.5" fill="#ebebeb"/>
+
+  <!-- Ícono flotante arriba -->
+  <circle cx="96" cy="120" r="22" fill="white" stroke="#e4e4e7" stroke-width="1.5"/>
+  <rect x="86" y="113" width="20" height="3"  rx="1.5" fill="#a1a1aa"/>
+  <rect x="86" y="119" width="20" height="2.5" rx="1.25" fill="#d4d4d8"/>
+  <rect x="86" y="124" width="13" height="2.5" rx="1.25" fill="#d4d4d8"/>
+
+  <!-- Ícono flotante abajo izquierda -->
+  <circle cx="380" cy="330" r="18" fill="white" stroke="#e4e4e7" stroke-width="1.5"/>
+  <path d="M373 330 l5 5 l10-10"
+    stroke="#a1a1aa" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Texto placeholder -->
+  <text x="240" y="390"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="11"
+    fill="#a1a1aa"
+    text-anchor="middle">Ilustración en desarrollo · reemplazar con /public/illustration-login.svg</text>
+
+  <!-- Sombra suave para documento principal -->
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000012"/>
+    </filter>
+  </defs>
+</svg>

@@ -1,3 +1,10 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
 # Logs
 logs
 *.log
@@ -7,18 +14,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Environment — local overrides never se commitean
+.env.local
+.env.*.local
 
-# Editor directories and files
+# TypeScript build cache
+*.tsbuildinfo
+
+# Test coverage
+coverage
+
+# Editor directories
 .vscode/*
 !.vscode/extensions.json
+!.vscode/launch.json
 .idea
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+
+# OS
+Thumbs.db
+
+# Vite
+*.local

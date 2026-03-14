@@ -1,8 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useAuthStore } from '@/store/authStore'
 
-// La raíz redirige al login por defecto
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
-    throw redirect({ to: '/login' })
+    const { isAuthenticated } = useAuthStore.getState()
+    throw redirect({ to: isAuthenticated ? '/dashboard' : '/login' })
   },
 })
