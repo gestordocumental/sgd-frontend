@@ -19,6 +19,14 @@ export interface UpdateUserDto {
   email?: string
 }
 
+export interface CompleteRegistrationDto {
+  token: string
+  firstName: string
+  lastName: string
+  idNumber: string
+  password: string
+}
+
 export const usersApi = {
   list: () =>
     apiClient.get<ApiUser[]>('/users').then((r) => r.data),
@@ -37,4 +45,10 @@ export const usersApi = {
 
   toggleSuperAdmin: (id: string, isSuperAdmin: boolean) =>
     apiClient.patch<ApiUser>(`/users/${id}/super-admin`, { isSuperAdmin }).then((r) => r.data),
+
+  // Endpoint público — no requiere JWT. Valida el token de invitación en Redis,
+  // completa el perfil del usuario y crea sus credenciales.
+  // Backend: POST /users/complete-registration
+  completeRegistration: (dto: CompleteRegistrationDto) =>
+    apiClient.post<void>('/users/complete-registration', dto).then((r) => r.data),
 }
