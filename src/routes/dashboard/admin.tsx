@@ -92,6 +92,7 @@ function AdminDashboard() {
 
   // User modals
   const [createOpen, setCreateOpen] = useState(false)
+  const [createUserContext, setCreateUserContext] = useState<'super-admin' | 'company'>('super-admin')
   const [editUser, setEditUser] = useState<ApiUser | null>(null)
   const [deleteUser, setDeleteUser] = useState<ApiUser | null>(null)
 
@@ -106,9 +107,14 @@ function AdminDashboard() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: usersApi.list,
+  })
+
+  const { data: superAdmins = [], isLoading: superAdminsLoading } = useQuery({
+    queryKey: ['superAdmins'],
+    queryFn: usersApi.listSuperAdmin,
   })
 
   const { data: companies = [], isLoading: companiesLoading } = useQuery({
@@ -117,12 +123,15 @@ function AdminDashboard() {
   })
 
   const totalActive = users.filter((u) => !isDeleted(u)).length
-  const totalSuperAdmins = users.filter((u) => u.isSuperAdmin).length
+  const totalSuperAdmins = superAdmins.filter((u) => u.isSuperAdmin).length
   const totalActiveCompanies = companies.filter((c) => c.status === 'active').length
 
   // ── User mutations ─────────────────────────────────────────────────────────
 
-  const invalidateUsers = () => queryClient.invalidateQueries({ queryKey: ['users'] })
+  const invalidateUsers = () => {
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+    queryClient.invalidateQueries({ queryKey: ['superAdmins'] })
+  }
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
@@ -199,7 +208,11 @@ function AdminDashboard() {
     mode: 'onTouched',
   })
 
-  const onCreateSubmit = (values: CreateUserForm) => createMutation.mutate(values)
+  const onCreateSubmit = (values: CreateUserForm) =>
+    createMutation.mutate({
+      ...values,
+      isSuperAdmin: createUserContext === 'super-admin',
+    })
 
   const editForm = useForm<EditUserForm>({
     resolver: zodResolver(editUserSchema),
@@ -208,7 +221,7 @@ function AdminDashboard() {
 
   const openEditUser = (u: ApiUser) => {
     setEditUser(u)
-    editForm.reset({ name: u.name, email: u.email })
+    editForm.reset({ name: u.firstName, email: u.email })
   }
 
   const onEditSubmit = (values: EditUserForm) => {
@@ -252,7 +265,8 @@ function AdminDashboard() {
     setExpandedCompanies(next)
   }
 
-  const openCreateUser = () => {
+  const openCreateUser = (context: 'super-admin' | 'company') => {
+    setCreateUserContext(context)
     createForm.reset()
     setCreateOpen(true)
   }
@@ -335,7 +349,7 @@ function AdminDashboard() {
           </TabsList>
 
           {activeTab === 'users' ? (
-            <Button size="sm" onClick={openCreateUser}>
+            <Button size="sm" onClick={() => openCreateUser('super-admin')}>
               <UserPlus className="size-4" />
               Nuevo usuario
             </Button>
@@ -374,11 +388,11 @@ function AdminDashboard() {
                 <h2 className="text-sm font-semibold">Usuarios</h2>
               </div>
 
-              {usersLoading ? (
+              {superAdminsLoading ? (
                 <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
                   Cargando usuarios...
                 </div>
-              ) : users.length === 0 ? (
+              ) : superAdmins.length === 0 ? (
                 <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
                   No hay usuarios registrados
                 </div>
@@ -393,17 +407,17 @@ function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((u) => (
+                    {superAdmins.map((u) => (
                       <TableRow key={u.id} className={isDeleted(u) ? 'opacity-50' : ''}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="size-8">
                               <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                {initials(u.name)}
+                                {initials(u.firstName)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-sm font-medium">{u.name}</p>
+                              <p className="text-sm font-medium">{u.firstName} {u.lastName}</p>
                               <p className="text-xs text-muted-foreground">{u.email}</p>
                             </div>
                           </div>
@@ -577,7 +591,7 @@ function AdminDashboard() {
                                 <MoreHorizontal className="size-4" />
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={openCreateUser}>
+                                <DropdownMenuItem onClick={() => openCreateUser('company')}>
                                   <UserPlus className="size-4" />
                                   Crear usuario
                                 </DropdownMenuItem>
@@ -718,7 +732,7 @@ function AdminDashboard() {
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             ¿Estás seguro de que deseas eliminar a{' '}
-            <span className="font-medium text-foreground">{deleteUser?.name}</span>?
+            <span className="font-medium text-foreground">{deleteUser?.firstName}</span>?
             Podrás restaurarlo después.
           </p>
           <DialogFooter className="pt-2">
@@ -984,10 +998,10 @@ function CompanyUsersRow({
                           <div className="flex items-center gap-2">
                             <Avatar className="size-7">
                               <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                {initials(u.name)}
+                                {initials(u.firstName)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm font-medium">{u.name ?? '—'}</span>
+                            <span className="text-sm font-medium">{u.firstName ?? '—'}</span>
                           </div>
                         </TableCell>
                         <TableCell className="py-2.5 text-sm text-muted-foreground">

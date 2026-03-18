@@ -1,38 +1,43 @@
-import { apiClient } from './client'
+import { apiClient } from "./client";
 
 export interface ApiUser {
-  id: string
-  name: string
-  email: string
-  isSuperAdmin: boolean
-  createdAt: string
-  deletedAt?: string | null
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  email: string;
+  isSuperAdmin: boolean;
+  createdAt: string;
+  deletedAt?: string | null;
 }
 
 export interface CreateUserDto {
-  position: string
-  email: string
+  position: string;
+  email: string;
+  isSuperAdmin: boolean;
 }
 
 export interface UpdateUserDto {
-  name?: string
-  email?: string
+  name?: string;
+  email?: string;
 }
 
 export interface CompleteRegistrationDto {
-  token: string
-  firstName: string
-  lastName: string
-  idNumber: string
-  password: string
+  token: string;
+  firstName: string;
+  lastName: string;
+  idNumber: string;
+  password: string;
 }
 
 export const usersApi = {
-  list: () =>
-    apiClient.get<ApiUser[]>('/users').then((r) => r.data),
+  list: () => apiClient.get<ApiUser[]>("/users").then((r) => r.data),
+
+  listSuperAdmin: () =>
+    apiClient.get<ApiUser[]>("/users/super-admins").then((r) => r.data),
 
   create: (dto: CreateUserDto) =>
-    apiClient.post<ApiUser>('/users', dto).then((r) => r.data),
+    apiClient.post<ApiUser>("/users", dto).then((r) => r.data),
 
   update: (id: string, dto: UpdateUserDto) =>
     apiClient.patch<ApiUser>(`/users/${id}`, dto).then((r) => r.data),
@@ -44,11 +49,15 @@ export const usersApi = {
     apiClient.post<ApiUser>(`/users/${id}/restore`).then((r) => r.data),
 
   toggleSuperAdmin: (id: string, isSuperAdmin: boolean) =>
-    apiClient.patch<ApiUser>(`/users/${id}/super-admin`, { isSuperAdmin }).then((r) => r.data),
+    apiClient
+      .patch<ApiUser>(`/users/${id}/super-admin`, { isSuperAdmin })
+      .then((r) => r.data),
 
   // Endpoint público — no requiere JWT. Valida el token de invitación en Redis,
   // completa el perfil del usuario y crea sus credenciales.
   // Backend: POST /users/complete-registration
   completeRegistration: (dto: CompleteRegistrationDto) =>
-    apiClient.post<void>('/users/complete-registration', dto).then((r) => r.data),
-}
+    apiClient
+      .post<void>("/users/complete-registration", dto)
+      .then((r) => r.data),
+};
