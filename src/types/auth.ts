@@ -10,6 +10,8 @@ export interface AuthUser {
   role: string
   isSuperAdmin?: boolean
   departmentId?: string
+  companyId?: string
+  companyName?: string
 }
 
 export interface JwtPayload {

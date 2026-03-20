@@ -6,6 +6,7 @@ export interface ApiUser {
   lastName: string;
   position: string;
   email: string;
+  registrationStatus: 'pending_credentials' | 'active';
   isSuperAdmin: boolean;
   createdAt: string;
   deletedAt?: string | null;
@@ -15,6 +16,7 @@ export interface CreateUserDto {
   position: string;
   email: string;
   isSuperAdmin: boolean;
+  companyId?: string;
 }
 
 export interface UpdateUserDto {

@@ -63,24 +63,115 @@ const mockCompanies: ApiCompany[] = [
   },
 ]
 
-const mockCompanyUsers: Record<string, ApiUser[]> = {
+export const mockCompanyUsers: Record<string, ApiUser[]> = {
   c1: [
-    { id: 'u1', name: 'Carlos Martínez', email: 'carlos@helisa.com', isSuperAdmin: false, createdAt: '2024-02-01T09:00:00Z' },
-    { id: 'u2', name: 'Ana López', email: 'ana@helisa.com', isSuperAdmin: true, createdAt: '2024-02-15T09:00:00Z' },
-    { id: 'u3', name: 'Luis Pérez', email: 'luis@helisa.com', isSuperAdmin: false, createdAt: '2024-03-01T09:00:00Z', deletedAt: '2024-09-01T00:00:00Z' },
+    {
+      id: 'u1',
+      firstName: 'Carlos',
+      lastName: 'Martínez',
+      position: 'Gerente General',
+      email: 'carlos@helisa.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-02-01T09:00:00Z',
+    },
+    {
+      id: 'u2',
+      firstName: 'Ana',
+      lastName: 'López',
+      position: 'Coordinadora de Documentación',
+      email: 'ana@helisa.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-02-15T09:00:00Z',
+    },
+    {
+      id: 'u3',
+      firstName: 'Luis',
+      lastName: 'Pérez',
+      position: 'Analista',
+      email: 'luis@helisa.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-03-01T09:00:00Z',
+      deletedAt: '2024-09-01T00:00:00Z',
+    },
   ],
   c2: [
-    { id: 'u4', name: 'María García', email: 'maria@techcorp.com', isSuperAdmin: true, createdAt: '2024-04-10T09:00:00Z' },
-    { id: 'u5', name: 'Jorge Rodríguez', email: 'jorge@techcorp.com', isSuperAdmin: false, createdAt: '2024-05-20T09:00:00Z' },
+    {
+      id: 'u4',
+      firstName: 'María',
+      lastName: 'García',
+      position: 'Directora de Operaciones',
+      email: 'maria@techcorp.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-04-10T09:00:00Z',
+    },
+    {
+      id: 'u5',
+      firstName: 'Jorge',
+      lastName: 'Rodríguez',
+      position: 'Auxiliar Contable',
+      email: 'jorge@techcorp.com',
+      registrationStatus: 'pending_credentials',
+      isSuperAdmin: false,
+      createdAt: '2024-05-20T09:00:00Z',
+    },
   ],
   c3: [
-    { id: 'u6', name: 'Patricia Gómez', email: 'patricia@inversnorte.com', isSuperAdmin: false, createdAt: '2023-12-01T09:00:00Z' },
+    {
+      id: 'u6',
+      firstName: 'Patricia',
+      lastName: 'Gómez',
+      position: 'Jefe de Archivo',
+      email: 'patricia@inversnorte.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2023-12-01T09:00:00Z',
+    },
   ],
   c4: [
-    { id: 'u7', name: 'Andrés Torres', email: 'andres@pacifico.com', isSuperAdmin: true, createdAt: '2024-07-01T09:00:00Z' },
-    { id: 'u8', name: 'Camila Ruiz', email: 'camila@pacifico.com', isSuperAdmin: false, createdAt: '2024-07-15T09:00:00Z' },
-    { id: 'u9', name: 'Felipe Vargas', email: 'felipe@pacifico.com', isSuperAdmin: false, createdAt: '2024-08-01T09:00:00Z' },
-    { id: 'u10', name: 'Diana Morales', email: 'diana@pacifico.com', isSuperAdmin: false, createdAt: '2024-08-20T09:00:00Z' },
+    {
+      id: 'u7',
+      firstName: 'Andrés',
+      lastName: 'Torres',
+      position: 'Gerente Administrativo',
+      email: 'andres@pacifico.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-07-01T09:00:00Z',
+    },
+    {
+      id: 'u8',
+      firstName: 'Camila',
+      lastName: 'Ruiz',
+      position: 'Secretaria Ejecutiva',
+      email: 'camila@pacifico.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-07-15T09:00:00Z',
+    },
+    {
+      id: 'u9',
+      firstName: 'Felipe',
+      lastName: 'Vargas',
+      position: 'Contador',
+      email: 'felipe@pacifico.com',
+      registrationStatus: 'active',
+      isSuperAdmin: false,
+      createdAt: '2024-08-01T09:00:00Z',
+    },
+    {
+      id: 'u10',
+      firstName: 'Diana',
+      lastName: 'Morales',
+      position: 'Asistente Jurídico',
+      email: 'diana@pacifico.com',
+      registrationStatus: 'pending_credentials',
+      isSuperAdmin: false,
+      createdAt: '2024-08-20T09:00:00Z',
+    },
   ],
 }
 
@@ -89,6 +180,11 @@ const mockCompanyUsers: Record<string, ApiUser[]> = {
 export const companiesApi = {
   list: (): Promise<ApiCompany[]> =>
     Promise.resolve([...mockCompanies]),
+
+  getById: (id: string): Promise<ApiCompany | null> => {
+    const company = mockCompanies.find((c) => c.id === id) ?? null
+    return Promise.resolve(company ? { ...company } : null)
+  },
 
   create: (dto: CreateCompanyDto): Promise<ApiCompany> => {
     const company: ApiCompany = {
@@ -120,10 +216,18 @@ export const companiesApi = {
   toggleStatus: (id: string): Promise<ApiCompany> => {
     const idx = mockCompanies.findIndex((c) => c.id === id)
     if (idx === -1) return Promise.reject(new Error('Empresa no encontrada'))
-    mockCompanies[idx].status = mockCompanies[idx].status === 'active' ? 'inactive' : 'active'
+    mockCompanies[idx].status =
+      mockCompanies[idx].status === 'active' ? 'inactive' : 'active'
     return Promise.resolve({ ...mockCompanies[idx] })
   },
 
   listUsers: (companyId: string): Promise<ApiUser[]> =>
     Promise.resolve([...(mockCompanyUsers[companyId] ?? [])]),
+
+  addUser: (companyId: string, user: ApiUser): void => {
+    if (!mockCompanyUsers[companyId]) mockCompanyUsers[companyId] = []
+    mockCompanyUsers[companyId].push(user)
+    const idx = mockCompanies.findIndex((c) => c.id === companyId)
+    if (idx !== -1) mockCompanies[idx].userCount++
+  },
 }
