@@ -1,22 +1,30 @@
 import { apiClient } from "./client";
 
+export interface ApiUserRole {
+  roleId: string;
+  roleName: string;
+}
+
 export interface ApiUser {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   position: string;
   email: string;
   registrationStatus: 'pending_credentials' | 'active';
+  isActive: boolean;
   isSuperAdmin: boolean;
   createdAt: string;
+  updatedAt: string;
   deletedAt?: string | null;
+  roles: ApiUserRole[];
 }
 
 export interface CreateUserDto {
   position: string;
   email: string;
   isSuperAdmin: boolean;
-  companyId?: string;
+  orgId?: string;
 }
 
 export interface UpdateUserDto {
@@ -37,6 +45,9 @@ export const usersApi = {
 
   listSuperAdmin: () =>
     apiClient.get<ApiUser[]>("/users/super-admins").then((r) => r.data),
+
+  listUsersByOrg: (orgId: string): Promise<ApiUser[]> =>
+    apiClient.get<ApiUser[]>(`/users/by-org/${orgId}`).then((r) => r.data),
 
   create: (dto: CreateUserDto) =>
     apiClient.post<ApiUser>("/users", dto).then((r) => r.data),
