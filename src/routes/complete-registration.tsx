@@ -30,10 +30,10 @@ const schema = z
     lastName: requiredString('The last name'),
     idNumber: requiredString('The ID number'),
     password: newPasswordField,
-    confirmPassword: z.string().min(1, 'Confirm your password'),
+    confirmPassword: z.string().min(1, 'validation.confirmPassword.required'),
   })
   .refine((d) => d.password === d.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'validation.confirmPassword.noMatch',
     path: ['confirmPassword'],
   })
 
@@ -64,7 +64,6 @@ function CompleteRegistrationPage() {
     mutationFn: (values: FormValues) => {
       const { confirmPassword, ...payload } = values
       void confirmPassword
-      console.log('Payload:', { ...payload, token: token! })
       return usersApi.completeRegistration({ ...payload, token: token! })
     },
     onSuccess: () => setSuccess(true),
@@ -160,7 +159,7 @@ function CompleteRegistrationPage() {
                       {...register('firstName')}
                     />
                     {errors.firstName && (
-                      <p className="text-xs text-destructive">{errors.firstName.message}</p>
+                      <p className="text-xs text-destructive">{t(errors.firstName.message!)}</p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -174,7 +173,7 @@ function CompleteRegistrationPage() {
                       {...register('lastName')}
                     />
                     {errors.lastName && (
-                      <p className="text-xs text-destructive">{errors.lastName.message}</p>
+                      <p className="text-xs text-destructive">{t(errors.lastName.message!)}</p>
                     )}
                   </div>
                 </div>
@@ -191,7 +190,7 @@ function CompleteRegistrationPage() {
                     {...register('idNumber')}
                   />
                   {errors.idNumber && (
-                    <p className="text-xs text-destructive">{errors.idNumber.message}</p>
+                    <p className="text-xs text-destructive">{t(errors.idNumber.message!)}</p>
                   )}
                 </div>
 
@@ -220,7 +219,7 @@ function CompleteRegistrationPage() {
                     </button>
                   </div>
                   {errors.password ? (
-                    <p className="text-xs text-destructive">{errors.password.message}</p>
+                    <p className="text-xs text-destructive">{t(errors.password.message!)}</p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       {t('auth.completeRegistration.passwordHint')}
@@ -253,7 +252,7 @@ function CompleteRegistrationPage() {
                     </button>
                   </div>
                   {errors.confirmPassword && (
-                    <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+                    <p className="text-xs text-destructive">{t(errors.confirmPassword.message!)}</p>
                   )}
                 </div>
 

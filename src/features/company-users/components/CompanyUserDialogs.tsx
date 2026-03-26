@@ -33,7 +33,7 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
           </DialogHeader>
           <form
             onSubmit={createForm.handleSubmit((values) =>
-              createMutation.mutate({ ...values, isSuperAdmin: false, companyId }),
+              createMutation.mutate({ ...values, isSuperAdmin: false, orgId: companyId }),
             )}
             className="space-y-4 pt-2"
           >

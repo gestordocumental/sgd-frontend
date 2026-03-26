@@ -27,15 +27,14 @@ export function UsersTable({ hook }: UsersTableProps) {
   } = hook
   const { t } = useTranslation()
 
-  const totalActive = users.filter((u) => !isDeleted(u)).length
-  const totalSuperAdmins = superAdmins.filter((u) => u.isSuperAdmin).length
+  const totalActive = superAdmins.filter((u) => !isDeleted(u)).length
 
   return (
     <main className="p-6 space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title={t('users.totalUsers')} value={users.length} icon={<Users className="size-5 text-muted-foreground" />} />
+        <StatCard title={t('users.totalUsers')} value={superAdmins.length} icon={<Users className="size-5 text-muted-foreground" />} />
         <StatCard title={t('users.activeUsers')} value={totalActive} icon={<Users className="size-5 text-muted-foreground" />} />
-        <StatCard title={t('users.superAdmins')} value={totalSuperAdmins} icon={<ShieldCheck className="size-5 text-muted-foreground" />} />
+        <StatCard title={t('users.superAdmins')} value={superAdmins.filter((u) => u.isSuperAdmin).length} icon={<ShieldCheck className="size-5 text-muted-foreground" />} />
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -139,8 +138,11 @@ function UserRow({ user: u, onEdit, onDelete, onRestore, onToggleSuperAdmin }: U
       </TableCell>
       <TableCell>
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-            <MoreHorizontal className="size-4" />
+          <DropdownMenuTrigger
+            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={t('users.actions.menuLabel', { name: u.firstName ?? u.email })}
+          >
+            <MoreHorizontal className="size-4" aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {!isDeleted(u) && (

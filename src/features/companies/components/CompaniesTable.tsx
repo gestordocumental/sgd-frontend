@@ -45,6 +45,7 @@ interface CompaniesTableProps {
   onCreateUser: (companyId: string) => void;
   onEditUser: (u: ApiUser) => void;
   onDeleteUser: (u: ApiUser) => void;
+  onToggleUserStatus: (u: ApiUser) => void;
 }
 
 export function CompaniesTable({
@@ -52,6 +53,7 @@ export function CompaniesTable({
   onCreateUser,
   onEditUser,
   onDeleteUser,
+  onToggleUserStatus,
 }: CompaniesTableProps) {
   const {
     companies,
@@ -194,6 +196,7 @@ export function CompaniesTable({
                       companyId={company.id}
                       onEditUser={onEditUser}
                       onDeleteUser={onDeleteUser}
+                      onToggleUserStatus={onToggleUserStatus}
                     />
                   )}
                 </Fragment>
@@ -265,12 +268,14 @@ interface CompanyUsersRowProps {
   companyId: string;
   onEditUser: (u: ApiUser) => void;
   onDeleteUser: (u: ApiUser) => void;
+  onToggleUserStatus: (u: ApiUser) => void;
 }
 
 function CompanyUsersRow({
   companyId,
   onEditUser,
   onDeleteUser,
+  onToggleUserStatus,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation();
   const { data: users = [], isLoading } = useQuery({
@@ -385,7 +390,7 @@ function CompanyUsersRow({
                               <DropdownMenuItem onClick={() => onEditUser(u)}>
                                 <PencilIcon className="size-4" /> {t('companies.actions.editUser')}
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onToggleUserStatus(u)}>
                                 {isDeleted(u) ? (
                                   <>
                                     <CheckIcon className="size-4" /> {t('companies.actions.activateUser')}

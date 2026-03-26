@@ -44,18 +44,34 @@ function LoginPage() {
 
   const { mutate: login, isPending } = useMutation({
     mutationFn: authApi.login,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const token = data.accessToken;
       const payload = token ? decodeJwt(token) : null;
       const isSuperAdmin = payload?.isSuperAdmin === true;
 
-      setAuth(data.user, token, data.refreshToken, isSuperAdmin);
       if (isSuperAdmin) {
+        setAuth(data.user, token, data.refreshToken, true);
         navigate({ to: "/dashboard/admin" });
-      } else {
-        // TODO: manejar selector de empresa cuando haya múltiples orgs
-        navigate({ to: "/dashboard" });
+        return;
       }
+
+      // For company users: resolve their company and get a company-scoped token
+      setAuth(data.user, token, data.refreshToken, false);
+      try {
+        const companies = await authApi.getMyCompanies();
+        if (companies.length > 0) {
+          const { id: companyId, name: companyName } = companies[0];
+          const { accessToken: companyToken } = await authApi.switchCompany(companyId);
+          setAuth(
+            { ...data.user, companyId, companyName },
+            companyToken,
+            data.refreshToken,
+            false,
+          );
+        }
+      } catch { /* continue with original token; API calls will surface errors */ }
+
+      navigate({ to: "/dashboard" });
     },
     onError: (error: AxiosError<{ message: string | string[] }>) => {
       const raw = error.response?.data?.message;
@@ -170,7 +186,7 @@ function LoginPage() {
               />
               {errors.email && (
                 <p className="text-xs text-destructive">
-                  {errors.email.message}
+                  {t(errors.email.message!)}
                 </p>
               )}
             </div>
@@ -207,7 +223,7 @@ function LoginPage() {
               </div>
               {errors.password && (
                 <p className="text-xs text-destructive">
-                  {errors.password.message}
+                  {t(errors.password.message!)}
                 </p>
               )}
             </div>

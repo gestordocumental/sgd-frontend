@@ -1,4 +1,23 @@
 {
+  "validation": {
+    "required": "This field is required",
+    "email": {
+      "required": "Email is required",
+      "invalid": "Enter a valid email address"
+    },
+    "password": {
+      "required": "Password is required",
+      "minLength": "Password must be at least 8 characters",
+      "noSpaces": "Password must not contain spaces",
+      "uppercase": "Password must contain at least one uppercase letter",
+      "specialChar": "Password must contain at least one special character",
+      "noConsecutive": "Password must not contain consecutive numbers (e.g. 123, 456)"
+    },
+    "confirmPassword": {
+      "required": "Please confirm your password",
+      "noMatch": "Passwords do not match"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
@@ -161,6 +180,7 @@
     "superAdmin": "Super Admin",
     "userBadge": "User",
     "actions": {
+      "menuLabel": "Actions for {{name}}",
       "edit": "Edit",
       "delete": "Delete",
       "restore": "Restore",

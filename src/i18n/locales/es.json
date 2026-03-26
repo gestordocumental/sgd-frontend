@@ -1,4 +1,23 @@
 {
+  "validation": {
+    "required": "Este campo es requerido",
+    "email": {
+      "required": "El correo es requerido",
+      "invalid": "Ingresa un correo electrónico válido"
+    },
+    "password": {
+      "required": "La contraseña es requerida",
+      "minLength": "La contraseña debe tener al menos 8 caracteres",
+      "noSpaces": "La contraseña no debe contener espacios",
+      "uppercase": "La contraseña debe contener al menos una letra mayúscula",
+      "specialChar": "La contraseña debe contener al menos un carácter especial",
+      "noConsecutive": "La contraseña no debe contener números consecutivos (ej. 123, 456)"
+    },
+    "confirmPassword": {
+      "required": "Por favor confirma tu contraseña",
+      "noMatch": "Las contraseñas no coinciden"
+    }
+  },
   "common": {
     "cancel": "Cancelar",
     "save": "Guardar",
@@ -161,6 +180,7 @@
     "superAdmin": "Super Admin",
     "userBadge": "Usuario",
     "actions": {
+      "menuLabel": "Acciones para {{name}}",
       "edit": "Editar",
       "delete": "Eliminar",
       "restore": "Restaurar",

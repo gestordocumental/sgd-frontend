@@ -1,3 +1,5 @@
+import * as React from "react"
+
 interface NavItemProps {
   icon: React.ReactNode
   label: string

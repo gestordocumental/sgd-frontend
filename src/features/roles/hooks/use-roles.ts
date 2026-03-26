@@ -30,12 +30,14 @@ export function useRoles(companyId: string) {
     queryKey: ['roles', companyId],
     queryFn: () => rolesApi.listRoles(companyId),
     staleTime: 60_000,
+    enabled: !!companyId,
   })
 
   const { data: userPermissions = [] } = useQuery({
     queryKey: ['user-permissions', companyId],
     queryFn: () => rolesApi.listUserPermissions(companyId),
     staleTime: 60_000,
+    enabled: !!companyId,
   })
 
   const invalidateRoles = () =>

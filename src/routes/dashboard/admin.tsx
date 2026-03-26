@@ -10,7 +10,7 @@ import { NavItem } from '@/components/ui/nav-item'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/store/authStore'
-import { initials } from '@/lib/formatters'
+import { initials, isDeleted } from '@/lib/formatters'
 import { useAdminUsers } from '@/features/users/hooks/use-admin-users'
 import { useAdminCompanies } from '@/features/companies/hooks/use-admin-companies'
 import { UsersTable } from '@/features/users/components/UsersTable'
@@ -110,6 +110,11 @@ function AdminDashboard() {
             onCreateUser={(companyId) => users.openCreate('company', companyId)}
             onEditUser={users.openEdit}
             onDeleteUser={users.setDeleteUser}
+            onToggleUserStatus={(u) =>
+              isDeleted(u)
+                ? users.restoreMutation.mutate(u.id)
+                : users.deleteMutation.mutate(u.id)
+            }
           />
         </TabsContent>
       </Tabs>

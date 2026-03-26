@@ -31,6 +31,7 @@ export function useCompanyUsers(companyId: string) {
     queryKey: ['company', companyId],
     queryFn: () => companiesApi.getById(companyId),
     staleTime: 60_000,
+    enabled: !!companyId,
   })
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -39,6 +40,7 @@ export function useCompanyUsers(companyId: string) {
     staleTime: 60_000,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
+    enabled: !!companyId,
   })
 
   const invalidate = () =>

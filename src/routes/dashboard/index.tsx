@@ -19,8 +19,6 @@ import { CompanyUserDialogs } from '@/features/company-users/components/CompanyU
 import { RolesTab } from '@/features/roles/components/RolesTab'
 import { RoleDialogs } from '@/features/roles/components/RoleDialogs'
 
-const DEMO_COMPANY_ID = 'c1'
-
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
     const { isSuperAdmin } = useAuthStore.getState()
@@ -33,7 +31,7 @@ function CompanyDashboard() {
   const navigate = useNavigate()
   const { user: me, clearAuth } = useAuthStore()
   const { t } = useTranslation()
-  const companyId = me?.companyId ?? DEMO_COMPANY_ID
+  const companyId = me?.companyId ?? ''
   const [activeTab, setActiveTab] = useState<'company' | 'users' | 'roles'>('company')
 
   const companyUsers = useCompanyUsers(companyId)

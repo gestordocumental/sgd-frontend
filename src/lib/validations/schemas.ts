@@ -4,35 +4,35 @@ import { z } from 'zod'
 
 export const emailField = z
   .string()
-  .min(1, 'Email is required')
+  .min(1, 'validation.email.required')
   .refine(
     (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-    'Enter a valid email address',
+    'validation.email.invalid',
   )
 
 // For login forms — only checks that it is not empty
 export const passwordField = z
   .string()
-  .min(1, 'Password is required')
+  .min(1, 'validation.password.required')
 
 // For creating or changing a password — applies the same rules as the backend
 export const newPasswordField = z
   .string()
-  .min(1, 'Password is required')
-  .min(8, 'Password must be at least 8 characters')
-  .refine((val) => /^\S+$/.test(val), 'Password must not contain spaces')
-  .refine((val) => /[A-Z]/.test(val), 'Password must contain at least one uppercase letter')
+  .min(1, 'validation.password.required')
+  .min(8, 'validation.password.minLength')
+  .refine((val) => /^\S+$/.test(val), 'validation.password.noSpaces')
+  .refine((val) => /[A-Z]/.test(val), 'validation.password.uppercase')
   .refine(
     (val) => /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/.test(val),
-    'Password must contain at least one special character',
+    'validation.password.specialChar',
   )
   .refine(
     (val) => /^(?!.*(?:012|123|234|345|456|567|678|789|890))[\s\S]*$/.test(val),
-    'Password must not contain consecutive numbers (e.g. 123, 456)',
+    'validation.password.noConsecutive',
   )
 
-export const requiredString = (label: string) =>
-  z.string().min(1, `${label} is required`)
+export const requiredString = (_label: string) =>
+  z.string().min(1, 'validation.required')
 
 // ── Schemas de formularios ───────────────────────────────────────────────────
 

@@ -57,10 +57,12 @@ export function useAdminUsers() {
       if (dto.orgId) {
         const companyRoles = await rolesApi.listRoles(dto.orgId)
         const adminRole = companyRoles.find((r) =>
-          r.name.toLowerCase().includes('admin'),
+          r.name.toLowerCase() === 'admin',
         )
         if (adminRole) {
           await rolesApi.assignUserToRole(adminRole.id, user.id)
+        } else {
+          console.warn(`No admin role found for company ${dto.orgId}. User created without role assignment.`)
         }
       }
       return user

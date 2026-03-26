@@ -16,6 +16,7 @@ interface AuthStore {
   isAuthenticated: boolean
   isSuperAdmin: boolean
   setAuth: (user: AuthUser, accessToken: string, refreshToken: string, isSuperAdmin: boolean) => void
+  updateAccessToken: (accessToken: string) => void
   clearAuth: () => void
 }
 
@@ -44,6 +45,16 @@ export const useAuthStore = create<AuthStore>()((set) => {
       )
       localStorage.setItem('sgd-refresh-token', refreshToken)
       set({ user, accessToken, isAuthenticated: true, isSuperAdmin })
+    },
+
+    updateAccessToken: (accessToken) => {
+      const raw = localStorage.getItem(AUTH_KEY)
+      if (raw) {
+        try {
+          localStorage.setItem(AUTH_KEY, JSON.stringify({ ...JSON.parse(raw), accessToken }))
+        } catch { /* ignore */ }
+      }
+      set({ accessToken })
     },
 
     clearAuth: () => {
