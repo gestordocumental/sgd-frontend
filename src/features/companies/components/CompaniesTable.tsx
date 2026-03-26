@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   Building2,
   CheckCircle,
@@ -62,6 +63,7 @@ export function CompaniesTable({
     toggleExpand,
     toggleStatusMutation,
   } = hook;
+  const { t } = useTranslation();
 
   const totalActiveCompanies = companies.filter(
     (c) => c.status === "active",
@@ -71,12 +73,12 @@ export function CompaniesTable({
     <main className="p-6 space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
-          title="Total empresas"
+          title={t('companies.totalCompanies')}
           value={companies.length}
           icon={<Building2 className="size-5 text-muted-foreground" />}
         />
         <StatCard
-          title="Empresas activas"
+          title={t('companies.activeCompanies')}
           value={totalActiveCompanies}
           icon={<CheckCircle className="size-5 text-muted-foreground" />}
         />
@@ -84,27 +86,27 @@ export function CompaniesTable({
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold">Empresas</h2>
+          <h2 className="text-sm font-semibold">{t('companies.title')}</h2>
         </div>
 
         {companiesLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            Cargando empresas...
+            {t('companies.loading')}
           </div>
         ) : companies.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            No hay empresas registradas
+            {t('companies.empty')}
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>NIT</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Creación</TableHead>
+                <TableHead>{t('companies.companyColumn')}</TableHead>
+                <TableHead>{t('companies.nit')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                <TableHead>{t('common.address')}</TableHead>
+                <TableHead>{t('common.phone')}</TableHead>
+                <TableHead>{t('common.created')}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -148,14 +150,14 @@ export function CompaniesTable({
                           variant="outline"
                           className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
                         >
-                          Activo
+                          {t('common.active')}
                         </Badge>
                       ) : (
                         <Badge
                           variant="outline"
                           className="text-xs text-muted-foreground"
                         >
-                          Inactivo
+                          {t('common.inactive')}
                         </Badge>
                       )}
                     </TableCell>
@@ -221,6 +223,7 @@ function CompanyActions({
   onToggleStatus,
   onDelete,
 }: CompanyActionsProps) {
+  const { t } = useTranslation();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
@@ -228,19 +231,19 @@ function CompanyActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={onCreateUser}>
-          <UserPlus className="size-4" /> Crear usuario
+          <UserPlus className="size-4" /> {t('companies.actions.createUser')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onEdit}>
-          <PencilIcon className="size-4" /> Editar empresa
+          <PencilIcon className="size-4" /> {t('companies.actions.editCompany')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onToggleStatus}>
           {company.status === "active" ? (
             <>
-              <XCircle className="size-4" /> Desactivar empresa
+              <XCircle className="size-4" /> {t('companies.actions.deactivateCompany')}
             </>
           ) : (
             <>
-              <CheckCircle className="size-4" /> Activar empresa
+              <CheckCircle className="size-4" /> {t('companies.actions.activateCompany')}
             </>
           )}
         </DropdownMenuItem>
@@ -249,7 +252,7 @@ function CompanyActions({
           className="text-destructive focus:text-destructive"
           onClick={onDelete}
         >
-          <Trash2 className="size-4" /> Eliminar empresa
+          <Trash2 className="size-4" /> {t('companies.actions.deleteCompany')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -269,6 +272,7 @@ function CompanyUsersRow({
   onEditUser,
   onDeleteUser,
 }: CompanyUsersRowProps) {
+  const { t } = useTranslation();
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["company-users", companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
@@ -283,28 +287,28 @@ function CompanyUsersRow({
         <div className="bg-muted/40 border-b border-border">
           <div className="pl-14 pr-6 py-4">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Usuarios de la empresa
+              {t('companies.companyUsers')}
             </p>
 
             {isLoading ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
-                Cargando usuarios...
+                {t('companies.loadingUsers')}
               </p>
             ) : users.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
-                Esta empresa no tiene usuarios registrados
+                {t('companies.noUsers')}
               </p>
             ) : (
               <div className="rounded-md border border-border bg-card overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="text-xs py-2.5">Usuario</TableHead>
-                      <TableHead className="text-xs py-2.5">Estado</TableHead>
+                      <TableHead className="text-xs py-2.5">{t('common.user')}</TableHead>
+                      <TableHead className="text-xs py-2.5">{t('common.status')}</TableHead>
                       <TableHead className="text-xs py-2.5">
-                        Estado Registro
+                        {t('companies.registrationStatus')}
                       </TableHead>
-                      <TableHead className="text-xs py-2.5">Rol</TableHead>
+                      <TableHead className="text-xs py-2.5">{t('common.role')}</TableHead>
                       <TableHead className="w-10 py-2.5" />
                     </TableRow>
                   </TableHeader>
@@ -334,29 +338,28 @@ function CompanyUsersRow({
                         <TableCell className="py-2.5">
                           {isDeleted(u) ? (
                             <Badge variant="destructive" className="text-xs">
-                              Inactivo
+                              {t('common.inactive')}
                             </Badge>
                           ) : (
                             <Badge
                               variant="outline"
                               className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
                             >
-                              Activo
+                              {t('common.active')}
                             </Badge>
                           )}
                         </TableCell>
                         <TableCell>
                           {u.registrationStatus === "pending_credentials" ? (
                             <Badge variant="default" className="gap-1 text-xs">
-                              <ShieldCheck className="size-3" /> Pendiente de
-                              Credenciales
+                              <ShieldCheck className="size-3" /> {t('companies.pendingCredentials')}
                             </Badge>
                           ) : (
                             <Badge
                               variant="outline"
                               className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
                             >
-                              <ShieldCheck className="size-3" /> Registrado
+                              <ShieldCheck className="size-3" /> {t('common.registered')}
                             </Badge>
                           )}
                         </TableCell>
@@ -370,7 +373,7 @@ function CompanyUsersRow({
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Sin rol</span>
+                            <span className="text-xs text-muted-foreground">{t('common.noRole')}</span>
                           )}
                         </TableCell>
                         <TableCell className="py-2.5">
@@ -380,18 +383,16 @@ function CompanyUsersRow({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onEditUser(u)}>
-                                <PencilIcon className="size-4" /> Editar usuario
+                                <PencilIcon className="size-4" /> {t('companies.actions.editUser')}
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 {isDeleted(u) ? (
                                   <>
-                                    <CheckIcon className="size-4" /> Activar
-                                    usuario
+                                    <CheckIcon className="size-4" /> {t('companies.actions.activateUser')}
                                   </>
                                 ) : (
                                   <>
-                                    <XIcon className="size-4" /> Desactivar
-                                    usuario
+                                    <XIcon className="size-4" /> {t('companies.actions.deactivateUser')}
                                   </>
                                 )}
                               </DropdownMenuItem>
@@ -400,7 +401,7 @@ function CompanyUsersRow({
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => onDeleteUser(u)}
                               >
-                                <Trash2 className="size-4" /> Eliminar usuario
+                                <Trash2 className="size-4" /> {t('companies.actions.deleteUser')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

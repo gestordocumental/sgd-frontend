@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,33 +34,40 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
     assignUserToRoleMutation, assignPermMutation, revokePermMutation,
     userPermissions,
   } = hook
+  const { t } = useTranslation()
+
+  const getPermissionLabel = (permId: string) => {
+    const perm = ALL_PERMISSIONS.find((p) => p.id === permId)
+    if (!perm) return permId
+    return t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
+  }
 
   return (
     <>
       {/* ── Crear rol ─────────────────────────────────────────────── */}
       <Dialog open={createRoleOpen} onOpenChange={setCreateRoleOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Nuevo rol</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('roles.dialogs.createTitle')}</DialogTitle></DialogHeader>
           <form
             onSubmit={createForm.handleSubmit((values) =>
               createRoleMutation.mutate({ ...values, permissionIds: selectedPermIds }),
             )}
             className="space-y-4 pt-2"
           >
-            <FormField id="cr-name" label="Nombre del rol" error={createForm.formState.errors.name?.message}>
-              <Input id="cr-name" placeholder="Gestor Documentos" {...createForm.register('name')} />
+            <FormField id="cr-name" label={t('roles.dialogs.roleNameLabel')} error={createForm.formState.errors.name?.message}>
+              <Input id="cr-name" placeholder={t('roles.dialogs.roleNamePlaceholder')} {...createForm.register('name')} />
             </FormField>
-            <FormField id="cr-desc" label="Descripción" error={createForm.formState.errors.description?.message}>
-              <Input id="cr-desc" placeholder="Descripción breve del rol" {...createForm.register('description')} />
+            <FormField id="cr-desc" label={t('common.description')} error={createForm.formState.errors.description?.message}>
+              <Input id="cr-desc" placeholder={t('roles.dialogs.descriptionPlaceholder')} {...createForm.register('description')} />
             </FormField>
             <div className="space-y-2">
-              <Label className="text-sm">Permisos del rol</Label>
+              <Label className="text-sm">{t('roles.dialogs.rolePermissionsLabel')}</Label>
               <PermissionSelector permissions={ALL_PERMISSIONS} selected={selectedPermIds} onToggle={togglePerm} />
             </div>
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setCreateRoleOpen(false)}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateRoleOpen(false)}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={createRoleMutation.isPending || !createForm.formState.isValid}>
-                {createRoleMutation.isPending ? 'Creando...' : 'Crear rol'}
+                {createRoleMutation.isPending ? t('common.creating') : t('roles.dialogs.createButton')}
               </Button>
             </DialogFooter>
           </form>
@@ -69,7 +77,7 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
       {/* ── Editar rol ────────────────────────────────────────────── */}
       <Dialog open={!!editRole} onOpenChange={(o) => { if (!o) setEditRole(null) }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Editar rol</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('roles.dialogs.editTitle')}</DialogTitle></DialogHeader>
           <form
             onSubmit={editForm.handleSubmit((values) => {
               if (!editRole) return
@@ -77,20 +85,20 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
             })}
             className="space-y-4 pt-2"
           >
-            <FormField id="er-name" label="Nombre del rol" error={editForm.formState.errors.name?.message}>
+            <FormField id="er-name" label={t('roles.dialogs.roleNameLabel')} error={editForm.formState.errors.name?.message}>
               <Input id="er-name" {...editForm.register('name')} />
             </FormField>
-            <FormField id="er-desc" label="Descripción" error={editForm.formState.errors.description?.message}>
+            <FormField id="er-desc" label={t('common.description')} error={editForm.formState.errors.description?.message}>
               <Input id="er-desc" {...editForm.register('description')} />
             </FormField>
             <div className="space-y-2">
-              <Label className="text-sm">Permisos del rol</Label>
+              <Label className="text-sm">{t('roles.dialogs.rolePermissionsLabel')}</Label>
               <PermissionSelector permissions={ALL_PERMISSIONS} selected={selectedPermIds} onToggle={togglePerm} />
             </div>
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setEditRole(null)}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={() => setEditRole(null)}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={editRoleMutation.isPending || !editForm.formState.isValid}>
-                {editRoleMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
+                {editRoleMutation.isPending ? t('common.saving') : t('common.saveChanges')}
               </Button>
             </DialogFooter>
           </form>
@@ -100,15 +108,16 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
       {/* ── Eliminar rol ──────────────────────────────────────────── */}
       <Dialog open={!!deleteRole} onOpenChange={(o) => { if (!o) setDeleteRole(null) }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Eliminar rol</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('roles.dialogs.deleteTitle')}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            ¿Eliminar el rol{' '}
-            <span className="font-medium text-foreground">"{deleteRole?.name}"</span>? Los usuarios con este rol perderán los permisos asociados.
+            {t('roles.dialogs.deleteConfirmPre')}{' '}
+            <span className="font-medium text-foreground">"{deleteRole?.name}"</span>
+            {t('roles.dialogs.deleteConfirmPost')}
           </p>
           <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setDeleteRole(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeleteRole(null)}>{t('common.cancel')}</Button>
             <Button variant="destructive" disabled={deleteRoleMutation.isPending} onClick={() => deleteRole && deleteRoleMutation.mutate(deleteRole.id)}>
-              {deleteRoleMutation.isPending ? 'Eliminando...' : 'Eliminar rol'}
+              {deleteRoleMutation.isPending ? t('common.deleting') : t('roles.dialogs.deleteButton')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -117,7 +126,7 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
       {/* ── Asignar usuario a rol ─────────────────────────────────── */}
       <Dialog open={!!assignRoleUser} onOpenChange={(o) => { if (!o) setAssignRoleUser(null) }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Asignar rol · {assignRoleUser?.role.name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('roles.dialogs.assignRoleTitle', { roleName: assignRoleUser?.role.name })}</DialogTitle></DialogHeader>
           <div className="space-y-1 py-2">
             {activeUsers
               .filter((u) => !assignRoleUser?.role.userIds.includes(u.id))
@@ -138,11 +147,11 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
                 </button>
               ))}
             {activeUsers.filter((u) => !assignRoleUser?.role.userIds.includes(u.id)).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Todos los usuarios activos ya tienen este rol</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t('roles.dialogs.allUsersHaveRole')}</p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignRoleUser(null)}>Cerrar</Button>
+            <Button variant="outline" onClick={() => setAssignRoleUser(null)}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -150,9 +159,12 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
       {/* ── Asignar permiso directo ───────────────────────────────── */}
       <Dialog open={!!assignPermUser} onOpenChange={(o) => { if (!o) setAssignPermUser(null) }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Asignar permiso directamente</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('roles.dialogs.assignPermissionTitle')}</DialogTitle></DialogHeader>
           <p className="text-xs text-muted-foreground -mt-2">
-            Permiso: <span className="font-medium text-foreground">{ALL_PERMISSIONS.find((p) => p.id === assignPermUser?.permissionId)?.label}</span>
+            {t('roles.dialogs.permissionLabel')}{' '}
+            <span className="font-medium text-foreground">
+              {assignPermUser ? getPermissionLabel(assignPermUser.permissionId) : ''}
+            </span>
           </p>
           <div className="space-y-1 py-2">
             {activeUsers
@@ -180,11 +192,11 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
               if (!assignPermUser) return false
               return !userPermissions.some((up) => up.userId === u.id && up.permissionId === assignPermUser.permissionId)
             }).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Todos los usuarios ya tienen este permiso asignado directamente</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t('roles.dialogs.allUsersHavePermission')}</p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignPermUser(null)}>Cerrar</Button>
+            <Button variant="outline" onClick={() => setAssignPermUser(null)}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -192,22 +204,22 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
       {/* ── Revocar permiso directo ───────────────────────────────── */}
       <Dialog open={!!revokePermTarget} onOpenChange={(o) => { if (!o) setRevokePermTarget(null) }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Revocar permiso directo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('roles.dialogs.revokePermissionTitle')}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            ¿Revocar el permiso{' '}
-            <span className="font-medium text-foreground">"{ALL_PERMISSIONS.find((p) => p.id === revokePermTarget?.permissionId)?.label}"</span>{' '}
-            asignado directamente a{' '}
-            <span className="font-medium text-foreground">{allUsers.find((u) => u.id === revokePermTarget?.userId)?.firstName}</span>?
-            El usuario puede conservar el permiso si lo tiene mediante un rol.
+            {t('roles.dialogs.revokePermissionConfirmPre')}{' '}
+            <span className="font-medium text-foreground">"{revokePermTarget ? getPermissionLabel(revokePermTarget.permissionId) : ''}"</span>{' '}
+            {t('roles.dialogs.revokePermissionConfirmMid')}{' '}
+            <span className="font-medium text-foreground">{allUsers.find((u) => u.id === revokePermTarget?.userId)?.firstName}</span>
+            {t('roles.dialogs.revokePermissionConfirmPost')}
           </p>
           <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setRevokePermTarget(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setRevokePermTarget(null)}>{t('common.cancel')}</Button>
             <Button
               variant="destructive"
               disabled={revokePermMutation.isPending}
               onClick={() => revokePermTarget && revokePermMutation.mutate({ userId: revokePermTarget.userId, permissionId: revokePermTarget.permissionId })}
             >
-              {revokePermMutation.isPending ? 'Revocando...' : 'Revocar'}
+              {revokePermMutation.isPending ? t('common.revoking') : t('roles.dialogs.revokeButton')}
             </Button>
           </DialogFooter>
         </DialogContent>

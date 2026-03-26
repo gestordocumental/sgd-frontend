@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -19,6 +20,7 @@ export function CompanyDialogs({ hook }: CompanyDialogsProps) {
     onCreateSubmit, onEditSubmit,
     createMutation, editMutation, deleteMutation,
   } = hook
+  const { t } = useTranslation()
 
   return (
     <>
@@ -26,25 +28,25 @@ export function CompanyDialogs({ hook }: CompanyDialogsProps) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nueva empresa</DialogTitle>
+            <DialogTitle>{t('companies.dialogs.createTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4 pt-2">
-            <FormField id="company-name" label="Nombre de la empresa" error={createForm.formState.errors.name?.message}>
-              <Input id="company-name" placeholder="Helisa Software S.A.S" {...createForm.register('name')} />
+            <FormField id="company-name" label={t('companies.dialogs.companyNameLabel')} error={createForm.formState.errors.name?.message}>
+              <Input id="company-name" placeholder={t('companies.dialogs.companyNamePlaceholder')} {...createForm.register('name')} />
             </FormField>
-            <FormField id="company-nit" label="NIT" error={createForm.formState.errors.nit?.message}>
-              <Input id="company-nit" placeholder="900.123.456-7" {...createForm.register('nit')} />
+            <FormField id="company-nit" label={t('companies.nit')} error={createForm.formState.errors.nit?.message}>
+              <Input id="company-nit" placeholder={t('companies.dialogs.nitPlaceholder')} {...createForm.register('nit')} />
             </FormField>
-            <FormField id="company-address" label="Dirección" error={createForm.formState.errors.address?.message}>
-              <Input id="company-address" placeholder="Calle 123 # 45-67, Bogotá" {...createForm.register('address')} />
+            <FormField id="company-address" label={t('common.address')} error={createForm.formState.errors.address?.message}>
+              <Input id="company-address" placeholder={t('companies.dialogs.addressPlaceholder')} {...createForm.register('address')} />
             </FormField>
-            <FormField id="company-phone" label="Teléfono" error={createForm.formState.errors.phone?.message}>
-              <Input id="company-phone" placeholder="+57 601 234 5678" {...createForm.register('phone')} />
+            <FormField id="company-phone" label={t('common.phone')} error={createForm.formState.errors.phone?.message}>
+              <Input id="company-phone" placeholder={t('companies.dialogs.phonePlaceholder')} {...createForm.register('phone')} />
             </FormField>
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={createMutation.isPending || !createForm.formState.isValid}>
-                {createMutation.isPending ? 'Creando...' : 'Crear empresa'}
+                {createMutation.isPending ? t('common.creating') : t('companies.dialogs.createButton')}
               </Button>
             </DialogFooter>
           </form>
@@ -55,25 +57,25 @@ export function CompanyDialogs({ hook }: CompanyDialogsProps) {
       <Dialog open={!!editCompany} onOpenChange={(open) => { if (!open) setEditCompany(null) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar empresa</DialogTitle>
+            <DialogTitle>{t('companies.dialogs.editTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4 pt-2">
-            <FormField id="edit-company-name" label="Nombre de la empresa" error={editForm.formState.errors.name?.message}>
-              <Input id="edit-company-name" placeholder="Helisa Software S.A.S" {...editForm.register('name')} />
+            <FormField id="edit-company-name" label={t('companies.dialogs.companyNameLabel')} error={editForm.formState.errors.name?.message}>
+              <Input id="edit-company-name" placeholder={t('companies.dialogs.companyNamePlaceholder')} {...editForm.register('name')} />
             </FormField>
-            <FormField id="edit-company-nit" label="NIT" error={editForm.formState.errors.nit?.message}>
-              <Input id="edit-company-nit" placeholder="900.123.456-7" {...editForm.register('nit')} />
+            <FormField id="edit-company-nit" label={t('companies.nit')} error={editForm.formState.errors.nit?.message}>
+              <Input id="edit-company-nit" placeholder={t('companies.dialogs.nitPlaceholder')} {...editForm.register('nit')} />
             </FormField>
-            <FormField id="edit-company-address" label="Dirección" error={editForm.formState.errors.address?.message}>
-              <Input id="edit-company-address" placeholder="Calle 123 # 45-67, Bogotá" {...editForm.register('address')} />
+            <FormField id="edit-company-address" label={t('common.address')} error={editForm.formState.errors.address?.message}>
+              <Input id="edit-company-address" placeholder={t('companies.dialogs.addressPlaceholder')} {...editForm.register('address')} />
             </FormField>
-            <FormField id="edit-company-phone" label="Teléfono" error={editForm.formState.errors.phone?.message}>
-              <Input id="edit-company-phone" placeholder="+57 601 234 5678" {...editForm.register('phone')} />
+            <FormField id="edit-company-phone" label={t('common.phone')} error={editForm.formState.errors.phone?.message}>
+              <Input id="edit-company-phone" placeholder={t('companies.dialogs.phonePlaceholder')} {...editForm.register('phone')} />
             </FormField>
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setEditCompany(null)}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={() => setEditCompany(null)}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={editMutation.isPending || !editForm.formState.isValid}>
-                {editMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
+                {editMutation.isPending ? t('common.saving') : t('common.saveChanges')}
               </Button>
             </DialogFooter>
           </form>
@@ -84,20 +86,21 @@ export function CompanyDialogs({ hook }: CompanyDialogsProps) {
       <Dialog open={!!deleteCompany} onOpenChange={(open) => { if (!open) setDeleteCompany(null) }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Eliminar empresa</DialogTitle>
+            <DialogTitle>{t('companies.dialogs.deleteTitle')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            ¿Estás seguro de que deseas eliminar{' '}
-            <span className="font-medium text-foreground">{deleteCompany?.name}</span>? Esta acción no se puede deshacer.
+            {t('companies.dialogs.deleteConfirmPre')}{' '}
+            <span className="font-medium text-foreground">{deleteCompany?.name}</span>
+            {t('companies.dialogs.deleteConfirmPost')}
           </p>
           <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setDeleteCompany(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeleteCompany(null)}>{t('common.cancel')}</Button>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={() => deleteCompany && deleteMutation.mutate(deleteCompany.id)}
             >
-              {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+              {deleteMutation.isPending ? t('common.deleting') : t('companies.dialogs.deleteButton')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -8,13 +8,13 @@ import { rolesApi } from '@/lib/api/roles'
 import { emailField, requiredString } from '@/lib/validations/schemas'
 
 const createUserSchema = z.object({
-  position: requiredString('El cargo o posición'),
+  position: requiredString('The position'),
   email: emailField,
   orgId: z.string().optional(),
 })
 
 const editUserSchema = z.object({
-  name: requiredString('El nombre'),
+  name: requiredString('The name'),
   email: emailField,
 })
 

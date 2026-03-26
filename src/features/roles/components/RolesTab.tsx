@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Shield, Key, ChevronRight, ChevronDown, MoreHorizontal, Pencil, Trash2, UserPlus, X, ShieldOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -100,19 +101,20 @@ function RolesViewTabs({
   onEditRole, onDeleteRole, onRemoveUserFromRole,
   onAssignRoleUser, onAssignPermUser, onRevokePermUser,
 }: RolesViewTabsProps) {
+  const { t } = useTranslation()
   return (
     <Tabs defaultValue="by-role" className="gap-0">
       <TabsList className="w-fit">
-        <TabsTrigger value="by-role"><Shield className="size-4" />Por rol</TabsTrigger>
-        <TabsTrigger value="by-permission"><Key className="size-4" />Por permiso</TabsTrigger>
+        <TabsTrigger value="by-role"><Shield className="size-4" />{t('roles.byRole')}</TabsTrigger>
+        <TabsTrigger value="by-permission"><Key className="size-4" />{t('roles.byPermission')}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="by-role" className="mt-4">
         <div className="rounded-lg border border-border bg-card overflow-hidden">
           {rolesLoading ? (
-            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Cargando roles...</div>
+            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('roles.loading')}</div>
           ) : roles.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">No hay roles creados</div>
+            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('roles.empty')}</div>
           ) : (
             <div className="divide-y divide-border">
               {roles.map((role) => (
@@ -163,7 +165,14 @@ interface RoleRowProps {
 }
 
 function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemoveUser, onAssignUser }: RoleRowProps) {
+  const { t } = useTranslation()
   const roleUsers = users.filter((u) => role.userIds.includes(u.id))
+
+  const getPermLabel = (permId: string) => {
+    const perm = ALL_PERMISSIONS.find((p) => p.id === permId)
+    if (!perm) return permId
+    return t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
+  }
 
   return (
     <div>
@@ -179,17 +188,21 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
           <p className="text-xs text-muted-foreground">{role.description}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <span className="text-xs text-muted-foreground">{role.permissionIds.length} permisos</span>
-          <span className="text-xs text-muted-foreground">{roleUsers.length} {roleUsers.length === 1 ? 'usuario' : 'usuarios'}</span>
+          <span className="text-xs text-muted-foreground">{t('roles.permissionsCount', { count: role.permissionIds.length })}</span>
+          <span className="text-xs text-muted-foreground">
+            {roleUsers.length === 1
+              ? t('roles.usersCount_one', { count: roleUsers.length })
+              : t('roles.usersCount_other', { count: roleUsers.length })}
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}><Pencil className="size-4" />Editar rol</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}><Pencil className="size-4" />{t('roles.actions.editRole')}</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
-                <Trash2 className="size-4" />Eliminar rol
+                <Trash2 className="size-4" />{t('roles.actions.deleteRole')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -199,27 +212,27 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
       {isExpanded && (
         <div className="bg-muted/30 border-t border-border px-14 py-4 space-y-4">
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Permisos del rol</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('roles.rolePermissions')}</p>
             <div className="flex flex-wrap gap-1.5">
               {role.permissionIds.length === 0 ? (
-                <span className="text-xs text-muted-foreground">Sin permisos</span>
+                <span className="text-xs text-muted-foreground">{t('roles.noPermissions')}</span>
               ) : (
                 role.permissionIds.map((pid) => {
                   const perm = ALL_PERMISSIONS.find((p) => p.id === pid)
-                  return perm ? <Badge key={pid} variant="outline" className="text-xs">{perm.label}</Badge> : null
+                  return perm ? <Badge key={pid} variant="outline" className="text-xs">{getPermLabel(pid)}</Badge> : null
                 })
               )}
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Usuarios asignados</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('roles.assignedUsers')}</p>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onAssignUser}>
-                <UserPlus className="size-3" />Asignar usuario
+                <UserPlus className="size-3" />{t('roles.assignUser')}
               </Button>
             </div>
             {roleUsers.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Ningún usuario tiene este rol</p>
+              <p className="text-xs text-muted-foreground">{t('roles.noUsers')}</p>
             ) : (
               <div className="space-y-1">
                 {roleUsers.map((u) => (
@@ -286,13 +299,23 @@ interface ByPermissionViewProps {
 }
 
 function ByPermissionView({ permissions, roles, users, userPermissions, expandedPermissions, onToggle, onAssignPermUser, onRevokePermUser }: ByPermissionViewProps) {
+  const { t } = useTranslation()
   const categories = useMemo(() => [...new Set(permissions.map((p) => p.category))], [permissions])
+
+  const getPermLabel = (perm: ApiPermission) =>
+    t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
+
+  const getPermDescription = (perm: ApiPermission) =>
+    t(`permissions.${perm.name}.description`, { defaultValue: perm.description })
+
+  const getCategoryLabel = (category: string) =>
+    t(`permissions.categories.${category}`, { defaultValue: category })
 
   return (
     <div className="space-y-6">
       {categories.map((category) => (
         <div key={category}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{category}</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{getCategoryLabel(category)}</p>
           <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
             {permissions.filter((p) => p.category === category).map((perm) => {
               const isExpanded = expandedPermissions.has(perm.id)
@@ -309,20 +332,24 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                       <Key className="size-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{perm.label}</p>
-                      <p className="text-xs text-muted-foreground">{perm.description}</p>
+                      <p className="text-sm font-medium">{getPermLabel(perm)}</p>
+                      <p className="text-xs text-muted-foreground">{getPermDescription(perm)}</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end max-w-xs" onClick={(e) => e.stopPropagation()}>
                       {rolesWithPerm.slice(0, 3).map((r) => (
                         <Badge key={r.id} variant="secondary" className="text-xs shrink-0">{r.name}</Badge>
                       ))}
                       {rolesWithPerm.length > 3 && <Badge variant="outline" className="text-xs shrink-0">+{rolesWithPerm.length - 3}</Badge>}
-                      {rolesWithPerm.length === 0 && <span className="text-xs text-muted-foreground">Sin rol</span>}
+                      {rolesWithPerm.length === 0 && <span className="text-xs text-muted-foreground">{t('common.noRole')}</span>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{usersWithPerm.length} {usersWithPerm.length === 1 ? 'usuario' : 'usuarios'}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {usersWithPerm.length === 1
+                          ? t('roles.usersCount_one', { count: usersWithPerm.length })
+                          : t('roles.usersCount_other', { count: usersWithPerm.length })}
+                      </span>
                       <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onAssignPermUser(perm.id) }}>
-                        <UserPlus className="size-3" />Asignar
+                        <UserPlus className="size-3" />{t('common.assign')}
                       </Button>
                     </div>
                   </div>
@@ -331,7 +358,7 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                     <div className="bg-muted/30 border-t border-border px-14 py-4 space-y-3">
                       {rolesWithPerm.length > 0 && (
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Roles con este permiso</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('roles.rolesWithPermission')}</p>
                           <div className="flex flex-wrap gap-1.5">
                             {rolesWithPerm.map((r) => (
                               <Badge key={r.id} variant="outline" className="text-xs gap-1">
@@ -342,9 +369,9 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                         </div>
                       )}
                       <div>
-                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Usuarios con acceso</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('roles.usersWithAccess')}</p>
                         {usersWithPerm.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">Ningún usuario tiene este permiso</p>
+                          <p className="text-xs text-muted-foreground">{t('roles.noUsersWithPermission')}</p>
                         ) : (
                           <div className="space-y-1.5">
                             {usersWithPerm.map(({ user, viaRoles, isDirect }) => (
@@ -361,12 +388,12 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                                   ))}
                                   {isDirect && (
                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-primary border-primary/30">
-                                      <Key className="size-2.5 mr-0.5" />Directo
+                                      <Key className="size-2.5 mr-0.5" />{t('roles.direct')}
                                     </Badge>
                                   )}
                                 </div>
                                 {isDirect && (
-                                  <Button variant="ghost" size="icon" className="size-6 ml-auto text-muted-foreground hover:text-destructive" title="Revocar permiso directo" onClick={() => onRevokePermUser(user.id, perm.id)}>
+                                  <Button variant="ghost" size="icon" className="size-6 ml-auto text-muted-foreground hover:text-destructive" title={t('roles.revokeDirectPermissionTitle')} onClick={() => onRevokePermUser(user.id, perm.id)}>
                                     <ShieldOff className="size-3" />
                                   </Button>
                                 )}

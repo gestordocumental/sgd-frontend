@@ -7,7 +7,7 @@ import { companiesApi, type ApiCompany, type CreateCompanyDto, type UpdateCompan
 import { requiredString } from '@/lib/validations/schemas'
 
 const companySchema = z.object({
-  name: requiredString('El nombre de la empresa'),
+  name: requiredString('The company name'),
   nit: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),

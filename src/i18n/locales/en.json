@@ -1,0 +1,292 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "loading": "Loading...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deleted": "Deleted",
+    "noRole": "No role",
+    "status": "Status",
+    "name": "Name",
+    "email": "Email",
+    "position": "Position",
+    "address": "Address",
+    "phone": "Phone",
+    "created": "Created",
+    "description": "Description",
+    "saving": "Saving...",
+    "creating": "Creating...",
+    "deleting": "Deleting...",
+    "processing": "Processing...",
+    "restore": "Restore",
+    "assign": "Assign",
+    "revoke": "Revoke",
+    "revoking": "Revoking...",
+    "pending": "Pending",
+    "registered": "Registered",
+    "user": "User",
+    "users": "Users",
+    "role": "Role",
+    "roles": "Roles"
+  },
+  "auth": {
+    "welcomeTitle": "Welcome to SGD",
+    "welcomeSubtitle": "Enter your credentials to access the system",
+    "emailLabel": "Email",
+    "emailPlaceholder": "user@company.com",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot your password?",
+    "signIn": "Sign in",
+    "verifyingCredentials": "Verifying credentials...",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password",
+    "serverErrorFallback": "Error connecting to the server. Please try again.",
+    "devMode": "Development mode — mocks active",
+    "devCredentials": "admin@sgd.helisa.com · admin123",
+    "footer": "SGD v0.1.0 — Helisa S.A.S",
+    "completeRegistration": {
+      "title": "Complete your registration",
+      "subtitle": "Enter your personal information and create your access password.",
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "Juan",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Smith",
+      "idNumberLabel": "ID number",
+      "passwordLabel": "Password",
+      "passwordHint": "Minimum 8 characters, one uppercase letter and one special character.",
+      "confirmPasswordLabel": "Confirm password",
+      "submitButton": "Complete registration",
+      "serverErrorFallback": "Error completing registration. Please try again.",
+      "invalidToken": {
+        "title": "Invalid link",
+        "description": "The invitation link is invalid or has expired. Contact the administrator to receive a new link.",
+        "goToSignIn": "Go to sign in"
+      },
+      "success": {
+        "title": "Registration complete!",
+        "description": "Your account has been set up successfully. You can now sign in with your email and password.",
+        "goToSignIn": "Go to sign in"
+      }
+    }
+  },
+  "dashboard": {
+    "adminPanel": "Admin Panel",
+    "management": "Management",
+    "superAdmin": "Super Admin",
+    "newUser": "New user",
+    "newCompany": "New company",
+    "newRole": "New role",
+    "company": "Company",
+    "rolesAndPermissions": "Roles & permissions"
+  },
+  "companies": {
+    "title": "Companies",
+    "totalCompanies": "Total companies",
+    "activeCompanies": "Active companies",
+    "loading": "Loading companies...",
+    "empty": "There are no registered companies",
+    "companyColumn": "Company",
+    "nit": "NIT",
+    "status": "Status",
+    "address": "Address",
+    "phone": "Phone",
+    "created": "Created",
+    "companyUsers": "Company users",
+    "loadingUsers": "Loading users...",
+    "noUsers": "This company has no registered users",
+    "registrationStatus": "Registration Status",
+    "pendingCredentials": "Pending Credentials",
+    "actions": {
+      "createUser": "Create user",
+      "editCompany": "Edit company",
+      "deactivateCompany": "Deactivate company",
+      "activateCompany": "Activate company",
+      "deleteCompany": "Delete company",
+      "editUser": "Edit user",
+      "activateUser": "Activate user",
+      "deactivateUser": "Deactivate user",
+      "deleteUser": "Delete user"
+    },
+    "dialogs": {
+      "createTitle": "New company",
+      "editTitle": "Edit company",
+      "deleteTitle": "Delete company",
+      "deleteConfirm": "Are you sure you want to delete <1>{{name}}</1>? This action cannot be undone.",
+      "deleteConfirmPre": "Are you sure you want to delete",
+      "deleteConfirmPost": "? This action cannot be undone.",
+      "companyNameLabel": "Company name",
+      "companyNamePlaceholder": "Helisa Software S.A.S",
+      "nitPlaceholder": "900.123.456-7",
+      "addressPlaceholder": "123 Main St, City",
+      "phonePlaceholder": "+57 601 234 5678",
+      "createButton": "Create company",
+      "deleteButton": "Delete"
+    }
+  },
+  "companyInfo": {
+    "title": "Company information",
+    "activeUsers": "Active users",
+    "configuredRoles": "Configured roles",
+    "totalUsers": "Total users",
+    "loading": "Loading company information...",
+    "nameLabel": "Name",
+    "nitLabel": "NIT",
+    "addressLabel": "Address",
+    "statusLabel": "Status",
+    "memberSince": "Member since"
+  },
+  "users": {
+    "title": "Users",
+    "totalUsers": "Total users",
+    "activeUsers": "Active users",
+    "superAdmins": "Super admins",
+    "loading": "Loading users...",
+    "empty": "There are no registered users",
+    "companyUsers": "Company users",
+    "userColumn": "User",
+    "roleColumn": "Role",
+    "registrationColumn": "Registration Status",
+    "statusColumn": "Status",
+    "positionColumn": "Position",
+    "rolesColumn": "Roles",
+    "registrationStatusColumn": "Registration",
+    "activeCount": "{{active}} active · {{total}} total",
+    "pendingCredentials": "Pending Credentials",
+    "superAdmin": "Super Admin",
+    "userBadge": "User",
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "restore": "Restore",
+      "removeSuperAdmin": "Remove Super Admin",
+      "grantSuperAdmin": "Grant Super Admin"
+    },
+    "dialogs": {
+      "createTitle": "New user",
+      "editTitle": "Edit user",
+      "deleteTitle": "Delete user",
+      "deleteConfirm": "Are you sure you want to delete <1>{{name}}</1>? You can restore them later.",
+      "deleteConfirmCompany": "Delete <1>{{name}}</1>? You can restore them later.",
+      "deleteConfirmCompanyPre": "Delete",
+      "deleteConfirmCompanyPost": "? You can restore them later.",
+      "deleteConfirmPre": "Are you sure you want to delete",
+      "deleteConfirmPost": "? You can restore them later.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "user@company.com",
+      "positionLabel": "Position",
+      "positionPlaceholder": "Sales Manager",
+      "nameLabel": "Name",
+      "namePlaceholder": "John Smith",
+      "createButton": "Create user",
+      "deleteButton": "Delete",
+      "newUserTitle": "New user · {{companyName}}"
+    }
+  },
+  "roles": {
+    "title": "Roles & permissions",
+    "byRole": "By role",
+    "byPermission": "By permission",
+    "loading": "Loading roles...",
+    "empty": "There are no roles created",
+    "permissionsCount": "{{count}} permissions",
+    "usersCount_one": "{{count}} user",
+    "usersCount_other": "{{count}} users",
+    "rolePermissions": "Role permissions",
+    "noPermissions": "No permissions",
+    "assignedUsers": "Assigned users",
+    "noUsers": "No users have this role",
+    "assignUser": "Assign user",
+    "rolesWithPermission": "Roles with this permission",
+    "usersWithAccess": "Users with access",
+    "noUsersWithPermission": "No users have this permission",
+    "direct": "Direct",
+    "revokeDirectPermissionTitle": "Revoke direct permission",
+    "actions": {
+      "editRole": "Edit role",
+      "deleteRole": "Delete role"
+    },
+    "dialogs": {
+      "createTitle": "New role",
+      "editTitle": "Edit role",
+      "deleteTitle": "Delete role",
+      "deleteConfirm": "Delete the role <1>\"{{name}}\"</1>? Users with this role will lose the associated permissions.",
+      "deleteConfirmPre": "Delete the role",
+      "deleteConfirmPost": "? Users with this role will lose the associated permissions.",
+      "roleNameLabel": "Role name",
+      "roleNamePlaceholder": "Document Manager",
+      "descriptionPlaceholder": "Brief role description",
+      "rolePermissionsLabel": "Role permissions",
+      "createButton": "Create role",
+      "deleteButton": "Delete role",
+      "assignRoleTitle": "Assign role · {{roleName}}",
+      "allUsersHaveRole": "All active users already have this role",
+      "assignPermissionTitle": "Assign permission directly",
+      "permissionLabel": "Permission:",
+      "allUsersHavePermission": "All users already have this permission assigned directly",
+      "revokePermissionTitle": "Revoke direct permission",
+      "revokePermissionConfirm": "Revoke the permission <1>\"{{permissionLabel}}\"</1> directly assigned to <3>{{userName}}</h3>? The user may still retain the permission if they have it through a role.",
+      "revokePermissionConfirmPre": "Revoke the permission",
+      "revokePermissionConfirmMid": "directly assigned to",
+      "revokePermissionConfirmPost": "? The user may still retain the permission if they have it through a role.",
+      "revokeButton": "Revoke"
+    }
+  },
+  "permissions": {
+    "categories": {
+      "Documents": "Documents",
+      "Users": "Users",
+      "Reports": "Reports",
+      "Configuration": "Configuration"
+    },
+    "crear_documento": {
+      "label": "Create document",
+      "description": "Allows creating new documents in the system"
+    },
+    "ver_documentos": {
+      "label": "View documents",
+      "description": "Allows viewing existing documents"
+    },
+    "editar_documento": {
+      "label": "Edit document",
+      "description": "Allows editing the content of documents"
+    },
+    "eliminar_documento": {
+      "label": "Delete document",
+      "description": "Allows deleting documents from the system"
+    },
+    "aprobar_documento": {
+      "label": "Approve document",
+      "description": "Allows approving documents in the review workflow"
+    },
+    "ver_usuarios": {
+      "label": "View users",
+      "description": "Allows viewing the company user list"
+    },
+    "gestionar_usuarios": {
+      "label": "Manage users",
+      "description": "Allows creating, editing and deactivating users"
+    },
+    "ver_reportes": {
+      "label": "View reports",
+      "description": "Allows viewing reports and system statistics"
+    },
+    "exportar_reportes": {
+      "label": "Export reports",
+      "description": "Allows exporting reports in different formats"
+    },
+    "ver_configuracion": {
+      "label": "View configuration",
+      "description": "Allows viewing the company configuration"
+    },
+    "editar_configuracion": {
+      "label": "Edit configuration",
+      "description": "Allows modifying the company configuration"
+    }
+  }
+}

@@ -7,7 +7,7 @@ export const usersHandlers = [
     // Simula token expirado para probar el estado de error
     if (body.token === 'expired') {
       return HttpResponse.json(
-        { message: 'El enlace de invitación ha expirado o ya fue utilizado.' },
+        { message: 'The invitation link has expired or has already been used.' },
         { status: 400 },
       )
     }

@@ -8,12 +8,12 @@ import { companiesApi } from '@/lib/api/companies'
 import { emailField, requiredString } from '@/lib/validations/schemas'
 
 const createUserSchema = z.object({
-  position: requiredString('El cargo o posición'),
+  position: requiredString('The position'),
   email: emailField,
 })
 
 const editUserSchema = z.object({
-  name: requiredString('El nombre'),
+  name: requiredString('The name'),
   email: emailField,
 })
 

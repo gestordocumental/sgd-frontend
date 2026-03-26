@@ -5,9 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { AxiosError } from "axios";
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { authApi } from "@/lib/api/auth";
 import { useAuthStore } from "@/store/authStore";
 import { decodeJwt } from "@/lib/jwt";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const { t } = useTranslation();
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -58,7 +61,7 @@ function LoginPage() {
       const raw = error.response?.data?.message;
       const msg = Array.isArray(raw)
         ? raw[0]
-        : (raw ?? "Error al conectar con el servidor. Inténtalo de nuevo.");
+        : (raw ?? t('auth.serverErrorFallback'));
       setServerError(msg);
     },
   });
@@ -86,7 +89,7 @@ function LoginPage() {
         <div className="absolute top-7 left-8">
           <img
             src="/logo.svg"
-            alt="SGD — Sistema de Gestión Documental"
+            alt="SGD — Document Management System"
             className="h-9 w-auto"
           />
         </div>
@@ -112,13 +115,18 @@ function LoginPage() {
       {/* ══════════════════════════════════════════
           Panel derecho — formulario de acceso
       ══════════════════════════════════════════ */}
-      <div className="flex-1 lg:w-1/2 flex items-center justify-center p-8 bg-muted/30">
+      <div className="flex-1 lg:w-1/2 flex items-center justify-center p-8 bg-muted/30 relative">
+        {/* Language switcher — top right */}
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
+
         <div className="w-full max-w-sm">
           {/* Logo en móvil (se oculta en lg porque ya aparece en el panel izquierdo) */}
           <div className="lg:hidden flex justify-center mb-8">
             <img
               src="/logo.svg"
-              alt="SGD — Sistema de Gestión Documental"
+              alt="SGD — Document Management System"
               className="h-9 w-auto"
             />
           </div>
@@ -126,10 +134,10 @@ function LoginPage() {
           {/* Encabezado */}
           <div className="mb-7">
             <h1 className="text-2xl font-semibold tracking-tight">
-              Bienvenido al SGD
+              {t('auth.welcomeTitle')}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Ingresa tus credenciales para acceder al sistema
+              {t('auth.welcomeSubtitle')}
             </p>
           </div>
 
@@ -149,11 +157,11 @@ function LoginPage() {
 
             {/* Correo electrónico */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">{t('auth.emailLabel')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="usuario@empresa.com"
+                placeholder={t('auth.emailPlaceholder')}
                 autoComplete="email"
                 autoFocus
                 disabled={isPending}
@@ -169,7 +177,7 @@ function LoginPage() {
 
             {/* Contraseña */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.passwordLabel')}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -187,7 +195,7 @@ function LoginPage() {
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                   aria-label={
-                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                    showPassword ? t('auth.hidePassword') : t('auth.showPassword')
                   }
                 >
                   {showPassword ? (
@@ -210,7 +218,7 @@ function LoginPage() {
                 type="button"
                 className="text-sm text-primary hover:underline underline-offset-4"
               >
-                ¿Olvidaste tu contraseña?
+                {t('auth.forgotPassword')}
               </button>
             </div>
 
@@ -224,10 +232,10 @@ function LoginPage() {
               {isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Verificando credenciales...
+                  {t('auth.verifyingCredentials')}
                 </>
               ) : (
-                "Iniciar sesión"
+                t('auth.signIn')
               )}
             </Button>
           </form>
@@ -236,16 +244,16 @@ function LoginPage() {
           {import.meta.env.VITE_USE_MOCKS === "true" && (
             <div className="mt-6 rounded-lg bg-muted border border-border px-4 py-3 text-center">
               <p className="text-xs font-medium text-muted-foreground">
-                Modo desarrollo — mocks activos
+                {t('auth.devMode')}
               </p>
               <p className="text-xs text-muted-foreground/60 mt-0.5">
-                admin@sgd.helisa.com · admin123
+                {t('auth.devCredentials')}
               </p>
             </div>
           )}
 
           <p className="text-center text-xs text-muted-foreground/40 mt-8">
-            SGD v0.1.0 — Helisa S.A.S
+            {t('auth.footer')}
           </p>
         </div>
       </div>

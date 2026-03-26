@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { AxiosError } from 'axios'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -25,14 +26,14 @@ export const Route = createFileRoute('/complete-registration')({
 
 const schema = z
   .object({
-    firstName: requiredString('El nombre'),
-    lastName: requiredString('El apellido'),
-    idNumber: requiredString('El número de identificación'),
+    firstName: requiredString('The first name'),
+    lastName: requiredString('The last name'),
+    idNumber: requiredString('The ID number'),
     password: newPasswordField,
-    confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
+    confirmPassword: z.string().min(1, 'Confirm your password'),
   })
   .refine((d) => d.password === d.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
+    message: 'Passwords do not match',
     path: ['confirmPassword'],
   })
 
@@ -43,6 +44,7 @@ type FormValues = z.infer<typeof schema>
 function CompleteRegistrationPage() {
   const navigate = useNavigate()
   const { token } = Route.useSearch()
+  const { t } = useTranslation()
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -70,7 +72,7 @@ function CompleteRegistrationPage() {
       const raw = error.response?.data?.message
       const msg = Array.isArray(raw)
         ? raw[0]
-        : (raw ?? 'Error al completar el registro. Inténtalo de nuevo.')
+        : (raw ?? t('auth.completeRegistration.serverErrorFallback'))
       setServerError(msg)
     },
   })
@@ -90,7 +92,7 @@ function CompleteRegistrationPage() {
         <div className="absolute top-7 left-8">
           <img
             src="/logo.svg"
-            alt="SGD — Sistema de Gestión Documental"
+            alt="SGD — Document Management System"
             className="h-9 w-auto"
           />
         </div>
@@ -124,10 +126,10 @@ function CompleteRegistrationPage() {
             <>
               <div className="mb-7">
                 <h1 className="text-2xl font-semibold tracking-tight">
-                  Completa tu registro
+                  {t('auth.completeRegistration.title')}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Ingresa tus datos personales y crea tu contraseña de acceso.
+                  {t('auth.completeRegistration.subtitle')}
                 </p>
               </div>
 
@@ -147,10 +149,10 @@ function CompleteRegistrationPage() {
                 {/* Nombre + Apellido */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="firstName">Nombre</Label>
+                    <Label htmlFor="firstName">{t('auth.completeRegistration.firstNameLabel')}</Label>
                     <Input
                       id="firstName"
-                      placeholder="Juan"
+                      placeholder={t('auth.completeRegistration.firstNamePlaceholder')}
                       autoFocus
                       autoComplete="given-name"
                       disabled={isPending}
@@ -162,10 +164,10 @@ function CompleteRegistrationPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="lastName">Apellido</Label>
+                    <Label htmlFor="lastName">{t('auth.completeRegistration.lastNameLabel')}</Label>
                     <Input
                       id="lastName"
-                      placeholder="García"
+                      placeholder={t('auth.completeRegistration.lastNamePlaceholder')}
                       autoComplete="family-name"
                       disabled={isPending}
                       aria-invalid={!!errors.lastName}
@@ -179,7 +181,7 @@ function CompleteRegistrationPage() {
 
                 {/* Número de identificación */}
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="idNumber">Número de identificación</Label>
+                  <Label htmlFor="idNumber">{t('auth.completeRegistration.idNumberLabel')}</Label>
                   <Input
                     id="idNumber"
                     placeholder="1234567890"
@@ -195,7 +197,7 @@ function CompleteRegistrationPage() {
 
                 {/* Contraseña */}
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">{t('auth.completeRegistration.passwordLabel')}</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -212,7 +214,7 @@ function CompleteRegistrationPage() {
                       onClick={() => setShowPassword((p) => !p)}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
-                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                     >
                       {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
@@ -221,14 +223,14 @@ function CompleteRegistrationPage() {
                     <p className="text-xs text-destructive">{errors.password.message}</p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Mínimo 8 caracteres, una mayúscula y un carácter especial.
+                      {t('auth.completeRegistration.passwordHint')}
                     </p>
                   )}
                 </div>
 
                 {/* Confirmar contraseña */}
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                  <Label htmlFor="confirmPassword">{t('auth.completeRegistration.confirmPasswordLabel')}</Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
@@ -245,7 +247,7 @@ function CompleteRegistrationPage() {
                       onClick={() => setShowConfirm((p) => !p)}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
-                      aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      aria-label={showConfirm ? t('auth.hidePassword') : t('auth.showPassword')}
                     >
                       {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
@@ -264,10 +266,10 @@ function CompleteRegistrationPage() {
                   {isPending ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Procesando...
+                      {t('common.processing')}
                     </>
                   ) : (
-                    'Completar registro'
+                    t('auth.completeRegistration.submitButton')
                   )}
                 </Button>
               </form>
@@ -275,7 +277,7 @@ function CompleteRegistrationPage() {
           )}
 
           <p className="text-center text-xs text-muted-foreground/40 mt-8">
-            SGD v0.1.0 — Helisa S.A.S
+            {t('auth.footer')}
           </p>
         </div>
       </div>
@@ -286,6 +288,7 @@ function CompleteRegistrationPage() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function InvalidTokenState({ onGoToLogin }: { onGoToLogin: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="text-center space-y-5">
       <div className="flex justify-center">
@@ -294,20 +297,20 @@ function InvalidTokenState({ onGoToLogin }: { onGoToLogin: () => void }) {
         </div>
       </div>
       <div>
-        <h2 className="text-xl font-semibold">Enlace inválido</h2>
+        <h2 className="text-xl font-semibold">{t('auth.completeRegistration.invalidToken.title')}</h2>
         <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-          El enlace de invitación es inválido o ha expirado.
-          Contacta al administrador para recibir un nuevo enlace.
+          {t('auth.completeRegistration.invalidToken.description')}
         </p>
       </div>
       <Button variant="outline" className="w-full" onClick={onGoToLogin}>
-        Ir al inicio de sesión
+        {t('auth.completeRegistration.invalidToken.goToSignIn')}
       </Button>
     </div>
   )
 }
 
 function SuccessState({ onGoToLogin }: { onGoToLogin: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="text-center space-y-5">
       <div className="flex justify-center">
@@ -316,14 +319,13 @@ function SuccessState({ onGoToLogin }: { onGoToLogin: () => void }) {
         </div>
       </div>
       <div>
-        <h2 className="text-xl font-semibold">¡Registro completado!</h2>
+        <h2 className="text-xl font-semibold">{t('auth.completeRegistration.success.title')}</h2>
         <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-          Tu cuenta ha sido configurada correctamente.
-          Ya puedes iniciar sesión con tu correo y contraseña.
+          {t('auth.completeRegistration.success.description')}
         </p>
       </div>
       <Button className="w-full" size="lg" onClick={onGoToLogin}>
-        Ir al inicio de sesión
+        {t('auth.completeRegistration.success.goToSignIn')}
       </Button>
     </div>
   )

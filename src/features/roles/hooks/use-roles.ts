@@ -7,8 +7,8 @@ import { rolesApi, type ApiRole } from '@/lib/api/roles'
 import { requiredString } from '@/lib/validations/schemas'
 
 const roleSchema = z.object({
-  name: requiredString('El nombre del rol'),
-  description: requiredString('La descripción'),
+  name: requiredString('The role name'),
+  description: requiredString('The description'),
 })
 
 export type RoleForm = z.infer<typeof roleSchema>

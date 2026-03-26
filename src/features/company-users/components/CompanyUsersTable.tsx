@@ -1,4 +1,5 @@
 import { Pencil, Trash2, RotateCcw, MoreHorizontal } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -17,35 +18,36 @@ interface CompanyUsersTableProps {
 
 export function CompanyUsersTable({ hook, roles }: CompanyUsersTableProps) {
   const { users, usersLoading, openEdit, setDeleteUser, restoreMutation } = hook
+  const { t } = useTranslation()
   const activeUsers = users.filter((u) => !isDeleted(u))
 
   return (
     <main className="p-6 space-y-6">
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Usuarios de la empresa</h2>
+          <h2 className="text-sm font-semibold">{t('users.companyUsers')}</h2>
           <span className="text-xs text-muted-foreground">
-            {activeUsers.length} activos · {users.length} total
+            {t('users.activeCount', { active: activeUsers.length, total: users.length })}
           </span>
         </div>
 
         {usersLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            Cargando usuarios...
+            {t('users.loading')}
           </div>
         ) : users.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            No hay usuarios registrados
+            {t('users.empty')}
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead>Registro</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>{t('users.userColumn')}</TableHead>
+                <TableHead>{t('users.positionColumn')}</TableHead>
+                <TableHead>{t('users.rolesColumn')}</TableHead>
+                <TableHead>{t('users.registrationStatusColumn')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -77,6 +79,7 @@ interface UserRowProps {
 }
 
 function UserRow({ user: u, userRoles, onEdit, onDelete, onRestore }: UserRowProps) {
+  const { t } = useTranslation()
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
       <TableCell>
@@ -100,25 +103,25 @@ function UserRow({ user: u, userRoles, onEdit, onDelete, onRestore }: UserRowPro
               <Badge key={r.id} variant="secondary" className="text-xs">{r.name}</Badge>
             ))
           ) : (
-            <span className="text-xs text-muted-foreground">Sin rol</span>
+            <span className="text-xs text-muted-foreground">{t('common.noRole')}</span>
           )}
         </div>
       </TableCell>
       <TableCell>
         {u.registrationStatus === 'pending_credentials' ? (
-          <Badge variant="default" className="text-xs">Pendiente</Badge>
+          <Badge variant="default" className="text-xs">{t('common.pending')}</Badge>
         ) : (
           <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
-            Registrado
+            {t('common.registered')}
           </Badge>
         )}
       </TableCell>
       <TableCell>
         {isDeleted(u) ? (
-          <Badge variant="destructive" className="text-xs">Eliminado</Badge>
+          <Badge variant="destructive" className="text-xs">{t('common.deleted')}</Badge>
         ) : (
           <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
-            Activo
+            {t('common.active')}
           </Badge>
         )}
       </TableCell>
@@ -131,17 +134,17 @@ function UserRow({ user: u, userRoles, onEdit, onDelete, onRestore }: UserRowPro
             {!isDeleted(u) && (
               <>
                 <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="size-4" /> Editar
+                  <Pencil className="size-4" /> {t('users.actions.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
-                  <Trash2 className="size-4" /> Eliminar
+                  <Trash2 className="size-4" /> {t('users.actions.delete')}
                 </DropdownMenuItem>
               </>
             )}
             {isDeleted(u) && (
               <DropdownMenuItem onClick={onRestore}>
-                <RotateCcw className="size-4" /> Restaurar
+                <RotateCcw className="size-4" /> {t('users.actions.restore')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

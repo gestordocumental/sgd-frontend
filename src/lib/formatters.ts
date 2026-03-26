@@ -1,4 +1,5 @@
 import type { ApiUser } from '@/lib/api/users'
+import i18n from '@/i18n'
 
 export function initials(name: string | undefined | null): string {
   if (!name) return '?'
@@ -15,7 +16,8 @@ export function isDeleted(user: ApiUser): boolean {
 }
 
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-CO', {
+  const locale = i18n.language.startsWith('es') ? 'es-CO' : 'en-US'
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

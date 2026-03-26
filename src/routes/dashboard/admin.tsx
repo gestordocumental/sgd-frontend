@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { FileText, LogOut, Users, Building2, Shield, UserPlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { NavItem } from '@/components/ui/nav-item'
+import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/store/authStore'
 import { initials } from '@/lib/formatters'
@@ -28,6 +30,7 @@ export const Route = createFileRoute('/dashboard/admin')({
 function AdminDashboard() {
   const navigate = useNavigate()
   const { user: me, clearAuth } = useAuthStore()
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'users' | 'companies'>('users')
 
   const users = useAdminUsers()
@@ -48,17 +51,17 @@ function AdminDashboard() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">SGD Helisa</p>
-            <p className="text-[10px] text-muted-foreground">Panel de administración</p>
+            <p className="text-[10px] text-muted-foreground">{t('dashboard.adminPanel')}</p>
           </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">
-            Gestión
+            {t('dashboard.management')}
           </p>
-          <NavItem icon={<Users className="size-4" />} label="Usuarios" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-          <NavItem icon={<Building2 className="size-4" />} label="Empresas" active={activeTab === 'companies'} onClick={() => setActiveTab('companies')} />
-          <NavItem icon={<Shield className="size-4" />} label="Roles" active={false} />
+          <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+          <NavItem icon={<Building2 className="size-4" />} label={t('companies.title')} active={activeTab === 'companies'} onClick={() => setActiveTab('companies')} />
+          <NavItem icon={<Shield className="size-4" />} label={t('common.roles')} active={false} />
         </nav>
 
         <div className="px-4 py-4 border-t border-border">
@@ -70,8 +73,9 @@ function AdminDashboard() {
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate">{me?.name ?? me?.email}</p>
-              <p className="text-[10px] text-muted-foreground">Super Admin</p>
+              <p className="text-[10px] text-muted-foreground">{t('dashboard.superAdmin')}</p>
             </div>
+            <LanguageSwitcher />
             <Button variant="ghost" size="icon" className="size-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => logoutMutation.mutate()}>
               <LogOut className="size-3.5" />
             </Button>
@@ -83,16 +87,16 @@ function AdminDashboard() {
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'users' | 'companies')} className="flex-1 min-w-0 overflow-hidden gap-0">
         <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
           <TabsList>
-            <TabsTrigger value="users"><Users className="size-4" />Usuarios</TabsTrigger>
-            <TabsTrigger value="companies"><Building2 className="size-4" />Empresas</TabsTrigger>
+            <TabsTrigger value="users"><Users className="size-4" />{t('common.users')}</TabsTrigger>
+            <TabsTrigger value="companies"><Building2 className="size-4" />{t('companies.title')}</TabsTrigger>
           </TabsList>
           {activeTab === 'users' ? (
             <Button size="sm" onClick={() => users.openCreate('super-admin')}>
-              <UserPlus className="size-4" /> Nuevo usuario
+              <UserPlus className="size-4" /> {t('dashboard.newUser')}
             </Button>
           ) : (
             <Button size="sm" onClick={() => { companies.createForm.reset(); companies.setCreateOpen(true) }}>
-              <Building2 className="size-4" /> Nueva empresa
+              <Building2 className="size-4" /> {t('dashboard.newCompany')}
             </Button>
           )}
         </header>

@@ -22,13 +22,13 @@ export const authHandlers = [
     }
 
     return HttpResponse.json(
-      { message: 'Credenciales inválidas. Verifica tu correo y contraseña.' },
+      { message: 'Invalid credentials. Please check your email and password.' },
       { status: 401 },
     )
   }),
 
   http.post('*/auth/logout', () => {
-    return HttpResponse.json({ message: 'Sesión cerrada correctamente' })
+    return HttpResponse.json({ message: 'Session closed successfully' })
   }),
 
   http.post('*/auth/refresh', () => {

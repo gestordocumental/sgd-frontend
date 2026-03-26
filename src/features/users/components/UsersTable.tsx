@@ -1,4 +1,5 @@
 import { Users, ShieldCheck, ShieldOff, Pencil, Trash2, RotateCcw, MoreHorizontal } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -24,6 +25,7 @@ export function UsersTable({ hook }: UsersTableProps) {
     restoreMutation,
     toggleSuperAdminMutation,
   } = hook
+  const { t } = useTranslation()
 
   const totalActive = users.filter((u) => !isDeleted(u)).length
   const totalSuperAdmins = superAdmins.filter((u) => u.isSuperAdmin).length
@@ -31,32 +33,32 @@ export function UsersTable({ hook }: UsersTableProps) {
   return (
     <main className="p-6 space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Total usuarios" value={users.length} icon={<Users className="size-5 text-muted-foreground" />} />
-        <StatCard title="Usuarios activos" value={totalActive} icon={<Users className="size-5 text-muted-foreground" />} />
-        <StatCard title="Super admins" value={totalSuperAdmins} icon={<ShieldCheck className="size-5 text-muted-foreground" />} />
+        <StatCard title={t('users.totalUsers')} value={users.length} icon={<Users className="size-5 text-muted-foreground" />} />
+        <StatCard title={t('users.activeUsers')} value={totalActive} icon={<Users className="size-5 text-muted-foreground" />} />
+        <StatCard title={t('users.superAdmins')} value={totalSuperAdmins} icon={<ShieldCheck className="size-5 text-muted-foreground" />} />
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold">Usuarios</h2>
+          <h2 className="text-sm font-semibold">{t('users.title')}</h2>
         </div>
 
         {superAdminsLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            Cargando usuarios...
+            {t('users.loading')}
           </div>
         ) : superAdmins.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            No hay usuarios registrados
+            {t('users.empty')}
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Estado Registro</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>{t('users.userColumn')}</TableHead>
+                <TableHead>{t('users.roleColumn')}</TableHead>
+                <TableHead>{t('users.registrationColumn')}</TableHead>
+                <TableHead>{t('users.statusColumn')}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -90,6 +92,7 @@ interface UserRowProps {
 }
 
 function UserRow({ user: u, onEdit, onDelete, onRestore, onToggleSuperAdmin }: UserRowProps) {
+  const { t } = useTranslation()
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
       <TableCell>
@@ -108,29 +111,29 @@ function UserRow({ user: u, onEdit, onDelete, onRestore, onToggleSuperAdmin }: U
       <TableCell>
         {u.isSuperAdmin ? (
           <Badge variant="default" className="gap-1 text-xs">
-            <ShieldCheck className="size-3" /> Super Admin
+            <ShieldCheck className="size-3" /> {t('users.superAdmin')}
           </Badge>
         ) : (
-          <Badge variant="secondary" className="text-xs">Usuario</Badge>
+          <Badge variant="secondary" className="text-xs">{t('users.userBadge')}</Badge>
         )}
       </TableCell>
       <TableCell>
         {u.registrationStatus === 'pending_credentials' ? (
           <Badge variant="default" className="gap-1 text-xs">
-            <ShieldCheck className="size-3" /> Pendiente de Credenciales
+            <ShieldCheck className="size-3" /> {t('users.pendingCredentials')}
           </Badge>
         ) : (
           <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
-            <ShieldCheck className="size-3" /> Registrado
+            <ShieldCheck className="size-3" /> {t('common.registered')}
           </Badge>
         )}
       </TableCell>
       <TableCell>
         {isDeleted(u) ? (
-          <Badge variant="destructive" className="text-xs">Eliminado</Badge>
+          <Badge variant="destructive" className="text-xs">{t('common.deleted')}</Badge>
         ) : (
           <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
-            Activo
+            {t('common.active')}
           </Badge>
         )}
       </TableCell>
@@ -143,24 +146,24 @@ function UserRow({ user: u, onEdit, onDelete, onRestore, onToggleSuperAdmin }: U
             {!isDeleted(u) && (
               <>
                 <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="size-4" /> Editar
+                  <Pencil className="size-4" /> {t('users.actions.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onToggleSuperAdmin}>
                   {u.isSuperAdmin ? (
-                    <><ShieldOff className="size-4" /> Quitar Super Admin</>
+                    <><ShieldOff className="size-4" /> {t('users.actions.removeSuperAdmin')}</>
                   ) : (
-                    <><ShieldCheck className="size-4" /> Dar Super Admin</>
+                    <><ShieldCheck className="size-4" /> {t('users.actions.grantSuperAdmin')}</>
                   )}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
-                  <Trash2 className="size-4" /> Eliminar
+                  <Trash2 className="size-4" /> {t('users.actions.delete')}
                 </DropdownMenuItem>
               </>
             )}
             {isDeleted(u) && (
               <DropdownMenuItem onClick={onRestore}>
-                <RotateCcw className="size-4" /> Restaurar
+                <RotateCcw className="size-4" /> {t('users.actions.restore')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

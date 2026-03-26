@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { ApiPermission } from '@/lib/api/roles'
 
@@ -9,17 +10,24 @@ interface PermissionSelectorProps {
 }
 
 export function PermissionSelector({ permissions, selected, onToggle }: PermissionSelectorProps) {
+  const { t } = useTranslation()
   const categories = useMemo(
     () => [...new Set(permissions.map((p) => p.category))],
     [permissions],
   )
+
+  const getPermLabel = (perm: ApiPermission) =>
+    t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
+
+  const getCategoryLabel = (category: string) =>
+    t(`permissions.categories.${category}`, { defaultValue: category })
 
   return (
     <div className="rounded-md border border-border p-3 space-y-3 max-h-64 overflow-y-auto">
       {categories.map((cat) => (
         <div key={cat}>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-            {cat}
+            {getCategoryLabel(cat)}
           </p>
           <div className="space-y-1">
             {permissions
@@ -32,7 +40,7 @@ export function PermissionSelector({ permissions, selected, onToggle }: Permissi
                     onCheckedChange={() => onToggle(p.id)}
                   />
                   <label htmlFor={`perm-${p.id}`} className="text-sm cursor-pointer select-none">
-                    {p.label}
+                    {getPermLabel(p)}
                   </label>
                 </div>
               ))}
