@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
 import { PermissionSelector } from '@/features/roles/components/PermissionSelector'
-import { ALL_PERMISSIONS } from '@/lib/api/roles'
 import { initials } from '@/lib/formatters'
 import type { ApiUser } from '@/lib/api/users'
 import type { useRoles } from '@/features/roles/hooks/use-roles'
@@ -19,28 +18,20 @@ interface RoleDialogsProps {
   allUsers: ApiUser[]
 }
 
-export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
+export function RoleDialogs({ hook, activeUsers }: RoleDialogsProps) {
   const {
+    permissions,
     createRoleOpen, setCreateRoleOpen,
     editRole, setEditRole,
     deleteRole, setDeleteRole,
     selectedPermIds,
     assignRoleUser, setAssignRoleUser,
-    assignPermUser, setAssignPermUser,
-    revokePermTarget, setRevokePermTarget,
     createForm, editForm,
     togglePerm,
     createRoleMutation, editRoleMutation, deleteRoleMutation,
-    assignUserToRoleMutation, assignPermMutation, revokePermMutation,
-    userPermissions,
+    assignUserToRoleMutation,
   } = hook
   const { t } = useTranslation()
-
-  const getPermissionLabel = (permId: string) => {
-    const perm = ALL_PERMISSIONS.find((p) => p.id === permId)
-    if (!perm) return permId
-    return t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
-  }
 
   return (
     <>
@@ -62,7 +53,7 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
             </FormField>
             <div className="space-y-2">
               <Label className="text-sm">{t('roles.dialogs.rolePermissionsLabel')}</Label>
-              <PermissionSelector permissions={ALL_PERMISSIONS} selected={selectedPermIds} onToggle={togglePerm} />
+              <PermissionSelector permissions={permissions} selected={selectedPermIds} onToggle={togglePerm} />
             </div>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setCreateRoleOpen(false)}>{t('common.cancel')}</Button>
@@ -93,7 +84,7 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
             </FormField>
             <div className="space-y-2">
               <Label className="text-sm">{t('roles.dialogs.rolePermissionsLabel')}</Label>
-              <PermissionSelector permissions={ALL_PERMISSIONS} selected={selectedPermIds} onToggle={togglePerm} />
+              <PermissionSelector permissions={permissions} selected={selectedPermIds} onToggle={togglePerm} />
             </div>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setEditRole(null)}>{t('common.cancel')}</Button>
@@ -129,7 +120,7 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
           <DialogHeader><DialogTitle>{t('roles.dialogs.assignRoleTitle', { roleName: assignRoleUser?.role.name })}</DialogTitle></DialogHeader>
           <div className="space-y-1 py-2">
             {activeUsers
-              .filter((u) => !assignRoleUser?.role.userIds.includes(u.id))
+              .filter((u) => !u.roles.some((r) => r.roleId === assignRoleUser?.role.id))
               .map((u) => (
                 <button
                   key={u.id}
@@ -146,81 +137,12 @@ export function RoleDialogs({ hook, activeUsers, allUsers }: RoleDialogsProps) {
                   </div>
                 </button>
               ))}
-            {activeUsers.filter((u) => !assignRoleUser?.role.userIds.includes(u.id)).length === 0 && (
+            {activeUsers.filter((u) => !u.roles.some((r) => r.roleId === assignRoleUser?.role.id)).length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">{t('roles.dialogs.allUsersHaveRole')}</p>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignRoleUser(null)}>{t('common.close')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Asignar permiso directo ───────────────────────────────── */}
-      <Dialog open={!!assignPermUser} onOpenChange={(o) => { if (!o) setAssignPermUser(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>{t('roles.dialogs.assignPermissionTitle')}</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-2">
-            {t('roles.dialogs.permissionLabel')}{' '}
-            <span className="font-medium text-foreground">
-              {assignPermUser ? getPermissionLabel(assignPermUser.permissionId) : ''}
-            </span>
-          </p>
-          <div className="space-y-1 py-2">
-            {activeUsers
-              .filter((u) => {
-                if (!assignPermUser) return false
-                return !userPermissions.some((up) => up.userId === u.id && up.permissionId === assignPermUser.permissionId)
-              })
-              .map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-accent text-left transition-colors"
-                  onClick={() => assignPermUser && assignPermMutation.mutate({ userId: u.id, permissionId: assignPermUser.permissionId })}
-                >
-                  <Avatar className="size-7">
-                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{initials(u.firstName)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{u.firstName} {u.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{u.position}</p>
-                  </div>
-                </button>
-              ))}
-            {activeUsers.filter((u) => {
-              if (!assignPermUser) return false
-              return !userPermissions.some((up) => up.userId === u.id && up.permissionId === assignPermUser.permissionId)
-            }).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">{t('roles.dialogs.allUsersHavePermission')}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignPermUser(null)}>{t('common.close')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Revocar permiso directo ───────────────────────────────── */}
-      <Dialog open={!!revokePermTarget} onOpenChange={(o) => { if (!o) setRevokePermTarget(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>{t('roles.dialogs.revokePermissionTitle')}</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {t('roles.dialogs.revokePermissionConfirmPre')}{' '}
-            <span className="font-medium text-foreground">"{revokePermTarget ? getPermissionLabel(revokePermTarget.permissionId) : ''}"</span>{' '}
-            {t('roles.dialogs.revokePermissionConfirmMid')}{' '}
-            <span className="font-medium text-foreground">{allUsers.find((u) => u.id === revokePermTarget?.userId)?.firstName}</span>
-            {t('roles.dialogs.revokePermissionConfirmPost')}
-          </p>
-          <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setRevokePermTarget(null)}>{t('common.cancel')}</Button>
-            <Button
-              variant="destructive"
-              disabled={revokePermMutation.isPending}
-              onClick={() => revokePermTarget && revokePermMutation.mutate({ userId: revokePermTarget.userId, permissionId: revokePermTarget.permissionId })}
-            >
-              {revokePermMutation.isPending ? t('common.revoking') : t('roles.dialogs.revokeButton')}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

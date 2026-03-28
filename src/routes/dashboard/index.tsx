@@ -114,7 +114,7 @@ function CompanyDashboard() {
           />
         </TabsContent>
         <TabsContent value="users" className="overflow-auto">
-          <CompanyUsersTable hook={companyUsers} roles={roles.roles} />
+          <CompanyUsersTable hook={companyUsers} />
         </TabsContent>
         <TabsContent value="roles" className="overflow-auto">
           <RolesTab hook={roles} users={companyUsers.users} />

@@ -125,7 +125,8 @@ export function CompaniesTable({
                         <button
                           type="button"
                           onClick={() => toggleExpand(company)}
-                          aria-expanded={expandedCompanies.has(company.id)}
+                          aria-expanded={expandedCompanies.has(company.id) ? "true" : "false"}
+                          aria-controls={`company-users-row-${company.id}`}
                           aria-label={
                             expandedCompanies.has(company.id)
                               ? t('companies.actions.collapseCompany', { name: company.name })
@@ -199,6 +200,7 @@ export function CompaniesTable({
 
                   {expandedCompanies.has(company.id) && (
                     <CompanyUsersRow
+                      id={`company-users-row-${company.id}`}
                       companyId={company.id}
                       onEditUser={onEditUser}
                       onDeleteUser={onDeleteUser}
@@ -274,6 +276,7 @@ function CompanyActions({
 // ── CompanyUsersRow ───────────────────────────────────────────────────────────
 
 interface CompanyUsersRowProps {
+  id: string;
   companyId: string;
   onEditUser: (u: ApiUser) => void;
   onDeleteUser: (u: ApiUser) => void;
@@ -281,6 +284,7 @@ interface CompanyUsersRowProps {
 }
 
 function CompanyUsersRow({
+  id,
   companyId,
   onEditUser,
   onDeleteUser,
@@ -296,7 +300,7 @@ function CompanyUsersRow({
   });
 
   return (
-    <TableRow className="hover:bg-transparent">
+    <TableRow id={id} className="hover:bg-transparent">
       <TableCell colSpan={7} className="p-0">
         <div className="bg-muted/40 border-b border-border">
           <div className="pl-14 pr-6 py-4">

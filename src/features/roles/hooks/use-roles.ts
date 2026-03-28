@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { rolesApi, type ApiRole } from '@/lib/api/roles'
+import { rolesApi, type ApiRole, type ApiPermission } from '@/lib/api/roles'
 import { requiredString } from '@/lib/validations/schemas'
 
 const roleSchema = z.object({
@@ -21,40 +21,37 @@ export function useRoles(companyId: string) {
   const [deleteRole, setDeleteRole] = useState<ApiRole | null>(null)
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([])
   const [assignRoleUser, setAssignRoleUser] = useState<{ role: ApiRole } | null>(null)
-  const [assignPermUser, setAssignPermUser] = useState<{ permissionId: string } | null>(null)
-  const [revokePermTarget, setRevokePermTarget] = useState<{ userId: string; permissionId: string } | null>(null)
   const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set())
   const [expandedPermissions, setExpandedPermissions] = useState<Set<string>>(new Set())
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(companyId),
+    queryFn: () => rolesApi.listRoles(),
     staleTime: 60_000,
     enabled: !!companyId,
   })
 
-  const { data: userPermissions = [] } = useQuery({
-    queryKey: ['user-permissions', companyId],
-    queryFn: () => rolesApi.listUserPermissions(companyId),
-    staleTime: 60_000,
-    enabled: !!companyId,
+  const { data: permissions = [] } = useQuery({
+    queryKey: ['permissions'],
+    queryFn: () => rolesApi.listPermissions(),
+    staleTime: Infinity, // permissions catalog is static
   })
 
   const invalidateRoles = () =>
     queryClient.invalidateQueries({ queryKey: ['roles', companyId] })
 
-  const invalidatePermissions = () =>
-    queryClient.invalidateQueries({ queryKey: ['user-permissions', companyId] })
-
   const createRoleMutation = useMutation({
     mutationFn: (dto: { name: string; description: string; permissionIds: string[] }) =>
-      rolesApi.createRole(companyId, dto),
+      rolesApi.createRole(dto),
     onSuccess: () => { invalidateRoles(); setCreateRoleOpen(false) },
   })
 
   const editRoleMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: { name: string; description: string; permissionIds: string[] } }) =>
-      rolesApi.updateRole(id, dto),
+    mutationFn: async ({ id, dto }: { id: string; dto: { name: string; description: string; permissionIds: string[] } }) => {
+      const { permissionIds, ...roleData } = dto
+      await rolesApi.updateRole(id, roleData)
+      return rolesApi.assignPermissions(id, permissionIds)
+    },
     onSuccess: () => { invalidateRoles(); setEditRole(null) },
   })
 
@@ -65,30 +62,18 @@ export function useRoles(companyId: string) {
 
   const assignUserToRoleMutation = useMutation({
     mutationFn: ({ roleId, userId }: { roleId: string; userId: string }) =>
-      rolesApi.assignUserToRole(roleId, userId),
+      rolesApi.assignPermissions(roleId, [userId]), // placeholder — needs backend endpoint
     onSuccess: () => { invalidateRoles(); setAssignRoleUser(null) },
   })
 
   const removeUserFromRoleMutation = useMutation({
     mutationFn: ({ roleId, userId }: { roleId: string; userId: string }) =>
-      rolesApi.removeUserFromRole(roleId, userId),
+      rolesApi.removePermission(roleId, userId), // placeholder — needs backend endpoint
     onSuccess: invalidateRoles,
   })
 
-  const assignPermMutation = useMutation({
-    mutationFn: ({ userId, permissionId }: { userId: string; permissionId: string }) =>
-      rolesApi.assignPermissionToUser(userId, permissionId),
-    onSuccess: () => { invalidatePermissions(); setAssignPermUser(null) },
-  })
-
-  const revokePermMutation = useMutation({
-    mutationFn: ({ userId, permissionId }: { userId: string; permissionId: string }) =>
-      rolesApi.revokePermissionFromUser(userId, permissionId),
-    onSuccess: () => { invalidatePermissions(); setRevokePermTarget(null) },
-  })
-
-  const createForm = useForm<RoleForm>({ resolver: zodResolver(roleSchema), mode: 'onTouched' })
-  const editForm = useForm<RoleForm>({ resolver: zodResolver(roleSchema), mode: 'onTouched' })
+  const createForm = useForm<RoleForm>({ resolver: zodResolver(roleSchema), mode: 'onChange' })
+  const editForm = useForm<RoleForm>({ resolver: zodResolver(roleSchema), mode: 'onChange' })
 
   const openCreate = () => {
     setSelectedPermIds([])
@@ -98,8 +83,9 @@ export function useRoles(companyId: string) {
 
   const openEdit = (role: ApiRole) => {
     setEditRole(role)
-    setSelectedPermIds([...role.permissionIds])
-    editForm.reset({ name: role.name, description: role.description })
+    setSelectedPermIds(role.permissions.map((p) => p.id))
+    editForm.reset({ name: role.name, description: role.description ?? '' })
+    editForm.trigger()
   }
 
   const togglePerm = (permId: string) =>
@@ -110,14 +96,12 @@ export function useRoles(companyId: string) {
   return {
     roles,
     rolesLoading,
-    userPermissions,
+    permissions,
     createRoleOpen, setCreateRoleOpen,
     editRole, setEditRole,
     deleteRole, setDeleteRole,
     selectedPermIds,
     assignRoleUser, setAssignRoleUser,
-    assignPermUser, setAssignPermUser,
-    revokePermTarget, setRevokePermTarget,
     expandedRoles, setExpandedRoles,
     expandedPermissions, setExpandedPermissions,
     createForm,
@@ -130,7 +114,5 @@ export function useRoles(companyId: string) {
     deleteRoleMutation,
     assignUserToRoleMutation,
     removeUserFromRoleMutation,
-    assignPermMutation,
-    revokePermMutation,
   }
 }

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Shield, Key, ChevronRight, ChevronDown, MoreHorizontal, Pencil, Trash2, UserPlus, X, ShieldOff } from 'lucide-react'
+import { Shield, Key, ChevronRight, ChevronDown, MoreHorizontal, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { initials } from '@/lib/formatters'
-import { ALL_PERMISSIONS, type ApiRole, type ApiPermission, type ApiUserPermission } from '@/lib/api/roles'
+import { type ApiRole, type ApiPermission } from '@/lib/api/roles'
 import type { ApiUser } from '@/lib/api/users'
 import type { useRoles } from '@/features/roles/hooks/use-roles'
 
@@ -22,22 +22,14 @@ export function RolesTab({ hook, users }: RolesTabProps) {
   const {
     roles,
     rolesLoading,
-    userPermissions,
+    permissions,
     expandedRoles, setExpandedRoles,
     expandedPermissions, setExpandedPermissions,
     openEdit,
     setDeleteRole,
     removeUserFromRoleMutation,
     setAssignRoleUser,
-    setAssignPermUser,
-    setRevokePermTarget,
   } = hook
-
-  const [view, setView] = useMemo(() => {
-    let v: 'by-role' | 'by-permission' = 'by-role'
-    const setter = (val: 'by-role' | 'by-permission') => { v = val }
-    return [v, setter] as const
-  }, [])
 
   const toggleRole = (id: string) => {
     const next = new Set(expandedRoles)
@@ -58,8 +50,8 @@ export function RolesTab({ hook, users }: RolesTabProps) {
       <RolesViewTabs
         roles={roles}
         rolesLoading={rolesLoading}
+        permissions={permissions}
         users={users}
-        userPermissions={userPermissions}
         expandedRoles={expandedRoles}
         expandedPermissions={expandedPermissions}
         onToggleRole={toggleRole}
@@ -68,8 +60,6 @@ export function RolesTab({ hook, users }: RolesTabProps) {
         onDeleteRole={setDeleteRole}
         onRemoveUserFromRole={(roleId, userId) => removeUserFromRoleMutation.mutate({ roleId, userId })}
         onAssignRoleUser={(role) => setAssignRoleUser({ role })}
-        onAssignPermUser={(permissionId) => setAssignPermUser({ permissionId })}
-        onRevokePermUser={(userId, permissionId) => setRevokePermTarget({ userId, permissionId })}
       />
     </main>
   )
@@ -80,8 +70,8 @@ export function RolesTab({ hook, users }: RolesTabProps) {
 interface RolesViewTabsProps {
   roles: ApiRole[]
   rolesLoading: boolean
+  permissions: ApiPermission[]
   users: ApiUser[]
-  userPermissions: ApiUserPermission[]
   expandedRoles: Set<string>
   expandedPermissions: Set<string>
   onToggleRole: (id: string) => void
@@ -90,16 +80,13 @@ interface RolesViewTabsProps {
   onDeleteRole: (r: ApiRole) => void
   onRemoveUserFromRole: (roleId: string, userId: string) => void
   onAssignRoleUser: (role: ApiRole) => void
-  onAssignPermUser: (permissionId: string) => void
-  onRevokePermUser: (userId: string, permissionId: string) => void
 }
 
 function RolesViewTabs({
-  roles, rolesLoading, users, userPermissions,
+  roles, rolesLoading, permissions, users,
   expandedRoles, expandedPermissions,
   onToggleRole, onTogglePermission,
-  onEditRole, onDeleteRole, onRemoveUserFromRole,
-  onAssignRoleUser, onAssignPermUser, onRevokePermUser,
+  onEditRole, onDeleteRole, onRemoveUserFromRole, onAssignRoleUser,
 }: RolesViewTabsProps) {
   const { t } = useTranslation()
   return (
@@ -137,14 +124,11 @@ function RolesViewTabs({
 
       <TabsContent value="by-permission" className="mt-4">
         <ByPermissionView
-          permissions={ALL_PERMISSIONS}
+          permissions={permissions}
           roles={roles}
           users={users}
-          userPermissions={userPermissions}
           expandedPermissions={expandedPermissions}
           onToggle={onTogglePermission}
-          onAssignPermUser={onAssignPermUser}
-          onRevokePermUser={onRevokePermUser}
         />
       </TabsContent>
     </Tabs>
@@ -166,13 +150,10 @@ interface RoleRowProps {
 
 function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemoveUser, onAssignUser }: RoleRowProps) {
   const { t } = useTranslation()
-  const roleUsers = users.filter((u) => role.userIds.includes(u.id))
+  const roleUsers = users.filter((u) => u.roles.some((r) => r.roleId === role.id))
 
-  const getPermLabel = (permId: string) => {
-    const perm = ALL_PERMISSIONS.find((p) => p.id === permId)
-    if (!perm) return permId
-    return t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
-  }
+  const getPermLabel = (p: ApiPermission) =>
+    `${t(`permissions.actions.${p.action}`)} — ${t(`permissions.modules.${p.module}`)}`
 
   return (
     <div>
@@ -188,7 +169,7 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
           <p className="text-xs text-muted-foreground">{role.description}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <span className="text-xs text-muted-foreground">{t('roles.permissionsCount', { count: role.permissionIds.length })}</span>
+          <span className="text-xs text-muted-foreground">{t('roles.permissionsCount', { count: role.permissions.length })}</span>
           <span className="text-xs text-muted-foreground">
             {roleUsers.length === 1
               ? t('roles.usersCount_one', { count: roleUsers.length })
@@ -214,13 +195,12 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('roles.rolePermissions')}</p>
             <div className="flex flex-wrap gap-1.5">
-              {role.permissionIds.length === 0 ? (
+              {role.permissions.length === 0 ? (
                 <span className="text-xs text-muted-foreground">{t('roles.noPermissions')}</span>
               ) : (
-                role.permissionIds.map((pid) => {
-                  const perm = ALL_PERMISSIONS.find((p) => p.id === pid)
-                  return perm ? <Badge key={pid} variant="outline" className="text-xs">{getPermLabel(pid)}</Badge> : null
-                })
+                role.permissions.map((p) => (
+                  <Badge key={p.id} variant="outline" className="text-xs">{getPermLabel(p)}</Badge>
+                ))
               )}
             </div>
           </div>
@@ -258,69 +238,48 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
 
 // ── ByPermissionView ──────────────────────────────────────────────────────────
 
-interface PermissionUserEntry {
-  user: ApiUser
-  viaRoles: ApiRole[]
-  isDirect: boolean
-}
-
-function getUsersForPermission(permissionId: string, roles: ApiRole[], users: ApiUser[], userPermissions: ApiUserPermission[]): PermissionUserEntry[] {
-  const map = new Map<string, PermissionUserEntry>()
-  for (const role of roles) {
-    if (!role.permissionIds.includes(permissionId)) continue
-    for (const uid of role.userIds) {
-      const user = users.find((u) => u.id === uid)
-      if (!user) continue
-      const existing = map.get(uid)
-      if (existing) existing.viaRoles.push(role)
-      else map.set(uid, { user, viaRoles: [role], isDirect: false })
-    }
-  }
-  for (const up of userPermissions) {
-    if (up.permissionId !== permissionId) continue
-    const user = users.find((u) => u.id === up.userId)
-    if (!user) continue
-    const existing = map.get(up.userId)
-    if (existing) existing.isDirect = true
-    else map.set(up.userId, { user, viaRoles: [], isDirect: true })
-  }
-  return Array.from(map.values())
-}
-
 interface ByPermissionViewProps {
   permissions: ApiPermission[]
   roles: ApiRole[]
   users: ApiUser[]
-  userPermissions: ApiUserPermission[]
   expandedPermissions: Set<string>
   onToggle: (id: string) => void
-  onAssignPermUser: (permissionId: string) => void
-  onRevokePermUser: (userId: string, permissionId: string) => void
 }
 
-function ByPermissionView({ permissions, roles, users, userPermissions, expandedPermissions, onToggle, onAssignPermUser, onRevokePermUser }: ByPermissionViewProps) {
+function ByPermissionView({ permissions, roles, users, expandedPermissions, onToggle }: ByPermissionViewProps) {
   const { t } = useTranslation()
-  const categories = useMemo(() => [...new Set(permissions.map((p) => p.category))], [permissions])
+  const modules = useMemo(() => [...new Set(permissions.map((p) => p.module))], [permissions])
 
-  const getPermLabel = (perm: ApiPermission) =>
-    t(`permissions.${perm.name}.label`, { defaultValue: perm.label })
+  const getPermLabel = (p: ApiPermission) =>
+    `${t(`permissions.actions.${p.action}`)} — ${t(`permissions.modules.${p.module}`)}`
 
-  const getPermDescription = (perm: ApiPermission) =>
-    t(`permissions.${perm.name}.description`, { defaultValue: perm.description })
+  const getModuleLabel = (module: string) =>
+    t(`permissions.modules.${module}`, { defaultValue: module })
 
-  const getCategoryLabel = (category: string) =>
-    t(`permissions.categories.${category}`, { defaultValue: category })
+  const getUsersForPermission = (permissionId: string) => {
+    const map = new Map<string, { user: ApiUser; viaRoles: ApiRole[] }>()
+    for (const role of roles) {
+      if (!role.permissions.some((p) => p.id === permissionId)) continue
+      for (const u of users) {
+        if (!u.roles.some((r) => r.roleId === role.id)) continue
+        const existing = map.get(u.id)
+        if (existing) existing.viaRoles.push(role)
+        else map.set(u.id, { user: u, viaRoles: [role] })
+      }
+    }
+    return Array.from(map.values())
+  }
 
   return (
     <div className="space-y-6">
-      {categories.map((category) => (
-        <div key={category}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{getCategoryLabel(category)}</p>
+      {modules.map((module) => (
+        <div key={module}>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{getModuleLabel(module)}</p>
           <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
-            {permissions.filter((p) => p.category === category).map((perm) => {
+            {permissions.filter((p) => p.module === module).map((perm) => {
               const isExpanded = expandedPermissions.has(perm.id)
-              const rolesWithPerm = roles.filter((r) => r.permissionIds.includes(perm.id))
-              const usersWithPerm = getUsersForPermission(perm.id, roles, users, userPermissions)
+              const rolesWithPerm = roles.filter((r) => r.permissions.some((p) => p.id === perm.id))
+              const usersWithPerm = getUsersForPermission(perm.id)
 
               return (
                 <div key={perm.id}>
@@ -333,7 +292,7 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{getPermLabel(perm)}</p>
-                      <p className="text-xs text-muted-foreground">{getPermDescription(perm)}</p>
+                      {perm.description && <p className="text-xs text-muted-foreground">{perm.description}</p>}
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end max-w-xs" onClick={(e) => e.stopPropagation()}>
                       {rolesWithPerm.slice(0, 3).map((r) => (
@@ -342,16 +301,11 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                       {rolesWithPerm.length > 3 && <Badge variant="outline" className="text-xs shrink-0">+{rolesWithPerm.length - 3}</Badge>}
                       {rolesWithPerm.length === 0 && <span className="text-xs text-muted-foreground">{t('common.noRole')}</span>}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {usersWithPerm.length === 1
-                          ? t('roles.usersCount_one', { count: usersWithPerm.length })
-                          : t('roles.usersCount_other', { count: usersWithPerm.length })}
-                      </span>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onAssignPermUser(perm.id) }}>
-                        <UserPlus className="size-3" />{t('common.assign')}
-                      </Button>
-                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                      {usersWithPerm.length === 1
+                        ? t('roles.usersCount_one', { count: usersWithPerm.length })
+                        : t('roles.usersCount_other', { count: usersWithPerm.length })}
+                    </span>
                   </div>
 
                   {isExpanded && (
@@ -374,7 +328,7 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                           <p className="text-xs text-muted-foreground">{t('roles.noUsersWithPermission')}</p>
                         ) : (
                           <div className="space-y-1.5">
-                            {usersWithPerm.map(({ user, viaRoles, isDirect }) => (
+                            {usersWithPerm.map(({ user, viaRoles }) => (
                               <div key={user.id} className="flex items-center gap-2.5 py-1">
                                 <Avatar className="size-6">
                                   <AvatarFallback className="text-[9px] bg-primary/10 text-primary">{initials(user.firstName)}</AvatarFallback>
@@ -386,17 +340,7 @@ function ByPermissionView({ permissions, roles, users, userPermissions, expanded
                                       <Shield className="size-2.5 mr-0.5" />{r.name}
                                     </Badge>
                                   ))}
-                                  {isDirect && (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-primary border-primary/30">
-                                      <Key className="size-2.5 mr-0.5" />{t('roles.direct')}
-                                    </Badge>
-                                  )}
                                 </div>
-                                {isDirect && (
-                                  <Button variant="ghost" size="icon" className="size-6 ml-auto text-muted-foreground hover:text-destructive" title={t('roles.revokeDirectPermissionTitle')} onClick={() => onRevokePermUser(user.id, perm.id)}>
-                                    <ShieldOff className="size-3" />
-                                  </Button>
-                                )}
                               </div>
                             ))}
                           </div>

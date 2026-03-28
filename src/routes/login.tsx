@@ -60,10 +60,10 @@ function LoginPage() {
       try {
         const companies = await authApi.getMyCompanies();
         if (companies.length > 0) {
-          const { id: companyId, name: companyName } = companies[0];
+          const companyId = companies[0];
           const { accessToken: companyToken } = await authApi.switchCompany(companyId);
           setAuth(
-            { ...data.user, companyId, companyName },
+            { ...data.user, companyId },
             companyToken,
             data.refreshToken,
             false,

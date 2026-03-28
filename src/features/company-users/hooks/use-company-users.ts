@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { usersApi, type ApiUser, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
 import { companiesApi } from '@/lib/api/companies'
-import { emailField, requiredString } from '@/lib/validations/schemas'
+import { emailField, requiredString, optionalString } from '@/lib/validations/schemas'
 
 const createUserSchema = z.object({
   position: requiredString('The position'),
@@ -13,8 +13,10 @@ const createUserSchema = z.object({
 })
 
 const editUserSchema = z.object({
-  name: requiredString('The name'),
-  email: emailField,
+  firstName: requiredString('The first name'),
+  lastName: requiredString('The last name'),
+  idNumber: optionalString,
+  position: optionalString,
 })
 
 export type CreateUserForm = z.infer<typeof createUserSchema>
@@ -76,7 +78,12 @@ export function useCompanyUsers(companyId: string) {
 
   const openEdit = (u: ApiUser) => {
     setEditUser(u)
-    editForm.reset({ name: [u.firstName, u.lastName].filter(Boolean).join(' ') || undefined, email: u.email })
+    editForm.reset({
+      firstName: u.firstName ?? undefined,
+      lastName: u.lastName ?? undefined,
+      idNumber: u.idNumber ?? undefined,
+      position: u.position ?? undefined,
+    })
     editForm.trigger()
   }
 

@@ -9,8 +9,7 @@ import {
   type CreateUserDto,
   type UpdateUserDto,
 } from "@/lib/api/users";
-import { rolesApi } from "@/lib/api/roles";
-import { emailField, requiredString } from "@/lib/validations/schemas";
+import { emailField, requiredString, optionalString } from "@/lib/validations/schemas";
 
 const createUserSchema = z.object({
   position: requiredString("The position"),
@@ -19,8 +18,10 @@ const createUserSchema = z.object({
 });
 
 const editUserSchema = z.object({
-  name: requiredString("The name"),
-  email: emailField,
+  firstName: requiredString("The first name"),
+  lastName: requiredString("The last name"),
+  idNumber: optionalString,
+  position: optionalString,
 });
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;
@@ -59,32 +60,7 @@ export function useAdminUsers() {
   };
 
   const createMutation = useMutation({
-    mutationFn: async (dto: CreateUserDto) => {
-      const user = await usersApi.create(dto);
-      if (dto.orgId) {
-        try {
-          const companyRoles = await rolesApi.listRoles(dto.orgId);
-          const adminRole = companyRoles.find(
-            (r) => r.name.toLowerCase() === "admin",
-          );
-          if (adminRole) {
-            await rolesApi.assignUserToRole(adminRole.id, user.id);
-          } else {
-            console.warn(
-              `No admin role found for company ${dto.orgId}. User created without role assignment.`,
-            );
-          }
-        } catch (roleError) {
-          console.error(
-            "Failed to assign role, rolling back user creation:",
-            roleError,
-          );
-          await usersApi.remove(user.id);
-          throw roleError;
-        }
-      }
-      return user;
-    },
+    mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
     onSuccess: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -123,11 +99,11 @@ export function useAdminUsers() {
 
   const createForm = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
-    mode: "onTouched",
+    mode: "onChange",
   });
   const editForm = useForm<EditUserForm>({
     resolver: zodResolver(editUserSchema),
-    mode: "onTouched",
+    mode: "onChange",
   });
 
   const openCreate = (
@@ -143,9 +119,12 @@ export function useAdminUsers() {
   const openEdit = (u: ApiUser) => {
     setEditUser(u);
     editForm.reset({
-      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || undefined,
-      email: u.email,
+      firstName: u.firstName ?? undefined,
+      lastName: u.lastName ?? undefined,
+      idNumber: u.idNumber ?? undefined,
+      position: u.position ?? undefined,
     });
+    editForm.trigger();
   };
 
   const onCreateSubmit = (values: CreateUserForm) =>

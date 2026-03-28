@@ -209,6 +209,12 @@
       "positionPlaceholder": "Sales Manager",
       "nameLabel": "Name",
       "namePlaceholder": "John Smith",
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "John",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Smith",
+      "idNumberLabel": "ID number",
+      "idNumberPlaceholder": "1234567890",
       "createButton": "Create user",
       "deleteButton": "Delete",
       "newUserTitle": "New user · {{companyName}}"
@@ -264,55 +270,22 @@
     }
   },
   "permissions": {
-    "categories": {
-      "Documents": "Documents",
-      "Users": "Users",
-      "Reports": "Reports",
-      "Configuration": "Configuration"
+    "modules": {
+      "DOCUMENTS": "Documents",
+      "WORKFLOWS": "Workflows",
+      "USERS": "Users",
+      "ORGS": "Organizations",
+      "AUDIT": "Audit",
+      "PLATFORM": "Platform"
     },
-    "crear_documento": {
-      "label": "Create document",
-      "description": "Allows creating new documents in the system"
-    },
-    "ver_documentos": {
-      "label": "View documents",
-      "description": "Allows viewing existing documents"
-    },
-    "editar_documento": {
-      "label": "Edit document",
-      "description": "Allows editing the content of documents"
-    },
-    "eliminar_documento": {
-      "label": "Delete document",
-      "description": "Allows deleting documents from the system"
-    },
-    "aprobar_documento": {
-      "label": "Approve document",
-      "description": "Allows approving documents in the review workflow"
-    },
-    "ver_usuarios": {
-      "label": "View users",
-      "description": "Allows viewing the company user list"
-    },
-    "gestionar_usuarios": {
-      "label": "Manage users",
-      "description": "Allows creating, editing and deactivating users"
-    },
-    "ver_reportes": {
-      "label": "View reports",
-      "description": "Allows viewing reports and system statistics"
-    },
-    "exportar_reportes": {
-      "label": "Export reports",
-      "description": "Allows exporting reports in different formats"
-    },
-    "ver_configuracion": {
-      "label": "View configuration",
-      "description": "Allows viewing the company configuration"
-    },
-    "editar_configuracion": {
-      "label": "Edit configuration",
-      "description": "Allows modifying the company configuration"
+    "actions": {
+      "READ": "View",
+      "WRITE": "Create / Edit",
+      "DELETE": "Delete",
+      "APPROVE": "Approve",
+      "UPLOAD": "Upload",
+      "DOWNLOAD": "Download",
+      "MANAGE": "Manage"
     }
   }
 }

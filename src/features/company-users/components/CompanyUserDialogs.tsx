@@ -66,11 +66,17 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
             })}
             className="space-y-4 pt-2"
           >
-            <FormField id="eu-email" label={t('common.email')} error={editForm.formState.errors.email?.message}>
-              <Input id="eu-email" type="email" {...editForm.register('email')} />
+            <FormField id="eu-firstName" label={t('users.dialogs.firstNameLabel')} error={editForm.formState.errors.firstName?.message}>
+              <Input id="eu-firstName" placeholder={t('users.dialogs.firstNamePlaceholder')} {...editForm.register('firstName')} />
             </FormField>
-            <FormField id="eu-name" label={t('common.name')} error={editForm.formState.errors.name?.message}>
-              <Input id="eu-name" placeholder={t('users.dialogs.namePlaceholder')} {...editForm.register('name')} />
+            <FormField id="eu-lastName" label={t('users.dialogs.lastNameLabel')} error={editForm.formState.errors.lastName?.message}>
+              <Input id="eu-lastName" placeholder={t('users.dialogs.lastNamePlaceholder')} {...editForm.register('lastName')} />
+            </FormField>
+            <FormField id="eu-idNumber" label={t('users.dialogs.idNumberLabel')} error={editForm.formState.errors.idNumber?.message}>
+              <Input id="eu-idNumber" placeholder={t('users.dialogs.idNumberPlaceholder')} {...editForm.register('idNumber')} />
+            </FormField>
+            <FormField id="eu-position" label={t('users.dialogs.positionLabel')} error={editForm.formState.errors.position?.message}>
+              <Input id="eu-position" placeholder={t('users.dialogs.positionPlaceholder')} {...editForm.register('position')} />
             </FormField>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setEditUser(null)}>{t('common.cancel')}</Button>

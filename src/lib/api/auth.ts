@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { LoginCredentials, LoginResponse, Company } from '@/types/auth'
+import type { LoginCredentials, LoginResponse } from '@/types/auth'
 
 export const authApi = {
   login: (credentials: LoginCredentials) =>
@@ -14,7 +14,7 @@ export const authApi = {
       .then((r) => r.data),
 
   getMyCompanies: () =>
-    apiClient.get<Company[]>('/auth/me/companies').then((r) => r.data),
+    apiClient.get<string[]>('/auth/me/companies').then((r) => r.data),
 
   switchCompany: (companyId: string) =>
     apiClient

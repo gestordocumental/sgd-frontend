@@ -34,6 +34,8 @@ export const newPasswordField = z
 export const requiredString = (_label: string) =>
   z.string().min(1, 'validation.required')
 
+export const optionalString = z.string().optional()
+
 // ── Schemas de formularios ───────────────────────────────────────────────────
 
 export const loginSchema = z.object({

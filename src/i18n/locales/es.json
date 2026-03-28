@@ -209,6 +209,12 @@
       "positionPlaceholder": "Gerente de Ventas",
       "nameLabel": "Nombre",
       "namePlaceholder": "Juan García",
+      "firstNameLabel": "Nombre",
+      "firstNamePlaceholder": "Juan",
+      "lastNameLabel": "Apellido",
+      "lastNamePlaceholder": "García",
+      "idNumberLabel": "Número de identificación",
+      "idNumberPlaceholder": "1234567890",
       "createButton": "Crear usuario",
       "deleteButton": "Eliminar",
       "newUserTitle": "Nuevo usuario · {{companyName}}"
@@ -264,55 +270,22 @@
     }
   },
   "permissions": {
-    "categories": {
-      "Documents": "Documentos",
-      "Users": "Usuarios",
-      "Reports": "Reportes",
-      "Configuration": "Configuración"
+    "modules": {
+      "DOCUMENTS": "Documentos",
+      "WORKFLOWS": "Flujos de trabajo",
+      "USERS": "Usuarios",
+      "ORGS": "Organizaciones",
+      "AUDIT": "Auditoría",
+      "PLATFORM": "Plataforma"
     },
-    "crear_documento": {
-      "label": "Crear documento",
-      "description": "Permite crear nuevos documentos en el sistema"
-    },
-    "ver_documentos": {
-      "label": "Ver documentos",
-      "description": "Permite visualizar los documentos existentes"
-    },
-    "editar_documento": {
-      "label": "Editar documento",
-      "description": "Permite editar el contenido de los documentos"
-    },
-    "eliminar_documento": {
-      "label": "Eliminar documento",
-      "description": "Permite eliminar documentos del sistema"
-    },
-    "aprobar_documento": {
-      "label": "Aprobar documento",
-      "description": "Permite aprobar documentos en el flujo de revisión"
-    },
-    "ver_usuarios": {
-      "label": "Ver usuarios",
-      "description": "Permite visualizar la lista de usuarios de la empresa"
-    },
-    "gestionar_usuarios": {
-      "label": "Gestionar usuarios",
-      "description": "Permite crear, editar y desactivar usuarios"
-    },
-    "ver_reportes": {
-      "label": "Ver reportes",
-      "description": "Permite visualizar reportes y estadísticas del sistema"
-    },
-    "exportar_reportes": {
-      "label": "Exportar reportes",
-      "description": "Permite exportar reportes en diferentes formatos"
-    },
-    "ver_configuracion": {
-      "label": "Ver configuración",
-      "description": "Permite visualizar la configuración de la empresa"
-    },
-    "editar_configuracion": {
-      "label": "Editar configuración",
-      "description": "Permite modificar la configuración de la empresa"
+    "actions": {
+      "READ": "Ver",
+      "WRITE": "Crear / Editar",
+      "DELETE": "Eliminar",
+      "APPROVE": "Aprobar",
+      "UPLOAD": "Subir",
+      "DOWNLOAD": "Descargar",
+      "MANAGE": "Gestionar"
     }
   }
 }

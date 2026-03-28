@@ -6,17 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { initials, isDeleted } from '@/lib/formatters'
 import type { ApiUser } from '@/lib/api/users'
-import type { ApiRole } from '@/lib/api/roles'
 import type { useCompanyUsers } from '@/features/company-users/hooks/use-company-users'
 
 type CompanyUsersHook = ReturnType<typeof useCompanyUsers>
 
 interface CompanyUsersTableProps {
   hook: CompanyUsersHook
-  roles: ApiRole[]
 }
 
-export function CompanyUsersTable({ hook, roles }: CompanyUsersTableProps) {
+export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
   const { users, usersLoading, openEdit, setDeleteUser, restoreMutation } = hook
   const { t } = useTranslation()
   const activeUsers = users.filter((u) => !isDeleted(u))
@@ -56,7 +54,6 @@ export function CompanyUsersTable({ hook, roles }: CompanyUsersTableProps) {
                 <UserRow
                   key={u.id}
                   user={u}
-                  userRoles={roles.filter((r) => r.userIds.includes(u.id))}
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
                   onRestore={() => restoreMutation.mutate(u.id)}
@@ -72,13 +69,12 @@ export function CompanyUsersTable({ hook, roles }: CompanyUsersTableProps) {
 
 interface UserRowProps {
   user: ApiUser
-  userRoles: ApiRole[]
   onEdit: () => void
   onDelete: () => void
   onRestore: () => void
 }
 
-function UserRow({ user: u, userRoles, onEdit, onDelete, onRestore }: UserRowProps) {
+function UserRow({ user: u, onEdit, onDelete, onRestore }: UserRowProps) {
   const { t } = useTranslation()
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
@@ -98,9 +94,9 @@ function UserRow({ user: u, userRoles, onEdit, onDelete, onRestore }: UserRowPro
       <TableCell className="text-sm text-muted-foreground">{u.position ?? '—'}</TableCell>
       <TableCell>
         <div className="flex flex-wrap gap-1">
-          {userRoles.length > 0 ? (
-            userRoles.map((r) => (
-              <Badge key={r.id} variant="secondary" className="text-xs">{r.name}</Badge>
+          {u.roles.length > 0 ? (
+            u.roles.map((r) => (
+              <Badge key={r.roleId} variant="secondary" className="text-xs">{r.roleName}</Badge>
             ))
           ) : (
             <span className="text-xs text-muted-foreground">{t('common.noRole')}</span>

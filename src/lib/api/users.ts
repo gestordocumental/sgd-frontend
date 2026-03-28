@@ -10,6 +10,7 @@ export interface ApiUser {
   firstName: string | null;
   lastName: string | null;
   position: string;
+  idNumber: string | null;
   email: string;
   registrationStatus: 'pending_credentials' | 'active';
   isActive: boolean;
@@ -28,8 +29,11 @@ export interface CreateUserDto {
 }
 
 export interface UpdateUserDto {
-  name?: string;
-  email?: string;
+  firstName?: string;
+  lastName?: string;
+  idNumber?: string;
+  position?: string;
+  isActive?: boolean;
 }
 
 export interface CompleteRegistrationDto {
@@ -61,9 +65,9 @@ export const usersApi = {
   restore: (id: string) =>
     apiClient.post<ApiUser>(`/users/${id}/restore`).then((r) => r.data),
 
-  toggleSuperAdmin: (id: string, isSuperAdmin: boolean) =>
+  toggleSuperAdmin: (id: string, enabled: boolean) =>
     apiClient
-      .patch<ApiUser>(`/users/${id}/super-admin`, { isSuperAdmin })
+      .patch<ApiUser>(`/users/${id}/super-admin`, { enabled })
       .then((r) => r.data),
 
   // Endpoint público — no requiere JWT. Valida el token de invitación en Redis,
