@@ -17,7 +17,6 @@ interface UsersTableProps {
 
 export function UsersTable({ hook }: UsersTableProps) {
   const {
-    users,
     superAdmins,
     superAdminsLoading,
     openEdit,

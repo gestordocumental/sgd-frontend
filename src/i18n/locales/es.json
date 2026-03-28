@@ -119,6 +119,8 @@
     "companyUsers": "Usuarios de la empresa",
     "loadingUsers": "Cargando usuarios...",
     "noUsers": "Esta empresa no tiene usuarios registrados",
+    "errorUsers": "No se pudieron cargar los usuarios",
+    "retryUsers": "Reintentar",
     "registrationStatus": "Estado de registro",
     "pendingCredentials": "Credenciales pendientes",
     "actions": {
@@ -130,7 +132,11 @@
       "editUser": "Editar usuario",
       "activateUser": "Activar usuario",
       "deactivateUser": "Desactivar usuario",
-      "deleteUser": "Eliminar usuario"
+      "deleteUser": "Eliminar usuario",
+      "expandCompany": "Expandir {{name}}",
+      "collapseCompany": "Colapsar {{name}}",
+      "openCompanyMenu": "Acciones para {{name}}",
+      "openUserMenu": "Acciones para {{name}}"
     },
     "dialogs": {
       "createTitle": "Nueva empresa",

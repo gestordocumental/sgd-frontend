@@ -66,8 +66,8 @@ export function useCompanyUsers(companyId: string) {
     onSuccess: invalidate,
   })
 
-  const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onTouched' })
-  const editForm = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema), mode: 'onTouched' })
+  const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
+  const editForm = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema), mode: 'onChange' })
 
   const openCreate = () => {
     createForm.reset()
@@ -76,7 +76,8 @@ export function useCompanyUsers(companyId: string) {
 
   const openEdit = (u: ApiUser) => {
     setEditUser(u)
-    editForm.reset({ name: u.firstName ?? undefined, email: u.email })
+    editForm.reset({ name: [u.firstName, u.lastName].filter(Boolean).join(' ') || undefined, email: u.email })
+    editForm.trigger()
   }
 
   return {

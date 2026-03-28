@@ -108,7 +108,7 @@ export function useAdminUsers() {
 
   const openEdit = (u: ApiUser) => {
     setEditUser(u)
-    editForm.reset({ name: u.firstName ?? undefined, email: u.email })
+    editForm.reset({ name: [u.firstName, u.lastName].filter(Boolean).join(' ') || undefined, email: u.email })
   }
 
   const onCreateSubmit = (values: CreateUserForm) =>

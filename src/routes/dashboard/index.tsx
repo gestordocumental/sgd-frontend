@@ -21,7 +21,8 @@ import { RoleDialogs } from '@/features/roles/components/RoleDialogs'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
-    const { isSuperAdmin } = useAuthStore.getState()
+    const { isAuthenticated, isSuperAdmin } = useAuthStore.getState()
+    if (!isAuthenticated) throw redirect({ to: '/login' })
     if (isSuperAdmin) throw redirect({ to: '/dashboard/admin' })
   },
   component: CompanyDashboard,

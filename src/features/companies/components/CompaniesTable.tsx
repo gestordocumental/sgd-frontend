@@ -125,6 +125,12 @@ export function CompaniesTable({
                         <button
                           type="button"
                           onClick={() => toggleExpand(company)}
+                          aria-expanded={expandedCompanies.has(company.id)}
+                          aria-label={
+                            expandedCompanies.has(company.id)
+                              ? t('companies.actions.collapseCompany', { name: company.name })
+                              : t('companies.actions.expandCompany', { name: company.name })
+                          }
                           className="flex items-center justify-center size-6 rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors shrink-0"
                         >
                           {expandedCompanies.has(company.id) ? (
@@ -229,7 +235,10 @@ function CompanyActions({
   const { t } = useTranslation();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+      <DropdownMenuTrigger
+        aria-label={t('companies.actions.openCompanyMenu', { name: company.name })}
+        className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      >
         <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -278,7 +287,7 @@ function CompanyUsersRow({
   onToggleUserStatus,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation();
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users, isLoading, isError, refetch } = useQuery({
     queryKey: ["company-users", companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
@@ -299,7 +308,20 @@ function CompanyUsersRow({
               <p className="text-xs text-muted-foreground py-4 text-center">
                 {t('companies.loadingUsers')}
               </p>
-            ) : users.length === 0 ? (
+            ) : isError ? (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <p className="text-xs text-destructive text-center">
+                  {t('companies.errorUsers')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="text-xs text-primary underline-offset-4 hover:underline"
+                >
+                  {t('companies.retryUsers')}
+                </button>
+              </div>
+            ) : !users || users.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
                 {t('companies.noUsers')}
               </p>
@@ -383,7 +405,10 @@ function CompanyUsersRow({
                         </TableCell>
                         <TableCell className="py-2.5">
                           <DropdownMenu>
-                            <DropdownMenuTrigger className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                            <DropdownMenuTrigger
+                              aria-label={t('companies.actions.openUserMenu', { name: `${u.firstName} ${u.lastName}` })}
+                              className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                            >
                               <MoreHorizontal className="size-3.5" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
