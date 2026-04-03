@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AuthUser } from '@/types/auth'
+import { decodeJwt } from '@/lib/jwt'
 
 const AUTH_KEY = 'sgd-auth'
 
@@ -24,7 +25,14 @@ function hydrate(): Partial<PersistedAuth> {
   const raw = localStorage.getItem(AUTH_KEY)
   if (!raw) return {}
   try {
-    return JSON.parse(raw)
+    const parsed: PersistedAuth = JSON.parse(raw)
+    const decoded = decodeJwt(parsed.accessToken)
+    if (!decoded || decoded.exp * 1000 < Date.now()) {
+      localStorage.removeItem(AUTH_KEY)
+      localStorage.removeItem('sgd-refresh-token')
+      return {}
+    }
+    return parsed
   } catch {
     return {}
   }

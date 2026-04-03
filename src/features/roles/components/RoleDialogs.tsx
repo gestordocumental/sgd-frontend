@@ -7,15 +7,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { FormField } from '@/components/ui/form-field'
 import { PermissionSelector } from '@/features/roles/components/PermissionSelector'
 import { initials } from '@/lib/formatters'
-import type { ApiUser } from '@/lib/api/users'
+import type { ApiUserWithRoles } from '@/lib/api/users'
 import type { useRoles } from '@/features/roles/hooks/use-roles'
 
 type RolesHook = ReturnType<typeof useRoles>
 
 interface RoleDialogsProps {
   hook: RolesHook
-  activeUsers: ApiUser[]
-  allUsers: ApiUser[]
+  activeUsers: ApiUserWithRoles[]
+  allUsers: ApiUserWithRoles[]
 }
 
 export function RoleDialogs({ hook, activeUsers }: RoleDialogsProps) {
@@ -126,6 +126,7 @@ export function RoleDialogs({ hook, activeUsers }: RoleDialogsProps) {
                   key={u.id}
                   type="button"
                   className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-accent text-left transition-colors"
+                  disabled={assignUserToRoleMutation.isPending}
                   onClick={() => assignRoleUser && assignUserToRoleMutation.mutate({ roleId: assignRoleUser.role.id, userId: u.id })}
                 >
                   <Avatar className="size-7">

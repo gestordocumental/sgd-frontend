@@ -20,6 +20,7 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
     deleteUser, setDeleteUser,
     createForm, editForm,
     createMutation, editMutation, deleteMutation,
+    roles,
   } = hook
   const { t } = useTranslation()
 
@@ -42,6 +43,18 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
             </FormField>
             <FormField id="cu-position" label={t('common.position')} error={createForm.formState.errors.position?.message}>
               <Input id="cu-position" placeholder={t('users.dialogs.positionPlaceholder')} {...createForm.register('position')} />
+            </FormField>
+            <FormField id="cu-role" label={t('common.role')} error={createForm.formState.errors.roleId?.message}>
+              <select
+                id="cu-role"
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                {...createForm.register('roleId')}
+              >
+                <option value="">{t('users.dialogs.roleSelectPlaceholder')}</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
             </FormField>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setCreateUserOpen(false)}>{t('common.cancel')}</Button>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
-import { FileText, LogOut, Users, Building2, Shield, UserPlus, Plus } from 'lucide-react'
+import { FileText, LogOut, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -18,6 +18,9 @@ import { CompanyUsersTable } from '@/features/company-users/components/CompanyUs
 import { CompanyUserDialogs } from '@/features/company-users/components/CompanyUserDialogs'
 import { RolesTab } from '@/features/roles/components/RolesTab'
 import { RoleDialogs } from '@/features/roles/components/RoleDialogs'
+import { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure'
+import { OrgStructureTab } from '@/features/org-structure/components/OrgStructureTab'
+import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStructureDialogs'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
@@ -33,10 +36,11 @@ function CompanyDashboard() {
   const { user: me, clearAuth } = useAuthStore()
   const { t } = useTranslation()
   const companyId = me?.companyId ?? ''
-  const [activeTab, setActiveTab] = useState<'company' | 'users' | 'roles'>('company')
+  const [activeTab, setActiveTab] = useState<'company' | 'users' | 'roles' | 'org-structure'>('company')
 
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
+  const orgStructure = useOrgStructure(companyId)
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
@@ -64,6 +68,7 @@ function CompanyDashboard() {
           <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={activeTab === 'company'} onClick={() => setActiveTab('company')} />
           <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
           <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
+          <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => setActiveTab('org-structure')} />
         </nav>
 
         <div className="px-4 py-4 border-t border-border">
@@ -92,6 +97,7 @@ function CompanyDashboard() {
             <TabsTrigger value="company"><Building2 className="size-4" />{t('dashboard.company')}</TabsTrigger>
             <TabsTrigger value="users"><Users className="size-4" />{t('common.users')}</TabsTrigger>
             <TabsTrigger value="roles"><Shield className="size-4" />{t('dashboard.rolesAndPermissions')}</TabsTrigger>
+            <TabsTrigger value="org-structure"><FolderTree className="size-4" />{t('dashboard.orgStructure')}</TabsTrigger>
           </TabsList>
           {activeTab === 'users' && (
             <Button size="sm" onClick={() => { companyUsers.createForm.reset(); companyUsers.openCreate() }}>
@@ -119,11 +125,15 @@ function CompanyDashboard() {
         <TabsContent value="roles" className="overflow-auto">
           <RolesTab hook={roles} users={companyUsers.users} />
         </TabsContent>
+        <TabsContent value="org-structure" className="overflow-auto">
+          <OrgStructureTab hook={orgStructure} />
+        </TabsContent>
       </Tabs>
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <CompanyUserDialogs hook={companyUsers} companyName={companyUsers.company?.name} companyId={companyId} />
       <RoleDialogs hook={roles} activeUsers={activeUsers} allUsers={companyUsers.users} />
+      <OrgStructureDialogs hook={orgStructure} />
     </div>
   )
 }

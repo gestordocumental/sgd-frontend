@@ -17,15 +17,18 @@ export interface ApiUser {
   isSuperAdmin: boolean;
   createdAt: string;
   updatedAt: string;
-  deletedAt?: string | null;
+}
+
+export interface ApiUserWithRoles extends ApiUser {
   roles: ApiUserRole[];
 }
 
 export interface CreateUserDto {
   position: string;
   email: string;
-  isSuperAdmin: boolean;
+  isSuperAdmin?: boolean;
   orgId?: string;
+  roleId?: string;
 }
 
 export interface UpdateUserDto {
@@ -34,6 +37,15 @@ export interface UpdateUserDto {
   idNumber?: string;
   position?: string;
   isActive?: boolean;
+}
+
+export interface UserOrgRoleResponseDto {
+  id: string
+  userId: string
+  orgId: string
+  roleId: string
+  assignedBy: string | null
+  createdAt: string
 }
 
 export interface CompleteRegistrationDto {
@@ -50,8 +62,8 @@ export const usersApi = {
   listSuperAdmin: () =>
     apiClient.get<ApiUser[]>("/users/super-admins").then((r) => r.data),
 
-  listUsersByOrg: (orgId: string): Promise<ApiUser[]> =>
-    apiClient.get<ApiUser[]>(`/users/by-org/${orgId}`).then((r) => r.data),
+  listUsersByOrg: (orgId: string): Promise<ApiUserWithRoles[]> =>
+    apiClient.get<ApiUserWithRoles[]>(`/users/by-org/${orgId}`).then((r) => r.data),
 
   create: (dto: CreateUserDto) =>
     apiClient.post<ApiUser>("/users", dto).then((r) => r.data),
@@ -68,6 +80,16 @@ export const usersApi = {
   toggleSuperAdmin: (id: string, enabled: boolean) =>
     apiClient
       .patch<ApiUser>(`/users/${id}/super-admin`, { enabled })
+      .then((r) => r.data),
+
+  assignUserToOrg: (userId: string, orgId: string, roleId: string) =>
+    apiClient
+      .post<UserOrgRoleResponseDto>(`/users/${userId}/orgs`, { orgId, roleId })
+      .then((r) => r.data),
+
+  removeUserFromOrg: (userId: string, orgId: string) =>
+    apiClient
+      .delete<void>(`/users/${userId}/orgs/${orgId}`)
       .then((r) => r.data),
 
   // Endpoint público — no requiere JWT. Valida el token de invitación en Redis,

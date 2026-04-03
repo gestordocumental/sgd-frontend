@@ -8,14 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { initials } from '@/lib/formatters'
 import { type ApiRole, type ApiPermission } from '@/lib/api/roles'
-import type { ApiUser } from '@/lib/api/users'
+import type { ApiUserWithRolesWithRoles } from '@/lib/api/users'
 import type { useRoles } from '@/features/roles/hooks/use-roles'
 
 type RolesHook = ReturnType<typeof useRoles>
 
 interface RolesTabProps {
   hook: RolesHook
-  users: ApiUser[]
+  users: ApiUserWithRoles[]
 }
 
 export function RolesTab({ hook, users }: RolesTabProps) {
@@ -58,7 +58,7 @@ export function RolesTab({ hook, users }: RolesTabProps) {
         onTogglePermission={togglePermission}
         onEditRole={openEdit}
         onDeleteRole={setDeleteRole}
-        onRemoveUserFromRole={(roleId, userId) => removeUserFromRoleMutation.mutate({ roleId, userId })}
+        onRemoveUserFromRole={(_roleId, userId) => removeUserFromRoleMutation.mutate({ userId })}
         onAssignRoleUser={(role) => setAssignRoleUser({ role })}
       />
     </main>
@@ -71,7 +71,7 @@ interface RolesViewTabsProps {
   roles: ApiRole[]
   rolesLoading: boolean
   permissions: ApiPermission[]
-  users: ApiUser[]
+  users: ApiUserWithRoles[]
   expandedRoles: Set<string>
   expandedPermissions: Set<string>
   onToggleRole: (id: string) => void
@@ -139,7 +139,7 @@ function RolesViewTabs({
 
 interface RoleRowProps {
   role: ApiRole
-  users: ApiUser[]
+  users: ApiUserWithRoles[]
   isExpanded: boolean
   onToggle: () => void
   onEdit: () => void
@@ -241,7 +241,7 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
 interface ByPermissionViewProps {
   permissions: ApiPermission[]
   roles: ApiRole[]
-  users: ApiUser[]
+  users: ApiUserWithRoles[]
   expandedPermissions: Set<string>
   onToggle: (id: string) => void
 }
@@ -257,7 +257,7 @@ function ByPermissionView({ permissions, roles, users, expandedPermissions, onTo
     t(`permissions.modules.${module}`, { defaultValue: module })
 
   const getUsersForPermission = (permissionId: string) => {
-    const map = new Map<string, { user: ApiUser; viaRoles: ApiRole[] }>()
+    const map = new Map<string, { user: ApiUserWithRoles; viaRoles: ApiRole[] }>()
     for (const role of roles) {
       if (!role.permissions.some((p) => p.id === permissionId)) continue
       for (const u of users) {

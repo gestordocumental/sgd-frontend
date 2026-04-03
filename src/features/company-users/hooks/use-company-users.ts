@@ -3,13 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { usersApi, type ApiUser, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
+import { usersApi, type ApiUserWithRoles, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
+import { rolesApi } from '@/lib/api/roles'
 import { companiesApi } from '@/lib/api/companies'
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas'
 
 const createUserSchema = z.object({
   position: requiredString('The position'),
   email: emailField,
+  roleId: z.string().uuid().optional(),
 })
 
 const editUserSchema = z.object({
@@ -26,14 +28,21 @@ export function useCompanyUsers(companyId: string) {
   const queryClient = useQueryClient()
 
   const [createUserOpen, setCreateUserOpen] = useState(false)
-  const [editUser, setEditUser] = useState<ApiUser | null>(null)
-  const [deleteUser, setDeleteUser] = useState<ApiUser | null>(null)
+  const [editUser, setEditUser] = useState<ApiUserWithRoles | null>(null)
+  const [deleteUser, setDeleteUser] = useState<ApiUserWithRoles | null>(null)
 
   const { data: company } = useQuery({
     queryKey: ['company', companyId],
     queryFn: () => companiesApi.getById(companyId),
     staleTime: 60_000,
     enabled: !!companyId,
+  })
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles', companyId],
+    queryFn: () => rolesApi.listRoles(),
+    staleTime: 300_000,
+    enabled: createUserOpen,
   })
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -48,9 +57,15 @@ export function useCompanyUsers(companyId: string) {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['company-users', companyId] })
 
+  const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
+
   const createMutation = useMutation({
     mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
     onSuccess: () => { invalidate(); setCreateUserOpen(false) },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const msg = error.response?.data?.message
+      if (msg) createForm.setError('email', { message: msg })
+    },
   })
 
   const editMutation = useMutation({
@@ -67,8 +82,6 @@ export function useCompanyUsers(companyId: string) {
     mutationFn: (id: string) => usersApi.restore(id),
     onSuccess: invalidate,
   })
-
-  const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
   const editForm = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema), mode: 'onChange' })
 
   const openCreate = () => {
@@ -76,7 +89,7 @@ export function useCompanyUsers(companyId: string) {
     setCreateUserOpen(true)
   }
 
-  const openEdit = (u: ApiUser) => {
+  const openEdit = (u: ApiUserWithRoles) => {
     setEditUser(u)
     editForm.reset({
       firstName: u.firstName ?? undefined,
@@ -91,6 +104,7 @@ export function useCompanyUsers(companyId: string) {
     company,
     users,
     usersLoading,
+    roles,
     createUserOpen, setCreateUserOpen,
     editUser, setEditUser,
     deleteUser, setDeleteUser,

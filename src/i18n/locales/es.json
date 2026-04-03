@@ -102,7 +102,35 @@
     "newCompany": "Nueva empresa",
     "newRole": "Nuevo rol",
     "company": "Empresa",
-    "rolesAndPermissions": "Roles y permisos"
+    "rolesAndPermissions": "Roles y permisos",
+    "orgStructure": "Gobierno Documental"
+  },
+  "orgStructure": {
+    "departamentos": "Departamentos",
+    "areas": "Áreas",
+    "cargos": "Cargos",
+    "departamento": "Departamento",
+    "area": "Área",
+    "newDepartamento": "Nuevo departamento",
+    "newArea": "Nueva área",
+    "newCargo": "Nuevo cargo",
+    "editDepartamento": "Editar departamento",
+    "editArea": "Editar área",
+    "editCargo": "Editar cargo",
+    "deleteDepartamento": "Eliminar departamento",
+    "deleteArea": "Eliminar área",
+    "deleteCargo": "Eliminar cargo",
+    "selectDepartamento": "Seleccionar departamento",
+    "selectArea": "Seleccionar área",
+    "selectDepartamentoFirst": "Selecciona un departamento para ver sus áreas",
+    "selectAreaFirst": "Selecciona un departamento y un área para ver sus cargos",
+    "emptyDepartamentos": "No hay departamentos registrados",
+    "emptyAreas": "No hay áreas en este departamento",
+    "emptyCargos": "No hay cargos en esta área",
+    "namePlaceholder": "Nombre",
+    "descriptionPlaceholder": "Descripción (opcional)",
+    "deleteConfirmPre": "¿Estás seguro de que deseas eliminar",
+    "deleteConfirmPost": "? Esta acción no se puede deshacer."
   },
   "companies": {
     "title": "Empresas",
@@ -207,6 +235,7 @@
       "emailPlaceholder": "usuario@empresa.com",
       "positionLabel": "Cargo",
       "positionPlaceholder": "Gerente de Ventas",
+      "roleSelectPlaceholder": "Seleccionar rol (opcional)",
       "nameLabel": "Nombre",
       "namePlaceholder": "Juan García",
       "firstNameLabel": "Nombre",
@@ -217,7 +246,8 @@
       "idNumberPlaceholder": "1234567890",
       "createButton": "Crear usuario",
       "deleteButton": "Eliminar",
-      "newUserTitle": "Nuevo usuario · {{companyName}}"
+      "newUserTitle": "Nuevo usuario · {{companyName}}",
+      "rolePlaceholder": "Sin rol (opcional)"
     }
   },
   "roles": {

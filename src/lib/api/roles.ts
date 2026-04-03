@@ -56,4 +56,5 @@ export const rolesApi = {
     apiClient
       .delete<ApiRole>(`/roles/${roleId}/permissions/${permissionId}`)
       .then((r) => r.data),
+
 }

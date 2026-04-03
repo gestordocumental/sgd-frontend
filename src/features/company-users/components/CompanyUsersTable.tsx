@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { initials, isDeleted } from '@/lib/formatters'
-import type { ApiUser } from '@/lib/api/users'
+import type { ApiUserWithRoles } from '@/lib/api/users'
 import type { useCompanyUsers } from '@/features/company-users/hooks/use-company-users'
 
 type CompanyUsersHook = ReturnType<typeof useCompanyUsers>
@@ -68,7 +68,7 @@ export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
 }
 
 interface UserRowProps {
-  user: ApiUser
+  user: ApiUserWithRoles
   onEdit: () => void
   onDelete: () => void
   onRestore: () => void

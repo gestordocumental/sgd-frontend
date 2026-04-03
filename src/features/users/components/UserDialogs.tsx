@@ -14,6 +14,7 @@ interface UserDialogsProps {
 export function UserDialogs({ hook }: UserDialogsProps) {
   const {
     createOpen, setCreateOpen,
+    createUserContext, companyRoles,
     editUser, setEditUser,
     deleteUser, setDeleteUser,
     createForm, editForm,
@@ -37,6 +38,20 @@ export function UserDialogs({ hook }: UserDialogsProps) {
             <FormField id="create-position" label={t('common.position')} error={createForm.formState.errors.position?.message}>
               <Input id="create-position" placeholder={t('users.dialogs.positionPlaceholder')} {...createForm.register('position')} />
             </FormField>
+            {createUserContext === 'company' && (
+              <FormField id="create-role" label={t('common.role')}>
+                <select
+                  id="create-role"
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed"
+                  {...createForm.register('roleId')}
+                >
+                  <option value="">{t('users.dialogs.rolePlaceholder')}</option>
+                  {companyRoles.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </FormField>
+            )}
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={createMutation.isPending || !createForm.formState.isValid}>

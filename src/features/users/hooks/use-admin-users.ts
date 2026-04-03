@@ -9,12 +9,14 @@ import {
   type CreateUserDto,
   type UpdateUserDto,
 } from "@/lib/api/users";
+import { rolesApi } from "@/lib/api/roles";
 import { emailField, requiredString, optionalString } from "@/lib/validations/schemas";
 
 const createUserSchema = z.object({
   position: requiredString("The position"),
   email: emailField,
   orgId: z.string().optional(),
+  roleId: z.string().optional(),
 });
 
 const editUserSchema = z.object({
@@ -54,13 +56,39 @@ export function useAdminUsers() {
     refetchIntervalInBackground: false,
   });
 
+  const { data: companyRoles = [] } = useQuery({
+    queryKey: ["roles", createCompanyId],
+    queryFn: rolesApi.listRoles,
+    staleTime: 60_000,
+    enabled: createUserContext === "company" && !!createCompanyId,
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["users"] });
     queryClient.invalidateQueries({ queryKey: ["superAdmins"] });
   };
 
+  const createForm = useForm<CreateUserForm>({
+    resolver: zodResolver(createUserSchema),
+    mode: "onChange",
+  });
+
   const createMutation = useMutation({
-    mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
+    mutationFn: async ({
+      dto,
+      roleId,
+      orgId,
+    }: {
+      dto: CreateUserDto;
+      roleId?: string;
+      orgId?: string;
+    }) => {
+      const user = await usersApi.create(dto);
+      if (roleId && orgId) {
+        await usersApi.assignUserToOrg(user.id, orgId, roleId);
+      }
+      return user;
+    },
     onSuccess: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -97,10 +125,6 @@ export function useAdminUsers() {
     onSuccess: invalidate,
   });
 
-  const createForm = useForm<CreateUserForm>({
-    resolver: zodResolver(createUserSchema),
-    mode: "onChange",
-  });
   const editForm = useForm<EditUserForm>({
     resolver: zodResolver(editUserSchema),
     mode: "onChange",
@@ -127,15 +151,15 @@ export function useAdminUsers() {
     editForm.trigger();
   };
 
-  const onCreateSubmit = (values: CreateUserForm) =>
+  const onCreateSubmit = (values: CreateUserForm) => {
+    const { roleId, orgId: _orgId, ...rest } = values;
+    const orgId = createUserContext === "company" ? (createCompanyId ?? undefined) : undefined;
     createMutation.mutate({
-      ...values,
-      isSuperAdmin: createUserContext === "super-admin",
-      orgId:
-        createUserContext === "company"
-          ? (createCompanyId ?? undefined)
-          : undefined,
+      dto: { ...rest, isSuperAdmin: createUserContext === "super-admin", orgId },
+      roleId: roleId || undefined,
+      orgId,
     });
+  };
 
   const onEditSubmit = (values: EditUserForm) => {
     if (!editUser) return;
@@ -148,6 +172,8 @@ export function useAdminUsers() {
     superAdminsLoading,
     createOpen,
     setCreateOpen,
+    createUserContext,
+    companyRoles,
     editUser,
     setEditUser,
     deleteUser,
