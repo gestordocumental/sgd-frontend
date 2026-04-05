@@ -122,6 +122,7 @@
     "deleteCargo": "Delete position",
     "selectDepartamento": "Select department",
     "selectArea": "Select area",
+    "selectCargo": "Select position",
     "selectDepartamentoFirst": "Select a department to view its areas",
     "selectAreaFirst": "Select a department and an area to view its positions",
     "emptyDepartamentos": "No departments registered",
@@ -304,6 +305,7 @@
       "WORKFLOWS": "Workflows",
       "USERS": "Users",
       "ORGS": "Organizations",
+      "ORG_STRUCTURE": "Organizational structure",
       "AUDIT": "Audit",
       "PLATFORM": "Platform"
     },

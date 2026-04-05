@@ -10,20 +10,22 @@ import {
   type UpdateUserDto,
 } from "@/lib/api/users";
 import { rolesApi } from "@/lib/api/roles";
+import { orgStructureApi } from "@/lib/api/org-structure";
 import { emailField, requiredString, optionalString } from "@/lib/validations/schemas";
 
 const createUserSchema = z.object({
-  position: requiredString("The position"),
   email: emailField,
   orgId: z.string().optional(),
   roleId: z.string().optional(),
+  departamentoId: z.string().uuid().optional(),
+  areaId: z.string().uuid().optional(),
+  cargoId: z.string().uuid().optional(),
 });
 
 const editUserSchema = z.object({
   firstName: requiredString("The first name"),
   lastName: requiredString("The last name"),
   idNumber: optionalString,
-  position: optionalString,
 });
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;
@@ -39,6 +41,10 @@ export function useAdminUsers() {
   const [createCompanyId, setCreateCompanyId] = useState<string | null>(null);
   const [editUser, setEditUser] = useState<ApiUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<ApiUser | null>(null);
+
+  // Cascade selection state for org-structure dropdowns
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("");
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("");
 
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
@@ -60,7 +66,28 @@ export function useAdminUsers() {
     queryKey: ["roles", createCompanyId],
     queryFn: rolesApi.listRoles,
     staleTime: 60_000,
-    enabled: createUserContext === "company" && !!createCompanyId,
+    enabled: createUserContext === "company" && !!createCompanyId && createOpen,
+  });
+
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ["departamentos", createCompanyId],
+    queryFn: () => orgStructureApi.listDepartamentos(createCompanyId!),
+    staleTime: 300_000,
+    enabled: createUserContext === "company" && !!createCompanyId && createOpen,
+  });
+
+  const { data: areas = [] } = useQuery({
+    queryKey: ["areas", createCompanyId, selectedDeptId],
+    queryFn: () => orgStructureApi.listAreas(createCompanyId!, selectedDeptId),
+    staleTime: 300_000,
+    enabled: createUserContext === "company" && !!selectedDeptId && createOpen,
+  });
+
+  const { data: cargos = [] } = useQuery({
+    queryKey: ["cargos", createCompanyId, selectedDeptId, selectedAreaId],
+    queryFn: () => orgStructureApi.listCargos(createCompanyId!, selectedDeptId, selectedAreaId),
+    staleTime: 300_000,
+    enabled: createUserContext === "company" && !!selectedAreaId && createOpen,
   });
 
   const invalidate = () => {
@@ -136,6 +163,8 @@ export function useAdminUsers() {
   ) => {
     setCreateUserContext(context);
     setCreateCompanyId(companyId ?? null);
+    setSelectedDeptId("");
+    setSelectedAreaId("");
     createForm.reset();
     setCreateOpen(true);
   };
@@ -146,7 +175,6 @@ export function useAdminUsers() {
       firstName: u.firstName ?? undefined,
       lastName: u.lastName ?? undefined,
       idNumber: u.idNumber ?? undefined,
-      position: u.position ?? undefined,
     });
     editForm.trigger();
   };
@@ -174,6 +202,13 @@ export function useAdminUsers() {
     setCreateOpen,
     createUserContext,
     companyRoles,
+    departamentos,
+    areas,
+    cargos,
+    selectedDeptId,
+    setSelectedDeptId,
+    selectedAreaId,
+    setSelectedAreaId,
     editUser,
     setEditUser,
     deleteUser,

@@ -11,6 +11,9 @@ export interface ApiUser {
   lastName: string | null;
   position: string;
   idNumber: string | null;
+  departamentoId: string | null;
+  areaId: string | null;
+  cargoId: string | null;
   email: string;
   registrationStatus: 'pending_credentials' | 'active';
   isActive: boolean;
@@ -24,11 +27,13 @@ export interface ApiUserWithRoles extends ApiUser {
 }
 
 export interface CreateUserDto {
-  position: string;
   email: string;
   isSuperAdmin?: boolean;
   orgId?: string;
   roleId?: string;
+  departamentoId?: string;
+  areaId?: string;
+  cargoId?: string;
 }
 
 export interface UpdateUserDto {
@@ -37,6 +42,9 @@ export interface UpdateUserDto {
   idNumber?: string;
   position?: string;
   isActive?: boolean;
+  departamentoId?: string | null;
+  areaId?: string | null;
+  cargoId?: string | null;
 }
 
 export interface UserOrgRoleResponseDto {

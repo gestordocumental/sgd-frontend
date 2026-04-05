@@ -66,14 +66,17 @@ export function useOrgStructure(companyId: string) {
   })
 
   // ── Invalidation helpers ───────────────────────────────────────
+  // Partial-key invalidation: covers all cached variants (including user modals)
   const invalidateDepts = () =>
     queryClient.invalidateQueries({ queryKey: ['departamentos', companyId] })
 
   const invalidateAreas = () =>
-    queryClient.invalidateQueries({ queryKey: ['areas', companyId, selectedDeptId] })
+    queryClient.invalidateQueries({ queryKey: ['areas', companyId] })
 
-  const invalidateCargos = () =>
-    queryClient.invalidateQueries({ queryKey: ['cargos', companyId, selectedDeptId, selectedAreaId] })
+  const invalidateCargos = () => {
+    queryClient.invalidateQueries({ queryKey: ['cargos', companyId] })
+    queryClient.invalidateQueries({ queryKey: ['all-cargos', companyId] })
+  }
 
   // ── Departamento mutations ─────────────────────────────────────
   const createDeptMutation = useMutation({

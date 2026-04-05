@@ -97,7 +97,11 @@ export const orgStructureApi = {
       .delete<void>(`${base(orgId)}/departamentos/${departamentoId}/areas/${id}`)
       .then((r) => r.data),
 
-  // ── Cargos ───────────────────────────────────────────────────────
+  // ── Cargos (flat — all cargos in the org) ────────────────────────
+  listAllCargos: (orgId: string) =>
+    apiClient.get<ApiCargo[]>(`${base(orgId)}/cargos`).then((r) => r.data),
+
+  // ── Cargos (nested by area) ───────────────────────────────────────
   listCargos: (orgId: string, departamentoId: string, areaId: string) =>
     apiClient
       .get<ApiCargo[]>(`${base(orgId)}/departamentos/${departamentoId}/areas/${areaId}/cargos`)

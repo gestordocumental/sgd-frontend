@@ -122,6 +122,7 @@
     "deleteCargo": "Eliminar cargo",
     "selectDepartamento": "Seleccionar departamento",
     "selectArea": "Seleccionar área",
+    "selectCargo": "Seleccionar cargo",
     "selectDepartamentoFirst": "Selecciona un departamento para ver sus áreas",
     "selectAreaFirst": "Selecciona un departamento y un área para ver sus cargos",
     "emptyDepartamentos": "No hay departamentos registrados",
@@ -305,6 +306,7 @@
       "WORKFLOWS": "Flujos de trabajo",
       "USERS": "Usuarios",
       "ORGS": "Organizaciones",
+      "ORG_STRUCTURE": "Estructura organizacional",
       "AUDIT": "Auditoría",
       "PLATFORM": "Plataforma"
     },

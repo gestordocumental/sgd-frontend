@@ -15,7 +15,7 @@ interface CompanyUsersTableProps {
 }
 
 export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
-  const { users, usersLoading, openEdit, setDeleteUser, restoreMutation } = hook
+  const { users, usersLoading, openEdit, setDeleteUser, restoreMutation, cargoMap } = hook
   const { t } = useTranslation()
   const activeUsers = users.filter((u) => !isDeleted(u))
 
@@ -54,6 +54,7 @@ export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
                 <UserRow
                   key={u.id}
                   user={u}
+                  cargoName={u.cargoId ? (cargoMap.get(u.cargoId) ?? '—') : '—'}
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
                   onRestore={() => restoreMutation.mutate(u.id)}
@@ -69,12 +70,13 @@ export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
 
 interface UserRowProps {
   user: ApiUserWithRoles
+  cargoName: string
   onEdit: () => void
   onDelete: () => void
   onRestore: () => void
 }
 
-function UserRow({ user: u, onEdit, onDelete, onRestore }: UserRowProps) {
+function UserRow({ user: u, cargoName, onEdit, onDelete, onRestore }: UserRowProps) {
   const { t } = useTranslation()
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
@@ -91,7 +93,7 @@ function UserRow({ user: u, onEdit, onDelete, onRestore }: UserRowProps) {
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">{u.position ?? '—'}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{cargoName}</TableCell>
       <TableCell>
         <div className="flex flex-wrap gap-1">
           {u.roles.length > 0 ? (

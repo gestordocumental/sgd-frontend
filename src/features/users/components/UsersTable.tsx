@@ -54,7 +54,6 @@ export function UsersTable({ hook }: UsersTableProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('users.userColumn')}</TableHead>
-                <TableHead>{t('users.positionColumn')}</TableHead>
                 <TableHead>{t('users.roleColumn')}</TableHead>
                 <TableHead>{t('users.registrationColumn')}</TableHead>
                 <TableHead>{t('users.statusColumn')}</TableHead>
@@ -104,13 +103,6 @@ function UserRow({ user: u, onEdit, onDelete, onRestore, onToggleSuperAdmin }: U
           <div>
             <p className="text-sm font-medium">{u.firstName} {u.lastName}</p>
             <p className="text-xs text-muted-foreground">{u.email}</p>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <div>
-            <p className="text-sm font-medium">{u.position}</p>
           </div>
         </div>
       </TableCell>

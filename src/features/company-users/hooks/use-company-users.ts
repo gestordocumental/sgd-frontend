@@ -6,19 +6,24 @@ import { z } from 'zod'
 import { usersApi, type ApiUserWithRoles, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
 import { rolesApi } from '@/lib/api/roles'
 import { companiesApi } from '@/lib/api/companies'
+import { orgStructureApi } from '@/lib/api/org-structure'
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas'
 
 const createUserSchema = z.object({
-  position: requiredString('The position'),
   email: emailField,
   roleId: z.string().uuid().optional(),
+  departamentoId: z.string().uuid().optional(),
+  areaId: z.string().uuid().optional(),
+  cargoId: z.string().uuid().optional(),
 })
 
 const editUserSchema = z.object({
   firstName: requiredString('The first name'),
   lastName: requiredString('The last name'),
   idNumber: optionalString,
-  position: optionalString,
+  departamentoId: z.string().uuid().optional(),
+  areaId: z.string().uuid().optional(),
+  cargoId: z.string().uuid().optional(),
 })
 
 export type CreateUserForm = z.infer<typeof createUserSchema>
@@ -30,6 +35,14 @@ export function useCompanyUsers(companyId: string) {
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [editUser, setEditUser] = useState<ApiUserWithRoles | null>(null)
   const [deleteUser, setDeleteUser] = useState<ApiUserWithRoles | null>(null)
+
+  // Cascade state — create form
+  const [selectedDeptId, setSelectedDeptId] = useState<string>('')
+  const [selectedAreaId, setSelectedAreaId] = useState<string>('')
+
+  // Cascade state — edit form
+  const [editSelectedDeptId, setEditSelectedDeptId] = useState<string>('')
+  const [editSelectedAreaId, setEditSelectedAreaId] = useState<string>('')
 
   const { data: company } = useQuery({
     queryKey: ['company', companyId],
@@ -43,6 +56,54 @@ export function useCompanyUsers(companyId: string) {
     queryFn: () => rolesApi.listRoles(),
     staleTime: 300_000,
     enabled: createUserOpen,
+  })
+
+  // Flat cargo list for the table display
+  const { data: allCargos = [] } = useQuery({
+    queryKey: ['all-cargos', companyId],
+    queryFn: () => orgStructureApi.listAllCargos(companyId),
+    staleTime: 300_000,
+    enabled: !!companyId,
+  })
+
+  const cargoMap = new Map(allCargos.map((c) => [c.id, c.name]))
+
+  // Shared departamentos list (used by both create and edit modals)
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ['departamentos', companyId],
+    queryFn: () => orgStructureApi.listDepartamentos(companyId),
+    staleTime: 300_000,
+    enabled: (createUserOpen || !!editUser) && !!companyId,
+  })
+
+  // Areas / cargos for create form
+  const { data: areas = [] } = useQuery({
+    queryKey: ['areas', companyId, selectedDeptId],
+    queryFn: () => orgStructureApi.listAreas(companyId, selectedDeptId),
+    staleTime: 300_000,
+    enabled: createUserOpen && !!selectedDeptId,
+  })
+
+  const { data: cargos = [] } = useQuery({
+    queryKey: ['cargos', companyId, selectedDeptId, selectedAreaId],
+    queryFn: () => orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId),
+    staleTime: 300_000,
+    enabled: createUserOpen && !!selectedAreaId,
+  })
+
+  // Areas / cargos for edit form — share the same cache keys as create form
+  const { data: editAreas = [] } = useQuery({
+    queryKey: ['areas', companyId, editSelectedDeptId],
+    queryFn: () => orgStructureApi.listAreas(companyId, editSelectedDeptId),
+    staleTime: 300_000,
+    enabled: !!editUser && !!editSelectedDeptId,
+  })
+
+  const { data: editCargos = [] } = useQuery({
+    queryKey: ['cargos', companyId, editSelectedDeptId, editSelectedAreaId],
+    queryFn: () => orgStructureApi.listCargos(companyId, editSelectedDeptId, editSelectedAreaId),
+    staleTime: 300_000,
+    enabled: !!editUser && !!editSelectedAreaId,
   })
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -70,7 +131,11 @@ export function useCompanyUsers(companyId: string) {
 
   const editMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateUserDto }) => usersApi.update(id, dto),
-    onSuccess: () => { invalidate(); setEditUser(null) },
+    onSuccess: () => {
+      invalidate()
+      queryClient.invalidateQueries({ queryKey: ['all-cargos', companyId] })
+      setEditUser(null)
+    },
   })
 
   const deleteMutation = useMutation({
@@ -82,20 +147,29 @@ export function useCompanyUsers(companyId: string) {
     mutationFn: (id: string) => usersApi.restore(id),
     onSuccess: invalidate,
   })
+
   const editForm = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema), mode: 'onChange' })
 
   const openCreate = () => {
     createForm.reset()
+    setSelectedDeptId('')
+    setSelectedAreaId('')
     setCreateUserOpen(true)
   }
 
   const openEdit = (u: ApiUserWithRoles) => {
     setEditUser(u)
+    const deptId = u.departamentoId ?? ''
+    const areaId = u.areaId ?? ''
+    setEditSelectedDeptId(deptId)
+    setEditSelectedAreaId(areaId)
     editForm.reset({
       firstName: u.firstName ?? undefined,
       lastName: u.lastName ?? undefined,
       idNumber: u.idNumber ?? undefined,
-      position: u.position ?? undefined,
+      departamentoId: u.departamentoId ?? undefined,
+      areaId: u.areaId ?? undefined,
+      cargoId: u.cargoId ?? undefined,
     })
     editForm.trigger()
   }
@@ -105,6 +179,20 @@ export function useCompanyUsers(companyId: string) {
     users,
     usersLoading,
     roles,
+    cargoMap,
+    departamentos,
+    areas,
+    cargos,
+    selectedDeptId,
+    setSelectedDeptId,
+    selectedAreaId,
+    setSelectedAreaId,
+    editAreas,
+    editCargos,
+    editSelectedDeptId,
+    setEditSelectedDeptId,
+    editSelectedAreaId,
+    setEditSelectedAreaId,
     createUserOpen, setCreateUserOpen,
     editUser, setEditUser,
     deleteUser, setDeleteUser,
