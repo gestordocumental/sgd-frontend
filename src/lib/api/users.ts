@@ -20,6 +20,7 @@ export interface ApiUser {
   isSuperAdmin: boolean;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface ApiUserWithRoles extends ApiUser {
