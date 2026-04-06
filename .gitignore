@@ -15,6 +15,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Environment — local overrides never se commitean
+.env
 .env.local
 .env.*.local
 

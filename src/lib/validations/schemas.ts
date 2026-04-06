@@ -4,35 +4,37 @@ import { z } from 'zod'
 
 export const emailField = z
   .string()
-  .min(1, 'El correo electrónico es requerido')
+  .min(1, 'validation.email.required')
   .refine(
     (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-    'Ingresa un correo electrónico válido',
+    'validation.email.invalid',
   )
 
-// Para formularios de login — solo verifica que no esté vacío
+// For login forms — only checks that it is not empty
 export const passwordField = z
   .string()
-  .min(1, 'La contraseña es requerida')
+  .min(1, 'validation.password.required')
 
-// Para crear o cambiar contraseña — aplica las mismas reglas del backend
+// For creating or changing a password — applies the same rules as the backend
 export const newPasswordField = z
   .string()
-  .min(1, 'La contraseña es requerida')
-  .min(8, 'La contraseña debe tener al menos 8 caracteres')
-  .refine((val) => /^\S+$/.test(val), 'La contraseña no debe contener espacios')
-  .refine((val) => /[A-Z]/.test(val), 'La contraseña debe contener al menos una letra mayúscula')
+  .min(1, 'validation.password.required')
+  .min(8, 'validation.password.minLength')
+  .refine((val) => /^\S+$/.test(val), 'validation.password.noSpaces')
+  .refine((val) => /[A-Z]/.test(val), 'validation.password.uppercase')
   .refine(
     (val) => /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/.test(val),
-    'La contraseña debe contener al menos un carácter especial',
+    'validation.password.specialChar',
   )
   .refine(
     (val) => /^(?!.*(?:012|123|234|345|456|567|678|789|890))[\s\S]*$/.test(val),
-    'La contraseña no debe contener números consecutivos (ej. 123, 456)',
+    'validation.password.noConsecutive',
   )
 
-export const requiredString = (label: string) =>
-  z.string().min(1, `${label} es requerido`)
+export const requiredString = (_label: string) =>
+  z.string().min(1, 'validation.required')
+
+export const optionalString = z.string().optional()
 
 // ── Schemas de formularios ───────────────────────────────────────────────────
 
