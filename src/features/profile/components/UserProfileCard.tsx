@@ -241,6 +241,7 @@ export function UserProfileCard() {
           className="size-7 text-muted-foreground hover:text-destructive"
           onClick={() => logoutMutation.mutate()}
           title={t("common.logout")}
+          aria-label={t("common.logout")}
         >
           <LogOut className="size-3.5" />
         </Button>
