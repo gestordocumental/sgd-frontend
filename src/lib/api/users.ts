@@ -68,6 +68,9 @@ export interface CompleteRegistrationDto {
 export const usersApi = {
   list: () => apiClient.get<ApiUser[]>("/users").then((r) => r.data),
 
+  getById: (id: string) =>
+    apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
+
   listSuperAdmin: () =>
     apiClient.get<ApiUser[]>("/users/super-admins").then((r) => r.data),
 
@@ -91,7 +94,7 @@ export const usersApi = {
       .patch<ApiUser>(`/users/${id}/super-admin`, { enabled })
       .then((r) => r.data),
 
-  assignUserToOrg: (userId: string, orgId: string, roleId: string) =>
+  assignUserToOrg: (userId: string, orgId: string, roleId?: string) =>
     apiClient
       .post<UserOrgRoleResponseDto>(`/users/${userId}/orgs`, { orgId, roleId })
       .then((r) => r.data),

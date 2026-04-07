@@ -52,7 +52,11 @@
     "user": "Usuario",
     "users": "Usuarios",
     "role": "Rol",
-    "roles": "Roles"
+    "logout": "Cerrar sesión"
+  },
+  "profile": {
+    "myProfile": "Mi perfil",
+    "switchContext": "Cambiar a"
   },
   "auth": {
     "welcomeTitle": "Bienvenido a SGD",

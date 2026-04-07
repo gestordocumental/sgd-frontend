@@ -1,16 +1,13 @@
 import { useState } from 'react'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useMutation } from '@tanstack/react-query'
-import { FileText, LogOut, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { NavItem } from '@/components/ui/nav-item'
-import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/store/authStore'
-import { initials, isDeleted } from '@/lib/formatters'
+import { isDeleted } from '@/lib/formatters'
+import { UserProfileCard } from '@/features/profile/components/UserProfileCard'
 import { useCompanyUsers } from '@/features/company-users/hooks/use-company-users'
 import { useRoles } from '@/features/roles/hooks/use-roles'
 import { CompanyTab } from '@/features/company-users/components/CompanyTab'
@@ -24,16 +21,16 @@ import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStru
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
-    const { isAuthenticated, isSuperAdmin } = useAuthStore.getState()
+    const { isAuthenticated, isSuperAdmin, user } = useAuthStore.getState()
     if (!isAuthenticated) throw redirect({ to: '/login' })
-    if (isSuperAdmin) throw redirect({ to: '/dashboard/admin' })
+    // Only redirect to admin when super admin has no company context active
+    if (isSuperAdmin && !user?.companyId) throw redirect({ to: '/dashboard/admin' })
   },
   component: CompanyDashboard,
 })
 
 function CompanyDashboard() {
-  const navigate = useNavigate()
-  const { user: me, clearAuth } = useAuthStore()
+  const { user: me } = useAuthStore()
   const { t } = useTranslation()
   const companyId = me?.companyId ?? ''
   const [activeTab, setActiveTab] = useState<'company' | 'users' | 'roles' | 'org-structure'>('company')
@@ -43,11 +40,6 @@ function CompanyDashboard() {
   const orgStructure = useOrgStructure(companyId)
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
-
-  const logoutMutation = useMutation({
-    mutationFn: authApi.logout,
-    onSettled: () => { clearAuth(); navigate({ to: '/login' }) },
-  })
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -71,23 +63,7 @@ function CompanyDashboard() {
           <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => setActiveTab('org-structure')} />
         </nav>
 
-        <div className="px-4 py-4 border-t border-border">
-          <div className="flex items-center gap-2.5">
-            <Avatar className="size-8">
-              <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                {me?.name ? initials(me.name) : '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{me?.name ?? me?.email}</p>
-              <p className="text-[10px] text-muted-foreground">{me?.role ?? t('common.user')}</p>
-            </div>
-            <LanguageSwitcher />
-            <Button variant="ghost" size="icon" className="size-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => logoutMutation.mutate()}>
-              <LogOut className="size-3.5" />
-            </Button>
-          </div>
-        </div>
+        <UserProfileCard />
       </aside>
 
       {/* ── Main ────────────────────────────────────────────────────── */}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,13 +13,20 @@ import { rolesApi } from "@/lib/api/roles";
 import { orgStructureApi } from "@/lib/api/org-structure";
 import { emailField, requiredString, optionalString } from "@/lib/validations/schemas";
 
+// HTML selects always produce "" when nothing is selected — convert to undefined
+// before UUID validation so the form stays valid when fields are left blank.
+const optionalUuid = z.preprocess(
+  (v) => (v === "" ? undefined : v),
+  z.string().uuid().optional(),
+);
+
 const createUserSchema = z.object({
   email: emailField,
   orgId: z.string().optional(),
   roleId: z.string().optional(),
-  departamentoId: z.string().uuid().optional(),
-  areaId: z.string().uuid().optional(),
-  cargoId: z.string().uuid().optional(),
+  departamentoId: optionalUuid,
+  areaId: optionalUuid,
+  cargoId: optionalUuid,
 });
 
 const editUserSchema = z.object({
@@ -64,10 +71,23 @@ export function useAdminUsers() {
 
   const { data: companyRoles = [] } = useQuery({
     queryKey: ["roles", createCompanyId],
-    queryFn: rolesApi.listRoles,
+    queryFn: () => rolesApi.listRoles(createCompanyId ?? undefined),
     staleTime: 60_000,
     enabled: createUserContext === "company" && !!createCompanyId && createOpen,
   });
+
+  // Pre-select ADMIN role when opening the company user creation dialog
+  useEffect(() => {
+    if (createUserContext === "company" && companyRoles.length > 0) {
+      const current = createForm.getValues("roleId");
+      if (!current) {
+        const adminRole = companyRoles.find((r) => r.name === "ADMIN");
+        if (adminRole) {
+          createForm.setValue("roleId", adminRole.id, { shouldValidate: true });
+        }
+      }
+    }
+  }, [companyRoles, createUserContext]);
 
   const { data: departamentos = [] } = useQuery({
     queryKey: ["departamentos", createCompanyId],
@@ -110,11 +130,23 @@ export function useAdminUsers() {
       roleId?: string;
       orgId?: string;
     }) => {
-      const user = await usersApi.create(dto);
-      if (roleId && orgId) {
-        await usersApi.assignUserToOrg(user.id, orgId, roleId);
+      let userId: string;
+      try {
+        const user = await usersApi.create(dto);
+        userId = user.id;
+      } catch (err: unknown) {
+        // If the email already exists and we're assigning to a company,
+        // use the existing user's id instead of failing.
+        const apiErr = err as { response?: { status?: number; data?: { userId?: string } } };
+        if (apiErr?.response?.status === 409 && apiErr?.response?.data?.userId && orgId) {
+          userId = apiErr.response.data.userId;
+        } else {
+          throw err;
+        }
       }
-      return user;
+      if (orgId) {
+        await usersApi.assignUserToOrg(userId, orgId, roleId);
+      }
     },
     onSuccess: () => {
       invalidate();

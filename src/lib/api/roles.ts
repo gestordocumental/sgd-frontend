@@ -34,8 +34,8 @@ export const rolesApi = {
   listPermissions: () =>
     apiClient.get<ApiPermission[]>('/permissions').then((r) => r.data),
 
-  listRoles: () =>
-    apiClient.get<ApiRole[]>('/roles').then((r) => r.data),
+  listRoles: (orgId?: string) =>
+    apiClient.get<ApiRole[]>('/roles', { params: orgId ? { orgId } : undefined }).then((r) => r.data),
 
   createRole: (dto: CreateRoleDto) =>
     apiClient.post<ApiRole>('/roles', dto).then((r) => r.data),
