@@ -80,18 +80,15 @@ export function useUserProfile() {
 
   async function switchToCompany(companyId: string) {
     const { accessToken: companyToken } = await authApi.switchCompany(companyId)
-    const decoded = decodeJwt(companyToken)
     const company = companies.find((c) => c.id === companyId)
     enterCompany(companyId, company?.name ?? companyId, companyToken)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
       queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
       queryClient.invalidateQueries({ queryKey: ['companies-by-ids'] }),
+      queryClient.removeQueries({ queryKey: ['my-org-roles'] }),
     ])
-    // If the token no longer has isSuperAdmin, navigate to company dashboard
-    if (!decoded?.isSuperAdmin) {
-      navigate({ to: '/dashboard' })
-    }
+    navigate({ to: '/dashboard' })
   }
 
   async function switchToSuperAdmin() {
@@ -101,6 +98,7 @@ export function useUserProfile() {
       queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
       queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
       queryClient.invalidateQueries({ queryKey: ['companies-by-ids'] }),
+      queryClient.removeQueries({ queryKey: ['my-org-roles'] }),
     ])
     navigate({ to: '/dashboard/admin' })
   }

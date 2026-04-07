@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { NavItem } from '@/components/ui/nav-item'
 import { useAuthStore } from '@/store/authStore'
 import { isDeleted } from '@/lib/formatters'
+import { decodeJwt } from '@/lib/jwt'
 import { UserProfileCard } from '@/features/profile/components/UserProfileCard'
 import { useCompanyUsers } from '@/features/company-users/hooks/use-company-users'
 import { useRoles } from '@/features/roles/hooks/use-roles'
@@ -18,22 +19,39 @@ import { RoleDialogs } from '@/features/roles/components/RoleDialogs'
 import { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure'
 import { OrgStructureTab } from '@/features/org-structure/components/OrgStructureTab'
 import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStructureDialogs'
+import { useMyPermissions } from '@/features/profile/hooks/use-my-permissions'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
     const { isAuthenticated, isSuperAdmin, user } = useAuthStore.getState()
     if (!isAuthenticated) throw redirect({ to: '/login' })
-    // Only redirect to admin when super admin has no company context active
     if (isSuperAdmin && !user?.companyId) throw redirect({ to: '/dashboard/admin' })
   },
   component: CompanyDashboard,
 })
 
+type TabId = 'company' | 'users' | 'roles' | 'org-structure'
+
 function CompanyDashboard() {
-  const { user: me } = useAuthStore()
+  const { user: me, isSuperAdmin, accessToken } = useAuthStore()
   const { t } = useTranslation()
   const companyId = me?.companyId ?? ''
-  const [activeTab, setActiveTab] = useState<'company' | 'users' | 'roles' | 'org-structure'>('company')
+  const [activeTab, setActiveTab] = useState<TabId>('company')
+
+  const tokenPayload = accessToken ? decodeJwt(accessToken) : null
+  const userId = tokenPayload?.sub ?? me?.id ?? null
+
+  const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(companyId, userId, isSuperAdmin)
+
+  const canViewUsers = hasPermission('USERS', 'READ')
+  const canViewOrgs = hasPermission('ORGS', 'READ')
+
+  // If the active tab becomes inaccessible after permissions load, fall back to 'company'
+  useEffect(() => {
+    if (permissionsLoading) return
+    if (activeTab === 'users' && !canViewUsers) setActiveTab('company')
+    if ((activeTab === 'roles' || activeTab === 'org-structure') && !canViewOrgs) setActiveTab('company')
+  }, [permissionsLoading, canViewUsers, canViewOrgs, activeTab])
 
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
@@ -58,29 +76,41 @@ function CompanyDashboard() {
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">{t('dashboard.management')}</p>
           <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={activeTab === 'company'} onClick={() => setActiveTab('company')} />
-          <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-          <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
-          <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => setActiveTab('org-structure')} />
+          {canViewUsers && (
+            <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+          )}
+          {canViewOrgs && (
+            <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
+          )}
+          {canViewOrgs && (
+            <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => setActiveTab('org-structure')} />
+          )}
         </nav>
 
         <UserProfileCard />
       </aside>
 
       {/* ── Main ────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 min-w-0 overflow-hidden gap-0">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} className="flex-1 min-w-0 overflow-hidden gap-0">
         <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
           <TabsList>
             <TabsTrigger value="company"><Building2 className="size-4" />{t('dashboard.company')}</TabsTrigger>
-            <TabsTrigger value="users"><Users className="size-4" />{t('common.users')}</TabsTrigger>
-            <TabsTrigger value="roles"><Shield className="size-4" />{t('dashboard.rolesAndPermissions')}</TabsTrigger>
-            <TabsTrigger value="org-structure"><FolderTree className="size-4" />{t('dashboard.orgStructure')}</TabsTrigger>
+            {canViewUsers && (
+              <TabsTrigger value="users"><Users className="size-4" />{t('common.users')}</TabsTrigger>
+            )}
+            {canViewOrgs && (
+              <TabsTrigger value="roles"><Shield className="size-4" />{t('dashboard.rolesAndPermissions')}</TabsTrigger>
+            )}
+            {canViewOrgs && (
+              <TabsTrigger value="org-structure"><FolderTree className="size-4" />{t('dashboard.orgStructure')}</TabsTrigger>
+            )}
           </TabsList>
-          {activeTab === 'users' && (
+          {activeTab === 'users' && canViewUsers && (
             <Button size="sm" onClick={() => { companyUsers.createForm.reset(); companyUsers.openCreate() }}>
               <UserPlus className="size-4" />{t('dashboard.newUser')}
             </Button>
           )}
-          {activeTab === 'roles' && (
+          {activeTab === 'roles' && canViewOrgs && (
             <Button size="sm" onClick={roles.openCreate}>
               <Plus className="size-4" />{t('dashboard.newRole')}
             </Button>
@@ -95,15 +125,21 @@ function CompanyDashboard() {
             rolesCount={roles.roles.length}
           />
         </TabsContent>
-        <TabsContent value="users" className="overflow-auto">
-          <CompanyUsersTable hook={companyUsers} />
-        </TabsContent>
-        <TabsContent value="roles" className="overflow-auto">
-          <RolesTab hook={roles} users={companyUsers.users} />
-        </TabsContent>
-        <TabsContent value="org-structure" className="overflow-auto">
-          <OrgStructureTab hook={orgStructure} />
-        </TabsContent>
+        {canViewUsers && (
+          <TabsContent value="users" className="overflow-auto">
+            <CompanyUsersTable hook={companyUsers} />
+          </TabsContent>
+        )}
+        {canViewOrgs && (
+          <TabsContent value="roles" className="overflow-auto">
+            <RolesTab hook={roles} users={companyUsers.users} />
+          </TabsContent>
+        )}
+        {canViewOrgs && (
+          <TabsContent value="org-structure" className="overflow-auto">
+            <OrgStructureTab hook={orgStructure} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}

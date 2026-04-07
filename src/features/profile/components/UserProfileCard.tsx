@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   LogOut,
@@ -34,6 +34,7 @@ import { useUserProfile } from "../hooks/use-user-profile";
 export function UserProfileCard() {
   const navigate = useNavigate();
   const { clearAuth } = useAuthStore();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const {
     user,
@@ -52,6 +53,7 @@ export function UserProfileCard() {
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
     onSettled: () => {
+      queryClient.clear();
       clearAuth();
       navigate({ to: "/login" });
     },

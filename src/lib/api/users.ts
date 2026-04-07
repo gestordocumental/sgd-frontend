@@ -104,6 +104,11 @@ export const usersApi = {
       .delete<void>(`/users/${userId}/orgs/${orgId}`)
       .then((r) => r.data),
 
+  getMyOrgRoles: (userId: string) =>
+    apiClient
+      .get<UserOrgRoleResponseDto[]>(`/users/${userId}/orgs`)
+      .then((r) => r.data),
+
   // Endpoint público — no requiere JWT. Valida el token de invitación en Redis,
   // completa el perfil del usuario y crea sus credenciales.
   // Backend: POST /users/complete-registration
