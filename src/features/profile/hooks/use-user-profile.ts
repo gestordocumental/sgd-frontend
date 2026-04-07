@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { authApi } from '@/lib/api/auth'
@@ -9,6 +9,7 @@ import { decodeJwt } from '@/lib/jwt'
 
 export function useUserProfile() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user, isSuperAdmin, accessToken, enterCompany, exitCompany } = useAuthStore()
 
   // Extract user ID directly from the JWT — store's user.id may be empty if login
@@ -29,9 +30,9 @@ export function useUserProfile() {
     }
   }, [isSuperAdmin, currentCompanyId, accessToken])
 
-  const hasSuperAdminToken = isSuperAdmin && (
-    !!localStorage.getItem('sgd-super-admin-token') || (!currentCompanyId && !!accessToken)
-  )
+  const hasSuperAdminToken =
+    !!localStorage.getItem('sgd-super-admin-token') ||
+    (isSuperAdmin && !currentCompanyId && !!accessToken)
 
   // Fetch the IDs of companies this user belongs to
   const { data: companyIds = [] } = useQuery({
@@ -72,8 +73,8 @@ export function useUserProfile() {
   })
 
   const canSwitchContext =
-    // super admin who has also been assigned to at least one company
-    (isSuperAdmin && companies.length > 0) ||
+    // active super admin with assigned companies, or any user that can return
+    hasSuperAdminToken ||
     // regular user in multiple companies
     companies.length > 1
 
@@ -82,14 +83,25 @@ export function useUserProfile() {
     const decoded = decodeJwt(companyToken)
     const company = companies.find((c) => c.id === companyId)
     enterCompany(companyId, company?.name ?? companyId, companyToken)
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
+      queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
+      queryClient.invalidateQueries({ queryKey: ['companies-by-ids'] }),
+    ])
     // If the token no longer has isSuperAdmin, navigate to company dashboard
     if (!decoded?.isSuperAdmin) {
       navigate({ to: '/dashboard' })
     }
   }
 
-  function switchToSuperAdmin() {
-    exitCompany()
+  async function switchToSuperAdmin() {
+    const restored = exitCompany()
+    if (!restored) return
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
+      queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
+      queryClient.invalidateQueries({ queryKey: ['companies-by-ids'] }),
+    ])
     navigate({ to: '/dashboard/admin' })
   }
 

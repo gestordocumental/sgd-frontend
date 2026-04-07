@@ -23,7 +23,7 @@ interface AuthStore {
   /** Switch into a company context (saves current token as super-admin token if applicable) */
   enterCompany: (companyId: string, companyName: string, companyToken: string) => void
   /** Restore the global super-admin context */
-  exitCompany: () => void
+  exitCompany: () => boolean
 }
 
 function hydrate(): Partial<PersistedAuth> {
@@ -37,13 +37,13 @@ function hydrate(): Partial<PersistedAuth> {
       localStorage.removeItem('sgd-refresh-token')
       return {}
     }
-    return parsed
+    return { ...parsed, isSuperAdmin: decoded.isSuperAdmin === true }
   } catch {
     return {}
   }
 }
 
-export const useAuthStore = create<AuthStore>()((set) => {
+export const useAuthStore = create<AuthStore>()((set, get) => {
   const stored = hydrate()
   return {
     user: stored.user ?? null,
@@ -65,13 +65,19 @@ export const useAuthStore = create<AuthStore>()((set) => {
     },
 
     updateAccessToken: (accessToken) => {
+      const decoded = decodeJwt(accessToken)
+      const isSuperAdmin = decoded?.isSuperAdmin === true
       const raw = localStorage.getItem(AUTH_KEY)
       if (raw) {
         try {
-          localStorage.setItem(AUTH_KEY, JSON.stringify({ ...JSON.parse(raw), accessToken }))
+          localStorage.setItem(AUTH_KEY, JSON.stringify({ ...JSON.parse(raw), accessToken, isSuperAdmin }))
         } catch { /* ignore */ }
       }
-      set({ accessToken })
+      const { user } = get()
+      if (isSuperAdmin && !user?.companyId) {
+        localStorage.setItem(SUPER_ADMIN_TOKEN_KEY, accessToken)
+      }
+      set({ accessToken, isSuperAdmin })
     },
 
     clearAuth: () => {
@@ -85,27 +91,31 @@ export const useAuthStore = create<AuthStore>()((set) => {
       const raw = localStorage.getItem(AUTH_KEY)
       const stored: PersistedAuth | null = raw ? JSON.parse(raw) : null
       if (!stored) return
+      const decoded = decodeJwt(companyToken)
       const updatedUser: AuthUser = { ...stored.user, companyId, companyName }
-      // Keep isSuperAdmin=true so we know we can switch back
+      const isSuperAdmin = decoded?.isSuperAdmin === true
       localStorage.setItem(
         AUTH_KEY,
-        JSON.stringify({ user: updatedUser, accessToken: companyToken, isAuthenticated: true, isSuperAdmin: true } satisfies PersistedAuth),
+        JSON.stringify({ user: updatedUser, accessToken: companyToken, isAuthenticated: true, isSuperAdmin } satisfies PersistedAuth),
       )
-      set({ user: updatedUser, accessToken: companyToken, isSuperAdmin: true })
+      set({ user: updatedUser, accessToken: companyToken, isSuperAdmin })
     },
 
     exitCompany: () => {
       const superAdminToken = localStorage.getItem(SUPER_ADMIN_TOKEN_KEY)
-      if (!superAdminToken) return
+      if (!superAdminToken) return false
       const raw = localStorage.getItem(AUTH_KEY)
       const stored: PersistedAuth | null = raw ? JSON.parse(raw) : null
-      if (!stored) return
+      if (!stored) return false
+      const decoded = decodeJwt(superAdminToken)
       const updatedUser: AuthUser = { ...stored.user, companyId: undefined, companyName: undefined }
+      const isSuperAdmin = decoded?.isSuperAdmin === true
       localStorage.setItem(
         AUTH_KEY,
-        JSON.stringify({ user: updatedUser, accessToken: superAdminToken, isAuthenticated: true, isSuperAdmin: true } satisfies PersistedAuth),
+        JSON.stringify({ user: updatedUser, accessToken: superAdminToken, isAuthenticated: true, isSuperAdmin } satisfies PersistedAuth),
       )
-      set({ user: updatedUser, accessToken: superAdminToken, isSuperAdmin: true })
+      set({ user: updatedUser, accessToken: superAdminToken, isSuperAdmin })
+      return true
     },
   }
 })
