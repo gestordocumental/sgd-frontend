@@ -15,18 +15,13 @@ import { emailField, requiredString, optionalString } from "@/lib/validations/sc
 
 // HTML selects always produce "" when nothing is selected — convert to undefined
 // before UUID validation so the form stays valid when fields are left blank.
-const optionalUuid = z.preprocess(
-  (v) => (v === "" ? undefined : v),
-  z.string().uuid().optional(),
-);
-
 const createUserSchema = z.object({
   email: emailField,
   orgId: z.string().optional(),
   roleId: z.string().optional(),
-  departamentoId: optionalUuid,
-  areaId: optionalUuid,
-  cargoId: optionalUuid,
+  departamentoId: z.string().optional(),
+  areaId: z.string().optional(),
+  cargoId: z.string().optional(),
 });
 
 const editUserSchema = z.object({
@@ -37,6 +32,7 @@ const editUserSchema = z.object({
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;
 export type EditUserForm = z.infer<typeof editUserSchema>;
+export type AdminUsersHook = ReturnType<typeof useAdminUsers>;
 
 export function useAdminUsers() {
   const queryClient = useQueryClient();
@@ -76,19 +72,6 @@ export function useAdminUsers() {
     enabled: createUserContext === "company" && !!createCompanyId && createOpen,
   });
 
-  // Pre-select ADMIN role when opening the company user creation dialog
-  useEffect(() => {
-    if (createUserContext === "company" && companyRoles.length > 0) {
-      const current = createForm.getValues("roleId");
-      if (!current) {
-        const adminRole = companyRoles.find((r) => r.name === "ADMIN");
-        if (adminRole) {
-          createForm.setValue("roleId", adminRole.id, { shouldValidate: true });
-        }
-      }
-    }
-  }, [companyRoles, createUserContext]);
-
   const { data: departamentos = [] } = useQuery({
     queryKey: ["departamentos", createCompanyId],
     queryFn: () => orgStructureApi.listDepartamentos(createCompanyId!),
@@ -119,6 +102,19 @@ export function useAdminUsers() {
     resolver: zodResolver(createUserSchema),
     mode: "onChange",
   });
+
+  // Pre-select ADMIN role when opening the company user creation dialog
+  useEffect(() => {
+    if (createUserContext === "company" && companyRoles.length > 0) {
+      const current = createForm.getValues("roleId");
+      if (!current) {
+        const adminRole = companyRoles.find((r) => r.name === "ADMIN");
+        if (adminRole) {
+          createForm.setValue("roleId", adminRole.id, { shouldValidate: true });
+        }
+      }
+    }
+  }, [companyRoles, createForm, createUserContext]);
 
   const createMutation = useMutation({
     mutationFn: async ({
@@ -212,10 +208,18 @@ export function useAdminUsers() {
   };
 
   const onCreateSubmit = (values: CreateUserForm) => {
-    const { roleId, orgId: _orgId, ...rest } = values;
+    const { roleId, ...rest } = values;
     const orgId = createUserContext === "company" ? (createCompanyId ?? undefined) : undefined;
+    const dto: CreateUserDto = {
+      ...rest,
+      isSuperAdmin: createUserContext === "super-admin",
+      orgId,
+      departamentoId: rest.departamentoId || undefined,
+      areaId: rest.areaId || undefined,
+      cargoId: rest.cargoId || undefined,
+    };
     createMutation.mutate({
-      dto: { ...rest, isSuperAdmin: createUserContext === "super-admin", orgId },
+      dto,
       roleId: roleId || undefined,
       orgId,
     });

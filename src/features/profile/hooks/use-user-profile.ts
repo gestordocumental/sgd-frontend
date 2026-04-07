@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { authApi } from '@/lib/api/auth'
@@ -84,7 +84,7 @@ export function useUserProfile() {
     enterCompany(companyId, company?.name ?? companyId, companyToken)
     // If the token no longer has isSuperAdmin, navigate to company dashboard
     if (!decoded?.isSuperAdmin) {
-      navigate({ to: '/dashboard/' })
+      navigate({ to: '/dashboard' })
     }
   }
 
