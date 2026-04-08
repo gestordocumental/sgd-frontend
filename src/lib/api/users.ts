@@ -104,9 +104,10 @@ export const usersApi = {
       .delete<void>(`/users/${userId}/orgs/${orgId}`)
       .then((r) => r.data),
 
-  getMyOrgRoles: (userId: string) =>
+  // No USERS:READ required — a user can always read their own roles in their current company
+  getMyOrgRoles: () =>
     apiClient
-      .get<UserOrgRoleResponseDto[]>(`/users/${userId}/orgs`)
+      .get<UserOrgRoleResponseDto[]>('/users/me/org-roles')
       .then((r) => r.data),
 
   // Endpoint público — no requiere JWT. Valida el token de invitación en Redis,

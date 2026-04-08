@@ -44,6 +44,7 @@ export function UserProfileCard() {
     currentCompanyId,
     currentCompany,
     companies,
+    companyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,
@@ -147,7 +148,7 @@ export function UserProfileCard() {
                   {t("profile.switchContext")}
                 </p>
 
-                {isSuperAdmin && hasSuperAdminToken && (
+                {hasSuperAdminToken && (
                   <DropdownMenuItem
                     onClick={switchToSuperAdmin}
                     className="gap-2"
@@ -162,21 +163,24 @@ export function UserProfileCard() {
                   </DropdownMenuItem>
                 )}
 
-                {companies.map((company) => (
-                  <DropdownMenuItem
-                    key={company.id}
-                    onClick={() => switchToCompany(company.id)}
-                    className="gap-2"
-                  >
-                    <Building2 className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className="flex-1 text-xs truncate">
-                      {company.name}
-                    </span>
-                    {currentCompanyId === company.id && (
-                      <Check className="size-3.5 text-primary" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
+                {companyIds.map((id) => {
+                  const company = companies.find((c) => c.id === id)
+                  return (
+                    <DropdownMenuItem
+                      key={id}
+                      onClick={() => switchToCompany(id)}
+                      className="gap-2"
+                    >
+                      <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+                      <span className="flex-1 text-xs truncate">
+                        {company?.name ?? (currentCompanyId === id ? (user?.companyName ?? id) : id)}
+                      </span>
+                      {currentCompanyId === id && (
+                        <Check className="size-3.5 text-primary" />
+                      )}
+                    </DropdownMenuItem>
+                  )
+                })}
               </>
             )}
           </DropdownMenuGroup>

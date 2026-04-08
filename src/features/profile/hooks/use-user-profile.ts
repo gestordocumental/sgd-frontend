@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { authApi } from '@/lib/api/auth'
-import { companiesApi } from '@/lib/api/companies'
+import { companiesApi, type ApiCompany } from '@/lib/api/companies'
 import { usersApi } from '@/lib/api/users'
 import { useAuthStore } from '@/store/authStore'
 import { decodeJwt } from '@/lib/jwt'
@@ -51,10 +51,19 @@ export function useUserProfile() {
     enabled: isSuperAdmin && companyIds.length > 0,
   })
 
-  // Regular users: fetch details per company
+  // Regular users: fetch details per company.
+  // Use allSettled so a 403 on a non-current company (OrgGuard requires companyId === :id)
+  // doesn't wipe out the whole list.
   const { data: myCompanies = [] } = useQuery({
     queryKey: ['companies-by-ids', companyIds],
-    queryFn: () => Promise.all(companyIds.map((id) => companiesApi.getById(id))),
+    queryFn: async () => {
+      const results = await Promise.allSettled(
+        companyIds.map((id) => companiesApi.getById(id)),
+      )
+      return results
+        .filter((r): r is PromiseFulfilledResult<ApiCompany> => r.status === 'fulfilled')
+        .map((r) => r.value)
+    },
     staleTime: 300_000,
     enabled: !isSuperAdmin && companyIds.length > 0,
   })
@@ -75,8 +84,9 @@ export function useUserProfile() {
   const canSwitchContext =
     // active super admin with assigned companies, or any user that can return
     hasSuperAdminToken ||
-    // regular user in multiple companies
-    companies.length > 1
+    // regular user in multiple companies — use companyIds (not companies) because
+    // getById may fail for non-current companies due to the OrgGuard companyId check
+    companyIds.length > 1
 
   async function switchToCompany(companyId: string) {
     const { accessToken: companyToken } = await authApi.switchCompany(companyId)
@@ -118,6 +128,7 @@ export function useUserProfile() {
     currentCompanyId,
     currentCompany,
     companies,
+    companyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,

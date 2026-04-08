@@ -16,9 +16,10 @@ type RolesHook = ReturnType<typeof useRoles>
 interface RolesTabProps {
   hook: RolesHook
   users: ApiUserWithRoles[]
+  canWrite?: boolean
 }
 
-export function RolesTab({ hook, users }: RolesTabProps) {
+export function RolesTab({ hook, users, canWrite = false }: RolesTabProps) {
   const {
     roles,
     rolesLoading,
@@ -52,6 +53,7 @@ export function RolesTab({ hook, users }: RolesTabProps) {
         rolesLoading={rolesLoading}
         permissions={permissions}
         users={users}
+        canWrite={canWrite}
         expandedRoles={expandedRoles}
         expandedPermissions={expandedPermissions}
         onToggleRole={toggleRole}
@@ -72,6 +74,7 @@ interface RolesViewTabsProps {
   rolesLoading: boolean
   permissions: ApiPermission[]
   users: ApiUserWithRoles[]
+  canWrite: boolean
   expandedRoles: Set<string>
   expandedPermissions: Set<string>
   onToggleRole: (id: string) => void
@@ -84,6 +87,7 @@ interface RolesViewTabsProps {
 
 function RolesViewTabs({
   roles, rolesLoading, permissions, users,
+  canWrite,
   expandedRoles, expandedPermissions,
   onToggleRole, onTogglePermission,
   onEditRole, onDeleteRole, onRemoveUserFromRole, onAssignRoleUser,
@@ -109,6 +113,7 @@ function RolesViewTabs({
                   key={role.id}
                   role={role}
                   users={users}
+                  canWrite={canWrite}
                   isExpanded={expandedRoles.has(role.id)}
                   onToggle={() => onToggleRole(role.id)}
                   onEdit={() => onEditRole(role)}
@@ -140,6 +145,7 @@ function RolesViewTabs({
 interface RoleRowProps {
   role: ApiRole
   users: ApiUserWithRoles[]
+  canWrite: boolean
   isExpanded: boolean
   onToggle: () => void
   onEdit: () => void
@@ -148,7 +154,7 @@ interface RoleRowProps {
   onAssignUser: () => void
 }
 
-function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemoveUser, onAssignUser }: RoleRowProps) {
+function RoleRow({ role, users, canWrite, isExpanded, onToggle, onEdit, onDelete, onRemoveUser, onAssignUser }: RoleRowProps) {
   const { t } = useTranslation()
   const roleUsers = users.filter((u) => u.roles.some((r) => r.roleId === role.id))
 
@@ -175,18 +181,20 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
               ? t('roles.usersCount_one', { count: roleUsers.length })
               : t('roles.usersCount_other', { count: roleUsers.length })}
           </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-              <MoreHorizontal className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}><Pencil className="size-4" />{t('roles.actions.editRole')}</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
-                <Trash2 className="size-4" />{t('roles.actions.deleteRole')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {canWrite && (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                <MoreHorizontal className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onEdit}><Pencil className="size-4" />{t('roles.actions.editRole')}</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+                  <Trash2 className="size-4" />{t('roles.actions.deleteRole')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -207,9 +215,11 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('roles.assignedUsers')}</p>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onAssignUser}>
-                <UserPlus className="size-3" />{t('roles.assignUser')}
-              </Button>
+              {canWrite && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onAssignUser}>
+                  <UserPlus className="size-3" />{t('roles.assignUser')}
+                </Button>
+              )}
             </div>
             {roleUsers.length === 0 ? (
               <p className="text-xs text-muted-foreground">{t('roles.noUsers')}</p>
@@ -222,9 +232,11 @@ function RoleRow({ role, users, isExpanded, onToggle, onEdit, onDelete, onRemove
                     </Avatar>
                     <span className="text-sm flex-1">{u.firstName} {u.lastName}</span>
                     <span className="text-xs text-muted-foreground">{u.position}</span>
-                    <Button variant="ghost" size="icon" className="size-6 text-muted-foreground hover:text-destructive" onClick={() => onRemoveUser(u.id)}>
-                      <X className="size-3" />
-                    </Button>
+                    {canWrite && (
+                      <Button variant="ghost" size="icon" className="size-6 text-muted-foreground hover:text-destructive" onClick={() => onRemoveUser(u.id)}>
+                        <X className="size-3" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

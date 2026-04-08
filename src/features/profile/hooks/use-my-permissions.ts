@@ -3,32 +3,31 @@ import { usersApi } from '@/lib/api/users'
 import { rolesApi, type PermissionModule, type PermissionAction } from '@/lib/api/roles'
 
 /**
- * Derives the current user's effective permissions within a company.
+ * Derives the current user's effective permissions within their current company.
  *
  * Flow:
- * 1. Fetch the user's role assignments in the org (requires USERS:READ).
- *    If this fails (403), no role IDs are available → no permissions inferred.
- * 2. Fetch all org roles with their permission lists (no guard on this endpoint).
- * 3. Cross-reference to build the user's permission set.
+ * 1. GET /api/users/me/org-roles — no permission required, returns current user's
+ *    role assignments for the active company (companyId from JWT).
+ * 2. GET /api/roles — no permission guard, returns all org roles with permissions.
+ * 3. Cross-reference role IDs to build the user's effective permission set.
  *
  * Super admins bypass all checks and always return true.
  */
 export function useMyPermissions(
   companyId: string | null,
-  userId: string | null,
   isSuperAdmin: boolean,
 ) {
   const { data: myOrgRoles = [], isLoading: orgRolesLoading } = useQuery({
-    queryKey: ['my-org-roles', userId, companyId],
-    queryFn: () => usersApi.getMyOrgRoles(userId!),
-    enabled: !!userId && !!companyId && !isSuperAdmin,
+    queryKey: ['my-org-roles', companyId],
+    queryFn: () => usersApi.getMyOrgRoles(),
+    enabled: !!companyId && !isSuperAdmin,
     retry: false,
     staleTime: 60_000,
   })
 
   const myRoleIds = new Set(myOrgRoles.map((r) => r.roleId).filter(Boolean))
 
-  const { data: allRoles = [], isLoading: allRolesLoading } = useQuery({
+  const { data: allRoles = [], isPending: allRolesPending } = useQuery({
     queryKey: ['roles', companyId],
     queryFn: () => rolesApi.listRoles(),
     enabled: !!companyId && myRoleIds.size > 0 && !isSuperAdmin,
@@ -51,6 +50,6 @@ export function useMyPermissions(
 
   return {
     hasPermission,
-    isLoading: !isSuperAdmin && (orgRolesLoading || allRolesLoading),
+    isLoading: !isSuperAdmin && (orgRolesLoading || (myRoleIds.size > 0 && allRolesPending)),
   }
 }

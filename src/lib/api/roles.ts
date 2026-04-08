@@ -1,6 +1,6 @@
 import { apiClient } from './client'
 
-export type PermissionModule = 'DOCUMENTS' | 'WORKFLOWS' | 'USERS' | 'ORGS' | 'AUDIT' | 'PLATFORM'
+export type PermissionModule = 'DOCUMENTS' | 'WORKFLOWS' | 'USERS' | 'ORGS' | 'AUDIT' | 'PLATFORM' | 'ORG_STRUCTURE'
 export type PermissionAction = 'READ' | 'WRITE' | 'DELETE' | 'APPROVE' | 'UPLOAD' | 'DOWNLOAD' | 'MANAGE'
 
 export interface ApiPermission {

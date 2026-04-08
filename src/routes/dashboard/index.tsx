@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { NavItem } from '@/components/ui/nav-item'
 import { useAuthStore } from '@/store/authStore'
 import { isDeleted } from '@/lib/formatters'
-import { decodeJwt } from '@/lib/jwt'
 import { UserProfileCard } from '@/features/profile/components/UserProfileCard'
 import { useCompanyUsers } from '@/features/company-users/hooks/use-company-users'
 import { useRoles } from '@/features/roles/hooks/use-roles'
@@ -33,25 +32,27 @@ export const Route = createFileRoute('/dashboard/')({
 type TabId = 'company' | 'users' | 'roles' | 'org-structure'
 
 function CompanyDashboard() {
-  const { user: me, isSuperAdmin, accessToken } = useAuthStore()
+  const { user: me, isSuperAdmin } = useAuthStore()
   const { t } = useTranslation()
   const companyId = me?.companyId ?? ''
   const [activeTab, setActiveTab] = useState<TabId>('company')
 
-  const tokenPayload = accessToken ? decodeJwt(accessToken) : null
-  const userId = tokenPayload?.sub ?? me?.id ?? null
-
-  const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(companyId, userId, isSuperAdmin)
+  const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(companyId, isSuperAdmin)
 
   const canViewUsers = hasPermission('USERS', 'READ')
   const canViewOrgs = hasPermission('ORGS', 'READ')
+  const canViewOrgStructure = hasPermission('ORG_STRUCTURE', 'READ')
+  const canWriteUsers = hasPermission('USERS', 'WRITE')
+  const canWriteOrgs = hasPermission('ORGS', 'WRITE')
+  const canWriteOrgStructure = hasPermission('ORG_STRUCTURE', 'WRITE')
 
   // If the active tab becomes inaccessible after permissions load, fall back to 'company'
   useEffect(() => {
     if (permissionsLoading) return
     if (activeTab === 'users' && !canViewUsers) setActiveTab('company')
-    if ((activeTab === 'roles' || activeTab === 'org-structure') && !canViewOrgs) setActiveTab('company')
-  }, [permissionsLoading, canViewUsers, canViewOrgs, activeTab])
+    if (activeTab === 'roles' && !canViewOrgs) setActiveTab('company')
+    if (activeTab === 'org-structure' && !canViewOrgStructure) setActiveTab('company')
+  }, [permissionsLoading, canViewUsers, canViewOrgs, canViewOrgStructure, activeTab])
 
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
@@ -82,7 +83,7 @@ function CompanyDashboard() {
           {canViewOrgs && (
             <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
           )}
-          {canViewOrgs && (
+          {canViewOrgStructure && (
             <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => setActiveTab('org-structure')} />
           )}
         </nav>
@@ -101,16 +102,16 @@ function CompanyDashboard() {
             {canViewOrgs && (
               <TabsTrigger value="roles"><Shield className="size-4" />{t('dashboard.rolesAndPermissions')}</TabsTrigger>
             )}
-            {canViewOrgs && (
+            {canViewOrgStructure && (
               <TabsTrigger value="org-structure"><FolderTree className="size-4" />{t('dashboard.orgStructure')}</TabsTrigger>
             )}
           </TabsList>
-          {activeTab === 'users' && canViewUsers && (
+          {activeTab === 'users' && canWriteUsers && (
             <Button size="sm" onClick={() => { companyUsers.createForm.reset(); companyUsers.openCreate() }}>
               <UserPlus className="size-4" />{t('dashboard.newUser')}
             </Button>
           )}
-          {activeTab === 'roles' && canViewOrgs && (
+          {activeTab === 'roles' && canWriteOrgs && (
             <Button size="sm" onClick={roles.openCreate}>
               <Plus className="size-4" />{t('dashboard.newRole')}
             </Button>
@@ -127,17 +128,17 @@ function CompanyDashboard() {
         </TabsContent>
         {canViewUsers && (
           <TabsContent value="users" className="overflow-auto">
-            <CompanyUsersTable hook={companyUsers} />
+            <CompanyUsersTable hook={companyUsers} canWrite={canWriteUsers} />
           </TabsContent>
         )}
         {canViewOrgs && (
           <TabsContent value="roles" className="overflow-auto">
-            <RolesTab hook={roles} users={companyUsers.users} />
+            <RolesTab hook={roles} users={companyUsers.users} canWrite={canWriteOrgs} />
           </TabsContent>
         )}
-        {canViewOrgs && (
+        {canViewOrgStructure && (
           <TabsContent value="org-structure" className="overflow-auto">
-            <OrgStructureTab hook={orgStructure} />
+            <OrgStructureTab hook={orgStructure} canWrite={canWriteOrgStructure} />
           </TabsContent>
         )}
       </Tabs>
