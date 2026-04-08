@@ -48,6 +48,12 @@ export function useRoles(companyId: string) {
   const invalidateUsers = () =>
     queryClient.invalidateQueries({ queryKey: ["company-users", companyId] });
 
+  // Removes the permission cache for ALL users — needed when a role assignment
+  // changes. Using removeQueries (not invalidateQueries) ensures stale data is
+  // not kept if the subsequent fetch fails due to reduced permissions.
+  const invalidateMyOrgRoles = () =>
+    queryClient.removeQueries({ queryKey: ["my-org-roles"] });
+
   const createRoleMutation = useMutation({
     mutationFn: (dto: {
       name: string;
@@ -74,6 +80,7 @@ export function useRoles(companyId: string) {
     },
     onSuccess: () => {
       invalidateRoles();
+      invalidateMyOrgRoles();
       setEditRole(null);
     },
   });
@@ -92,6 +99,7 @@ export function useRoles(companyId: string) {
     onSuccess: () => {
       invalidateRoles();
       invalidateUsers();
+      invalidateMyOrgRoles();
       setAssignRoleUser(null);
     },
   });
@@ -101,6 +109,7 @@ export function useRoles(companyId: string) {
       usersApi.removeUserFromOrg(userId, companyId),
     onSuccess: () => {
       invalidateRoles();
+      invalidateMyOrgRoles();
       invalidateUsers();
     },
   });

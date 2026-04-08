@@ -9,12 +9,13 @@ type OrgStructureHook = ReturnType<typeof useOrgStructure>
 
 interface OrgStructureTabProps {
   hook: OrgStructureHook
+  canWrite?: boolean
 }
 
 const selectClass =
   'h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50'
 
-export function OrgStructureTab({ hook }: OrgStructureTabProps) {
+export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps) {
   const { t } = useTranslation()
   const {
     departamentos, deptLoading,
@@ -41,9 +42,11 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <h2 className="text-sm font-semibold">{t('orgStructure.departamentos')}</h2>
-              <Button size="sm" onClick={() => { hook.deptForm.reset(); setCreateDeptOpen(true) }}>
-                <Plus className="size-4" />{t('orgStructure.newDepartamento')}
-              </Button>
+              {canWrite && (
+                <Button size="sm" onClick={() => { hook.deptForm.reset(); setCreateDeptOpen(true) }}>
+                  <Plus className="size-4" />{t('orgStructure.newDepartamento')}
+                </Button>
+              )}
             </div>
 
             {deptLoading ? (
@@ -56,7 +59,7 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                   <TableRow>
                     <TableHead>{t('common.name')}</TableHead>
                     <TableHead>{t('common.description')}</TableHead>
-                    <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>
+                    {canWrite && <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -64,16 +67,18 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                     <TableRow key={d.id}>
                       <TableCell className="font-medium">{d.name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{d.description ?? '—'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditDept(d)}>
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteDept(d)}>
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {canWrite && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditDept(d)}>
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteDept(d)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -96,7 +101,7 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
-            {selectedDeptId && (
+            {selectedDeptId && canWrite && (
               <Button size="sm" onClick={() => { hook.areaForm.reset(); setCreateAreaOpen(true) }}>
                 <Plus className="size-4" />{t('orgStructure.newArea')}
               </Button>
@@ -116,7 +121,7 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                   <TableRow>
                     <TableHead>{t('common.name')}</TableHead>
                     <TableHead>{t('common.description')}</TableHead>
-                    <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>
+                    {canWrite && <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -124,16 +129,18 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{a.description ?? '—'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditArea(a)}>
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteArea(a)}>
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {canWrite && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditArea(a)}>
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteArea(a)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -170,7 +177,7 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
               ))}
             </select>
 
-            {selectedDeptId && selectedAreaId && (
+            {selectedDeptId && selectedAreaId && canWrite && (
               <Button size="sm" onClick={() => { hook.cargoForm.reset(); setCreateCargoOpen(true) }}>
                 <Plus className="size-4" />{t('orgStructure.newCargo')}
               </Button>
@@ -190,7 +197,7 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                   <TableRow>
                     <TableHead>{t('common.name')}</TableHead>
                     <TableHead>{t('common.description')}</TableHead>
-                    <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>
+                    {canWrite && <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -198,16 +205,18 @@ export function OrgStructureTab({ hook }: OrgStructureTabProps) {
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{c.description ?? '—'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditCargo(c)}>
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteCargo(c)}>
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {canWrite && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditCargo(c)}>
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteCargo(c)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
