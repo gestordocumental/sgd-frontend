@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [dev, test, master]
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: Typecheck, Lint & Build

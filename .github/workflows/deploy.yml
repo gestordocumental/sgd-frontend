@@ -4,6 +4,10 @@ on:
   push:
     branches: [dev, test, master]
 
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   deploy:
     name: Deploy — ${{ github.ref_name }}
@@ -32,14 +36,20 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Install Vercel CLI
+        run: npm install --global vercel@50.42.0
+
       - name: Inject Railway API URL
-        run: sed -i "s|__RAILWAY_API_URL__|${{ vars.RAILWAY_API_URL }}|g" vercel.json
+        run: |
+          test -n "${{ vars.RAILWAY_API_URL }}" || { echo "RAILWAY_API_URL is not set for this environment"; exit 1; }
+          SAFE_URL=$(printf '%s' "${{ vars.RAILWAY_API_URL }}" | sed 's/[&|]/\\&/g')
+          sed -i "s|__RAILWAY_API_URL__|${SAFE_URL}|g" vercel.json
 
       - name: Pull Vercel config
-        run: npx vercel pull --yes --environment=${{ github.ref_name == 'master' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=${{ github.ref_name == 'master' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build
-        run: npx vercel build ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy
-        run: npx vercel deploy --prebuilt ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
