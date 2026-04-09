@@ -1,4 +1,4 @@
-import { useState, useEffect, startTransition } from 'react'
+import { useState, startTransition } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -49,21 +49,24 @@ function CompanyDashboard() {
   const canWriteOrgs = hasPermission('ORGS', 'WRITE')
   const canWriteOrgStructure = hasPermission('ORG_STRUCTURE', 'WRITE')
 
-  // If the active tab becomes inaccessible after permissions load, fall back to 'company'
-  useEffect(() => {
-    if (permissionsLoading) return
-    if (activeTab === 'users' && !canViewUsers) setActiveTab('company')
-    if (activeTab === 'roles' && !canViewOrgs) setActiveTab('company')
-    if (activeTab === 'org-structure' && !canViewOrgStructure) setActiveTab('company')
-  }, [permissionsLoading, canViewUsers, canViewOrgs, canViewOrgStructure, activeTab])
+  // If the active tab is inaccessible (permissions denied or still loading),
+  // fall back to 'company' without mutating state — derived during render.
+  const effectiveTab: TabId = (() => {
+    if (permissionsLoading) return activeTab
+    if (activeTab === 'users' && !canViewUsers) return 'company'
+    if (activeTab === 'roles' && !canViewOrgs) return 'company'
+    if (activeTab === 'org-structure' && !canViewOrgStructure) return 'company'
+    return activeTab
+  })()
 
-  // Register the tab as mounted on first visit
-  useEffect(() => {
-    setMountedTabs(prev => {
-      if (prev.has(activeTab)) return prev
-      return new Set(prev).add(activeTab)
+  // Updates both activeTab and mountedTabs in a single transition, avoiding
+  // a separate useEffect that would call setState after render.
+  const handleTabChange = (tab: TabId) => {
+    startTransition(() => {
+      setActiveTab(tab)
+      setMountedTabs(prev => prev.has(tab) ? prev : new Set(prev).add(tab))
     })
-  }, [activeTab])
+  }
 
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
@@ -87,15 +90,15 @@ function CompanyDashboard() {
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">{t('dashboard.management')}</p>
-          <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={activeTab === 'company'} onClick={() => startTransition(() => setActiveTab('company'))} />
+          <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={effectiveTab === 'company'} onClick={() => handleTabChange('company')} />
           {canViewUsers && (
-            <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => startTransition(() => setActiveTab('users'))} />
+            <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={effectiveTab === 'users'} onClick={() => handleTabChange('users')} />
           )}
           {canViewOrgs && (
-            <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => startTransition(() => setActiveTab('roles'))} />
+            <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={effectiveTab === 'roles'} onClick={() => handleTabChange('roles')} />
           )}
           {canViewOrgStructure && (
-            <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => startTransition(() => setActiveTab('org-structure'))} />
+            <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={effectiveTab === 'org-structure'} onClick={() => handleTabChange('org-structure')} />
           )}
         </nav>
 
@@ -103,7 +106,7 @@ function CompanyDashboard() {
       </aside>
 
       {/* ── Main ────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={(v) => startTransition(() => setActiveTab(v as TabId))} className="flex-1 min-w-0 overflow-hidden gap-0">
+      <Tabs value={effectiveTab} onValueChange={(v) => handleTabChange(v as TabId)} className="flex-1 min-w-0 overflow-hidden gap-0">
         <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
           <TabsList>
             <TabsTrigger value="company"><Building2 className="size-4" />{t('dashboard.company')}</TabsTrigger>
@@ -117,12 +120,12 @@ function CompanyDashboard() {
               <TabsTrigger value="org-structure"><FolderTree className="size-4" />{t('dashboard.orgStructure')}</TabsTrigger>
             )}
           </TabsList>
-          {activeTab === 'users' && canWriteUsers && (
+          {effectiveTab === 'users' && canWriteUsers && (
             <Button size="sm" onClick={companyUsers.openCreate}>
               <UserPlus className="size-4" />{t('dashboard.newUser')}
             </Button>
           )}
-          {activeTab === 'roles' && canWriteOrgs && (
+          {effectiveTab === 'roles' && canWriteOrgs && (
             <Button size="sm" onClick={roles.openCreate}>
               <Plus className="size-4" />{t('dashboard.newRole')}
             </Button>
