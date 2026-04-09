@@ -53,16 +53,12 @@ export function useAdminUsers() {
     queryKey: ["users"],
     queryFn: usersApi.list,
     staleTime: 60_000,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
   });
 
   const { data: superAdmins = [], isLoading: superAdminsLoading } = useQuery({
     queryKey: ["superAdmins"],
     queryFn: usersApi.listSuperAdmin,
     staleTime: 60_000,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
   });
 
   const { data: companyRoles = [] } = useQuery({

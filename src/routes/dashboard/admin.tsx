@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, startTransition } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { UserProfileCard } from "@/features/profile/components/UserProfileCard";
 import { FileText, Users, Building2, UserPlus } from "lucide-react";
@@ -55,13 +55,13 @@ function AdminDashboard() {
             icon={<Users className="size-4" />}
             label={t("common.users")}
             active={activeTab === "users"}
-            onClick={() => setActiveTab("users")}
+            onClick={() => startTransition(() => setActiveTab("users"))}
           />
           <NavItem
             icon={<Building2 className="size-4" />}
             label={t("companies.title")}
             active={activeTab === "companies"}
-            onClick={() => setActiveTab("companies")}
+            onClick={() => startTransition(() => setActiveTab("companies"))}
           />
         </nav>
 
@@ -71,7 +71,7 @@ function AdminDashboard() {
       {/* ── Main ────────────────────────────────────────────────────── */}
       <Tabs
         value={activeTab}
-        onValueChange={(v) => setActiveTab(v as "users" | "companies")}
+        onValueChange={(v) => startTransition(() => setActiveTab(v as "users" | "companies"))}
         className="flex-1 min-w-0 overflow-hidden gap-0"
       >
         <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
@@ -90,13 +90,7 @@ function AdminDashboard() {
               <UserPlus className="size-4" /> {t("dashboard.newUser")}
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => {
-                companies.createForm.reset();
-                companies.setCreateOpen(true);
-              }}
-            >
+            <Button size="sm" onClick={companies.openCreate}>
               <Building2 className="size-4" /> {t("dashboard.newCompany")}
             </Button>
           )}

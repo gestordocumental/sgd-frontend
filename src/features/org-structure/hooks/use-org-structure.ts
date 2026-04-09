@@ -18,7 +18,7 @@ const structureSchema = z.object({
 
 export type StructureForm = z.infer<typeof structureSchema>
 
-export function useOrgStructure(companyId: string) {
+export function useOrgStructure(companyId: string, enabled = true) {
   const queryClient = useQueryClient()
 
   // ── Filter selection (cascade) ─────────────────────────────────
@@ -48,7 +48,7 @@ export function useOrgStructure(companyId: string) {
     queryKey: ['departamentos', companyId],
     queryFn: () => orgStructureApi.listDepartamentos(companyId),
     staleTime: 60_000,
-    enabled: !!companyId,
+    enabled: enabled && !!companyId,
   })
 
   const { data: areas = [], isLoading: areasLoading } = useQuery({
