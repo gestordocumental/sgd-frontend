@@ -28,8 +28,6 @@ export function useAdminCompanies() {
     queryKey: ['companies'],
     queryFn: companiesApi.list,
     staleTime: 60_000,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
   })
 
   const invalidate = () =>
@@ -96,6 +94,11 @@ export function useAdminCompanies() {
     setExpandedCompanies(next)
   }
 
+  const openCreate = () => {
+    createForm.reset()
+    setCreateOpen(true)
+  }
+
   return {
     companies,
     companiesLoading,
@@ -106,6 +109,7 @@ export function useAdminCompanies() {
     selectedCompany,
     createForm,
     editForm,
+    openCreate,
     openEdit,
     onCreateSubmit,
     onEditSubmit,

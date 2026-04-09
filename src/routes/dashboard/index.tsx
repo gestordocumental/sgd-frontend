@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -36,6 +36,9 @@ function CompanyDashboard() {
   const { t } = useTranslation()
   const companyId = me?.companyId ?? ''
   const [activeTab, setActiveTab] = useState<TabId>('company')
+  // Tracks which tabs have been visited at least once. Tabs are lazy-mounted on
+  // first visit and kept alive (keepMounted) afterwards to avoid remount cost.
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(['company']))
 
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(companyId, isSuperAdmin)
 
@@ -54,9 +57,17 @@ function CompanyDashboard() {
     if (activeTab === 'org-structure' && !canViewOrgStructure) setActiveTab('company')
   }, [permissionsLoading, canViewUsers, canViewOrgs, canViewOrgStructure, activeTab])
 
+  // Register the tab as mounted on first visit
+  useEffect(() => {
+    setMountedTabs(prev => {
+      if (prev.has(activeTab)) return prev
+      return new Set(prev).add(activeTab)
+    })
+  }, [activeTab])
+
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
-  const orgStructure = useOrgStructure(companyId)
+  const orgStructure = useOrgStructure(companyId, mountedTabs.has('org-structure'))
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
@@ -76,15 +87,15 @@ function CompanyDashboard() {
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">{t('dashboard.management')}</p>
-          <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={activeTab === 'company'} onClick={() => setActiveTab('company')} />
+          <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={activeTab === 'company'} onClick={() => startTransition(() => setActiveTab('company'))} />
           {canViewUsers && (
-            <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+            <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={activeTab === 'users'} onClick={() => startTransition(() => setActiveTab('users'))} />
           )}
           {canViewOrgs && (
-            <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
+            <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={activeTab === 'roles'} onClick={() => startTransition(() => setActiveTab('roles'))} />
           )}
           {canViewOrgStructure && (
-            <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => setActiveTab('org-structure')} />
+            <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={activeTab === 'org-structure'} onClick={() => startTransition(() => setActiveTab('org-structure'))} />
           )}
         </nav>
 
@@ -92,7 +103,7 @@ function CompanyDashboard() {
       </aside>
 
       {/* ── Main ────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} className="flex-1 min-w-0 overflow-hidden gap-0">
+      <Tabs value={activeTab} onValueChange={(v) => startTransition(() => setActiveTab(v as TabId))} className="flex-1 min-w-0 overflow-hidden gap-0">
         <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
           <TabsList>
             <TabsTrigger value="company"><Building2 className="size-4" />{t('dashboard.company')}</TabsTrigger>
@@ -107,7 +118,7 @@ function CompanyDashboard() {
             )}
           </TabsList>
           {activeTab === 'users' && canWriteUsers && (
-            <Button size="sm" onClick={() => { companyUsers.createForm.reset(); companyUsers.openCreate() }}>
+            <Button size="sm" onClick={companyUsers.openCreate}>
               <UserPlus className="size-4" />{t('dashboard.newUser')}
             </Button>
           )}
@@ -126,18 +137,18 @@ function CompanyDashboard() {
             rolesCount={roles.roles.length}
           />
         </TabsContent>
-        {canViewUsers && (
-          <TabsContent value="users" className="overflow-auto">
+        {canViewUsers && mountedTabs.has('users') && (
+          <TabsContent value="users" keepMounted className="overflow-auto">
             <CompanyUsersTable hook={companyUsers} canWrite={canWriteUsers} />
           </TabsContent>
         )}
-        {canViewOrgs && (
-          <TabsContent value="roles" className="overflow-auto">
+        {canViewOrgs && mountedTabs.has('roles') && (
+          <TabsContent value="roles" keepMounted className="overflow-auto">
             <RolesTab hook={roles} users={companyUsers.users} canWrite={canWriteOrgs} />
           </TabsContent>
         )}
-        {canViewOrgStructure && (
-          <TabsContent value="org-structure" className="overflow-auto">
+        {canViewOrgStructure && mountedTabs.has('org-structure') && (
+          <TabsContent value="org-structure" keepMounted className="overflow-auto">
             <OrgStructureTab hook={orgStructure} canWrite={canWriteOrgStructure} />
           </TabsContent>
         )}
