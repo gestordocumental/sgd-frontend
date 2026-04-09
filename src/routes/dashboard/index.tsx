@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, startTransition } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -38,7 +38,7 @@ function CompanyDashboard() {
   const [activeTab, setActiveTab] = useState<TabId>('company')
   // Tracks which tabs have been visited at least once. Tabs are lazy-mounted on
   // first visit and kept alive (keepMounted) afterwards to avoid remount cost.
-  const mountedTabs = useRef<Set<TabId>>(new Set(['company']))
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(['company']))
 
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(companyId, isSuperAdmin)
 
@@ -58,11 +58,16 @@ function CompanyDashboard() {
   }, [permissionsLoading, canViewUsers, canViewOrgs, canViewOrgStructure, activeTab])
 
   // Register the tab as mounted on first visit
-  useEffect(() => { mountedTabs.current.add(activeTab) }, [activeTab])
+  useEffect(() => {
+    setMountedTabs(prev => {
+      if (prev.has(activeTab)) return prev
+      return new Set(prev).add(activeTab)
+    })
+  }, [activeTab])
 
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
-  const orgStructure = useOrgStructure(companyId, mountedTabs.current.has('org-structure'))
+  const orgStructure = useOrgStructure(companyId, mountedTabs.has('org-structure'))
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
@@ -132,17 +137,17 @@ function CompanyDashboard() {
             rolesCount={roles.roles.length}
           />
         </TabsContent>
-        {canViewUsers && mountedTabs.current.has('users') && (
+        {canViewUsers && mountedTabs.has('users') && (
           <TabsContent value="users" keepMounted className="overflow-auto">
             <CompanyUsersTable hook={companyUsers} canWrite={canWriteUsers} />
           </TabsContent>
         )}
-        {canViewOrgs && mountedTabs.current.has('roles') && (
+        {canViewOrgs && mountedTabs.has('roles') && (
           <TabsContent value="roles" keepMounted className="overflow-auto">
             <RolesTab hook={roles} users={companyUsers.users} canWrite={canWriteOrgs} />
           </TabsContent>
         )}
-        {canViewOrgStructure && mountedTabs.current.has('org-structure') && (
+        {canViewOrgStructure && mountedTabs.has('org-structure') && (
           <TabsContent value="org-structure" keepMounted className="overflow-auto">
             <OrgStructureTab hook={orgStructure} canWrite={canWriteOrgStructure} />
           </TabsContent>
