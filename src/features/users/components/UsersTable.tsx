@@ -7,12 +7,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { StatCard } from '@/components/ui/stat-card'
 import { initials, isDeleted } from '@/lib/formatters'
 import type { ApiUser } from '@/lib/api/users'
-import type { useAdminUsers } from '@/features/users/hooks/use-admin-users'
-
-type UsersHook = ReturnType<typeof useAdminUsers>
+import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users'
 
 interface UsersTableProps {
-  hook: UsersHook
+  hook: AdminUsersHook
 }
 
 export function UsersTable({ hook }: UsersTableProps) {

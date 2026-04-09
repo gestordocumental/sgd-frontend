@@ -110,8 +110,6 @@ export function useCompanyUsers(companyId: string) {
     queryKey: ['company-users', companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
     enabled: !!companyId,
   })
 

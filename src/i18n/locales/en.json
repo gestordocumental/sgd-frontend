@@ -52,7 +52,11 @@
     "user": "User",
     "users": "Users",
     "role": "Role",
-    "roles": "Roles"
+    "logout": "Log out"
+  },
+  "profile": {
+    "myProfile": "My profile",
+    "switchContext": "Switch to"
   },
   "auth": {
     "welcomeTitle": "Welcome to SGD",
@@ -237,6 +241,7 @@
       "positionLabel": "Position",
       "positionPlaceholder": "Sales Manager",
       "roleSelectPlaceholder": "Select role (optional)",
+      "rolePlaceholder": "No role (optional)",
       "nameLabel": "Name",
       "namePlaceholder": "John Smith",
       "firstNameLabel": "First name",

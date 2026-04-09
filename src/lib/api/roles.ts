@@ -1,6 +1,6 @@
 import { apiClient } from './client'
 
-export type PermissionModule = 'DOCUMENTS' | 'WORKFLOWS' | 'USERS' | 'ORGS' | 'AUDIT' | 'PLATFORM'
+export type PermissionModule = 'DOCUMENTS' | 'WORKFLOWS' | 'USERS' | 'ORGS' | 'AUDIT' | 'PLATFORM' | 'ORG_STRUCTURE'
 export type PermissionAction = 'READ' | 'WRITE' | 'DELETE' | 'APPROVE' | 'UPLOAD' | 'DOWNLOAD' | 'MANAGE'
 
 export interface ApiPermission {
@@ -34,8 +34,8 @@ export const rolesApi = {
   listPermissions: () =>
     apiClient.get<ApiPermission[]>('/permissions').then((r) => r.data),
 
-  listRoles: () =>
-    apiClient.get<ApiRole[]>('/roles').then((r) => r.data),
+  listRoles: (orgId?: string) =>
+    apiClient.get<ApiRole[]>('/roles', { params: orgId ? { orgId } : undefined }).then((r) => r.data),
 
   createRole: (dto: CreateRoleDto) =>
     apiClient.post<ApiRole>('/roles', dto).then((r) => r.data),

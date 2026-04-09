@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,13 +13,15 @@ import { rolesApi } from "@/lib/api/roles";
 import { orgStructureApi } from "@/lib/api/org-structure";
 import { emailField, requiredString, optionalString } from "@/lib/validations/schemas";
 
+// HTML selects always produce "" when nothing is selected — convert to undefined
+// before UUID validation so the form stays valid when fields are left blank.
 const createUserSchema = z.object({
   email: emailField,
   orgId: z.string().optional(),
   roleId: z.string().optional(),
-  departamentoId: z.string().uuid().optional(),
-  areaId: z.string().uuid().optional(),
-  cargoId: z.string().uuid().optional(),
+  departamentoId: z.string().optional(),
+  areaId: z.string().optional(),
+  cargoId: z.string().optional(),
 });
 
 const editUserSchema = z.object({
@@ -30,6 +32,7 @@ const editUserSchema = z.object({
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;
 export type EditUserForm = z.infer<typeof editUserSchema>;
+export type AdminUsersHook = ReturnType<typeof useAdminUsers>;
 
 export function useAdminUsers() {
   const queryClient = useQueryClient();
@@ -50,21 +53,17 @@ export function useAdminUsers() {
     queryKey: ["users"],
     queryFn: usersApi.list,
     staleTime: 60_000,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
   });
 
   const { data: superAdmins = [], isLoading: superAdminsLoading } = useQuery({
     queryKey: ["superAdmins"],
     queryFn: usersApi.listSuperAdmin,
     staleTime: 60_000,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
   });
 
   const { data: companyRoles = [] } = useQuery({
     queryKey: ["roles", createCompanyId],
-    queryFn: rolesApi.listRoles,
+    queryFn: () => rolesApi.listRoles(createCompanyId ?? undefined),
     staleTime: 60_000,
     enabled: createUserContext === "company" && !!createCompanyId && createOpen,
   });
@@ -100,6 +99,19 @@ export function useAdminUsers() {
     mode: "onChange",
   });
 
+  // Pre-select ADMIN role when opening the company user creation dialog
+  useEffect(() => {
+    if (createUserContext === "company" && companyRoles.length > 0) {
+      const current = createForm.getValues("roleId");
+      if (!current) {
+        const adminRole = companyRoles.find((r) => r.name === "ADMIN");
+        if (adminRole) {
+          createForm.setValue("roleId", adminRole.id, { shouldValidate: true });
+        }
+      }
+    }
+  }, [companyRoles, createForm, createUserContext]);
+
   const createMutation = useMutation({
     mutationFn: async ({
       dto,
@@ -110,11 +122,23 @@ export function useAdminUsers() {
       roleId?: string;
       orgId?: string;
     }) => {
-      const user = await usersApi.create(dto);
-      if (roleId && orgId) {
-        await usersApi.assignUserToOrg(user.id, orgId, roleId);
+      let userId: string;
+      try {
+        const user = await usersApi.create(dto);
+        userId = user.id;
+      } catch (err: unknown) {
+        // If the email already exists and we're assigning to a company,
+        // use the existing user's id instead of failing.
+        const apiErr = err as { response?: { status?: number; data?: { userId?: string } } };
+        if (apiErr?.response?.status === 409 && apiErr?.response?.data?.userId && orgId) {
+          userId = apiErr.response.data.userId;
+        } else {
+          throw err;
+        }
       }
-      return user;
+      if (orgId) {
+        await usersApi.assignUserToOrg(userId, orgId, roleId);
+      }
     },
     onSuccess: () => {
       invalidate();
@@ -180,10 +204,18 @@ export function useAdminUsers() {
   };
 
   const onCreateSubmit = (values: CreateUserForm) => {
-    const { roleId, orgId: _orgId, ...rest } = values;
+    const { roleId, ...rest } = values;
     const orgId = createUserContext === "company" ? (createCompanyId ?? undefined) : undefined;
+    const dto: CreateUserDto = {
+      ...rest,
+      isSuperAdmin: createUserContext === "super-admin",
+      orgId,
+      departamentoId: rest.departamentoId || undefined,
+      areaId: rest.areaId || undefined,
+      cargoId: rest.cargoId || undefined,
+    };
     createMutation.mutate({
-      dto: { ...rest, isSuperAdmin: createUserContext === "super-admin", orgId },
+      dto,
       roleId: roleId || undefined,
       orgId,
     });

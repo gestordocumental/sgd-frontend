@@ -12,9 +12,10 @@ type CompanyUsersHook = ReturnType<typeof useCompanyUsers>
 
 interface CompanyUsersTableProps {
   hook: CompanyUsersHook
+  canWrite?: boolean
 }
 
-export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
+export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableProps) {
   const { users, usersLoading, openEdit, setDeleteUser, restoreMutation, cargoMap } = hook
   const { t } = useTranslation()
   const activeUsers = users.filter((u) => !isDeleted(u))
@@ -55,6 +56,7 @@ export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
                   key={u.id}
                   user={u}
                   cargoName={u.cargoId ? (cargoMap.get(u.cargoId) ?? '—') : '—'}
+                  canWrite={canWrite}
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
                   onRestore={() => restoreMutation.mutate(u.id)}
@@ -71,12 +73,13 @@ export function CompanyUsersTable({ hook }: CompanyUsersTableProps) {
 interface UserRowProps {
   user: ApiUserWithRoles
   cargoName: string
+  canWrite: boolean
   onEdit: () => void
   onDelete: () => void
   onRestore: () => void
 }
 
-function UserRow({ user: u, cargoName, onEdit, onDelete, onRestore }: UserRowProps) {
+function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore }: UserRowProps) {
   const { t } = useTranslation()
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
@@ -123,31 +126,33 @@ function UserRow({ user: u, cargoName, onEdit, onDelete, onRestore }: UserRowPro
           </Badge>
         )}
       </TableCell>
-      <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-            <MoreHorizontal className="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {!isDeleted(u) && (
-              <>
-                <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="size-4" /> {t('users.actions.edit')}
+      {canWrite && (
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {!isDeleted(u) && (
+                <>
+                  <DropdownMenuItem onClick={onEdit}>
+                    <Pencil className="size-4" /> {t('users.actions.edit')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+                    <Trash2 className="size-4" /> {t('users.actions.delete')}
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isDeleted(u) && (
+                <DropdownMenuItem onClick={onRestore}>
+                  <RotateCcw className="size-4" /> {t('users.actions.restore')}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
-                  <Trash2 className="size-4" /> {t('users.actions.delete')}
-                </DropdownMenuItem>
-              </>
-            )}
-            {isDeleted(u) && (
-              <DropdownMenuItem onClick={onRestore}>
-                <RotateCcw className="size-4" /> {t('users.actions.restore')}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      )}
     </TableRow>
   )
 }
