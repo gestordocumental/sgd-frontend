@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://api-gateway-develop-e2bd.up.railway.app/api/:path*"
+      "destination": "__RAILWAY_API_URL__/api/:path*"
     },
     {
       "source": "/(.*)",
