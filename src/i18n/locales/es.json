@@ -67,6 +67,7 @@
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "signIn": "Iniciar sesión",
     "verifyingCredentials": "Verificando credenciales...",
+    "loadingWorkspace": "Cargando espacio de trabajo...",
     "hidePassword": "Ocultar contraseña",
     "showPassword": "Mostrar contraseña",
     "serverErrorFallback": "Error al conectar con el servidor. Por favor intenta de nuevo.",

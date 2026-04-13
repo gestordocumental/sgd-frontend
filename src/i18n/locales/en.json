@@ -67,6 +67,7 @@
     "forgotPassword": "Forgot your password?",
     "signIn": "Sign in",
     "verifyingCredentials": "Verifying credentials...",
+    "loadingWorkspace": "Loading workspace...",
     "hidePassword": "Hide password",
     "showPassword": "Show password",
     "serverErrorFallback": "Error connecting to the server. Please try again.",

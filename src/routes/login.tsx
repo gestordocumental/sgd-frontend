@@ -32,6 +32,7 @@ function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isSwitchingCompany, setIsSwitchingCompany] = useState(false);
 
   const {
     register,
@@ -49,6 +50,11 @@ function LoginPage() {
       const payload = token ? decodeJwt(token) : null;
       const isSuperAdmin = payload?.isSuperAdmin === true;
 
+      if (!data.user && (!payload?.sub || !payload?.email)) {
+        setServerError(t('auth.serverErrorFallback'));
+        return;
+      }
+
       // Build user from JWT payload — auth-service returns only tokens, no user object
       const baseUser = data.user ?? {
         id: payload?.sub ?? "",
@@ -65,6 +71,7 @@ function LoginPage() {
 
       // For company users: resolve their company and get a company-scoped token
       setAuth(baseUser, token, data.refreshToken, false);
+      setIsSwitchingCompany(true);
       try {
         const companies = await authApi.getMyCompanies();
         if (companies.length > 0) {
@@ -79,7 +86,10 @@ function LoginPage() {
           );
         }
       } catch {
-        /* continue with original token; API calls will surface errors */
+        setServerError(t('auth.serverErrorFallback'));
+        // Se mantiene el token original ya persistido por setAuth.
+      } finally {
+        setIsSwitchingCompany(false);
       }
 
       navigate({ to: "/dashboard" });
@@ -240,9 +250,14 @@ function LoginPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={isPending || !isValid}
+              disabled={isPending || isSwitchingCompany || !isValid}
             >
-              {isPending ? (
+              {isSwitchingCompany ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  {t("auth.loadingWorkspace")}
+                </>
+              ) : isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
                   {t("auth.verifyingCredentials")}

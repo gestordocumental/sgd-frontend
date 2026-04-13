@@ -1,13 +1,46 @@
-import { Pencil, Trash2, Plus, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { Pencil, Trash2, Plus, Upload, Download, ChevronDown, CheckCircle, AlertCircle } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure'
 import type { BulkStructureResult } from '@/lib/api/org-structure'
+
+function downloadTemplate() {
+  const headers = [
+    'Departamento',
+    'Descripción Departamento',
+    'Área',
+    'Descripción Área',
+    'Cargo',
+    'Descripción Cargo',
+  ]
+  const rows = [
+    ['Recursos Humanos', 'Gestión del talento humano', 'Selección', 'Reclutamiento y selección', 'Analista de Selección', 'Gestiona procesos de selección'],
+    ['Recursos Humanos', '', 'Nómina', 'Liquidación de nómina', 'Auxiliar de Nómina', ''],
+    ['Tecnología', 'Área de sistemas e infraestructura', 'Desarrollo', 'Desarrollo de software', 'Desarrollador Frontend', ''],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+
+  // Ancho de columnas
+  ws['!cols'] = [
+    { wch: 24 }, { wch: 30 }, { wch: 20 }, { wch: 28 }, { wch: 26 }, { wch: 30 },
+  ]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Estructura')
+  XLSX.writeFile(wb, 'plantilla-estructura-organizacional.xlsx')
+}
 
 type OrgStructureHook = ReturnType<typeof useOrgStructure>
 
@@ -49,8 +82,8 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
           toast.warning(`Importación con errores: ${result.failed} filas fallidas de ${result.totalRows}.`)
         }
       },
-      onError: (err: any) => {
-        const msg = err?.response?.data?.message ?? 'Error al importar el archivo'
+      onError: (err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al importar el archivo'
         toast.error(msg)
       },
     })
@@ -79,15 +112,33 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
                     className="hidden"
                     onChange={handleFileChange}
                   />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={bulkImportMutation.isPending}
-                  >
-                    <Upload className="size-4" />
-                    {bulkImportMutation.isPending ? 'Importando...' : 'Importar Excel'}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={bulkImportMutation.isPending}
+                      >
+                        {bulkImportMutation.isPending ? (
+                          <Upload className="size-4 animate-pulse" />
+                        ) : (
+                          <Upload className="size-4" />
+                        )}
+                        {bulkImportMutation.isPending ? 'Importando...' : 'Excel'}
+                        <ChevronDown className="size-3.5 ml-0.5 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={downloadTemplate}>
+                        <Download className="size-4" />
+                        Descargar plantilla
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="size-4" />
+                        Importar archivo
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button size="sm" onClick={() => { hook.deptForm.reset(); setCreateDeptOpen(true) }}>
                     <Plus className="size-4" />{t('orgStructure.newDepartamento')}
                   </Button>
