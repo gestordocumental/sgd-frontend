@@ -8,7 +8,6 @@ import {
   type ApiDepartamento,
   type ApiArea,
   type ApiCargo,
-  type BulkStructureResult,
 } from '@/lib/api/org-structure'
 import { requiredString, optionalString } from '@/lib/validations/schemas'
 
