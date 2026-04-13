@@ -113,20 +113,13 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
                     onChange={handleFileChange}
                   />
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={bulkImportMutation.isPending}
-                      >
-                        {bulkImportMutation.isPending ? (
-                          <Upload className="size-4 animate-pulse" />
-                        ) : (
-                          <Upload className="size-4" />
-                        )}
-                        {bulkImportMutation.isPending ? 'Importando...' : 'Excel'}
-                        <ChevronDown className="size-3.5 ml-0.5 opacity-60" />
-                      </Button>
+                    <DropdownMenuTrigger
+                      disabled={bulkImportMutation.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 h-8 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                    >
+                      <Upload className="size-4" />
+                      {bulkImportMutation.isPending ? 'Importando...' : 'Excel'}
+                      <ChevronDown className="size-3.5 opacity-60" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem onClick={downloadTemplate}>
