@@ -8,6 +8,7 @@ import {
   type ApiDepartamento,
   type ApiArea,
   type ApiCargo,
+  type BulkStructureResult,
 } from '@/lib/api/org-structure'
 import { requiredString, optionalString } from '@/lib/validations/schemas'
 
@@ -174,6 +175,16 @@ export function useOrgStructure(companyId: string, enabled = true) {
     onSuccess: () => { invalidateCargos(); setDeleteCargo(null) },
   })
 
+  // ── Bulk import mutation ────────────────────────────────────────
+  const bulkImportMutation = useMutation({
+    mutationFn: (file: File) => orgStructureApi.bulkImportStructure(companyId, file),
+    onSuccess: () => {
+      invalidateDepts()
+      invalidateAreas()
+      invalidateCargos()
+    },
+  })
+
   // ── Open helpers ───────────────────────────────────────────────
   const openEditDept = (d: ApiDepartamento) => {
     setEditDept(d)
@@ -231,5 +242,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
     cargoForm,
     openEditCargo,
     createCargoMutation, editCargoMutation, deleteCargoMutation,
+
+    // Bulk import
+    bulkImportMutation,
   }
 }

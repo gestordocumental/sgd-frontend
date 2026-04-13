@@ -2,16 +2,12 @@ import axios from 'axios'
 import { useAuthStore } from '@/store/authStore'
 
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const PUBLIC_ENDPOINTS = new Set(['/auth/login', '/users/complete-registration'])
+// Paths checked against the end of the request URL (baseURL-independent)
+const PUBLIC_PATHS = ['/auth/login', '/users/complete-registration']
 
 function isPublicEndpoint(url?: string) {
   if (!url) return false
-  try {
-    const pathname = new URL(url, baseURL).pathname
-    return PUBLIC_ENDPOINTS.has(pathname)
-  } catch {
-    return false
-  }
+  return PUBLIC_PATHS.some((p) => url === p || url.endsWith(p))
 }
 
 export const apiClient = axios.create({

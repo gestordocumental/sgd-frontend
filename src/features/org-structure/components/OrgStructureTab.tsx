@@ -1,9 +1,13 @@
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure'
+import type { BulkStructureResult } from '@/lib/api/org-structure'
 
 type OrgStructureHook = ReturnType<typeof useOrgStructure>
 
@@ -26,7 +30,31 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
     setCreateDeptOpen, openEditDept, setDeleteDept,
     setCreateAreaOpen, openEditArea, setDeleteArea,
     setCreateCargoOpen, openEditCargo, setDeleteCargo,
+    bulkImportMutation,
   } = hook
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [bulkResult, setBulkResult] = useState<BulkStructureResult | null>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    bulkImportMutation.mutate(file, {
+      onSuccess: (result) => {
+        setBulkResult(result)
+        if (result.failed === 0) {
+          toast.success(`Importación completada: ${result.departmentsCreated} departamentos, ${result.areasCreated} áreas, ${result.positionsCreated} cargos creados.`)
+        } else {
+          toast.warning(`Importación con errores: ${result.failed} filas fallidas de ${result.totalRows}.`)
+        }
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.message ?? 'Error al importar el archivo'
+        toast.error(msg)
+      },
+    })
+  }
 
   return (
     <main className="p-6 space-y-6">
@@ -43,9 +71,27 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <h2 className="text-sm font-semibold">{t('orgStructure.departamentos')}</h2>
               {canWrite && (
-                <Button size="sm" onClick={() => { hook.deptForm.reset(); setCreateDeptOpen(true) }}>
-                  <Plus className="size-4" />{t('orgStructure.newDepartamento')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={bulkImportMutation.isPending}
+                  >
+                    <Upload className="size-4" />
+                    {bulkImportMutation.isPending ? 'Importando...' : 'Importar Excel'}
+                  </Button>
+                  <Button size="sm" onClick={() => { hook.deptForm.reset(); setCreateDeptOpen(true) }}>
+                    <Plus className="size-4" />{t('orgStructure.newDepartamento')}
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -225,6 +271,52 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* ── Bulk import result dialog ──────────────────────────── */}
+      <Dialog open={!!bulkResult} onOpenChange={(open) => { if (!open) setBulkResult(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resultado de importación</DialogTitle>
+          </DialogHeader>
+          {bulkResult && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <Stat label="Total filas" value={bulkResult.totalRows} />
+                <Stat label="Fallidas" value={bulkResult.failed} highlight={bulkResult.failed > 0} />
+                <Stat label="Departamentos creados" value={bulkResult.departmentsCreated} />
+                <Stat label="Departamentos existentes" value={bulkResult.departmentsExisting} />
+                <Stat label="Áreas creadas" value={bulkResult.areasCreated} />
+                <Stat label="Áreas existentes" value={bulkResult.areasExisting} />
+                <Stat label="Cargos creados" value={bulkResult.positionsCreated} />
+                <Stat label="Cargos existentes" value={bulkResult.positionsExisting} />
+              </div>
+
+              {bulkResult.errors.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="font-medium text-destructive flex items-center gap-1.5">
+                    <AlertCircle className="size-4" /> Errores por fila
+                  </p>
+                  <div className="max-h-48 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                    {bulkResult.errors.map((err, i) => (
+                      <div key={i} className="px-3 py-2 text-xs">
+                        <span className="font-medium">Fila {err.row}</span>
+                        {err.department && <span className="text-muted-foreground"> · {err.department}</span>}
+                        <p className="text-destructive mt-0.5">{err.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bulkResult.failed === 0 && (
+                <p className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
+                  <CheckCircle className="size-4" /> Importación exitosa sin errores
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
@@ -233,6 +325,15 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
       {message}
+    </div>
+  )
+}
+
+function Stat({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={highlight && value > 0 ? 'font-semibold text-destructive' : 'font-semibold'}>{value}</span>
     </div>
   )
 }

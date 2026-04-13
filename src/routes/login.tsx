@@ -49,27 +49,38 @@ function LoginPage() {
       const payload = token ? decodeJwt(token) : null;
       const isSuperAdmin = payload?.isSuperAdmin === true;
 
+      // Build user from JWT payload — auth-service returns only tokens, no user object
+      const baseUser = data.user ?? {
+        id: payload?.sub ?? "",
+        email: payload?.email ?? "",
+        name: payload?.email ?? "",
+        role: isSuperAdmin ? "super-admin" : "user",
+      };
+
       if (isSuperAdmin) {
-        setAuth(data.user, token, data.refreshToken, true);
+        setAuth(baseUser, token, data.refreshToken, true);
         navigate({ to: "/dashboard/admin" });
         return;
       }
 
       // For company users: resolve their company and get a company-scoped token
-      setAuth(data.user, token, data.refreshToken, false);
+      setAuth(baseUser, token, data.refreshToken, false);
       try {
         const companies = await authApi.getMyCompanies();
         if (companies.length > 0) {
           const companyId = companies[0];
-          const { accessToken: companyToken } = await authApi.switchCompany(companyId);
+          const { accessToken: companyToken } =
+            await authApi.switchCompany(companyId);
           setAuth(
-            { ...data.user, companyId },
+            { ...baseUser, companyId },
             companyToken,
             data.refreshToken,
             false,
           );
         }
-      } catch { /* continue with original token; API calls will surface errors */ }
+      } catch {
+        /* continue with original token; API calls will surface errors */
+      }
 
       navigate({ to: "/dashboard" });
     },
@@ -77,7 +88,7 @@ function LoginPage() {
       const raw = error.response?.data?.message;
       const msg = Array.isArray(raw)
         ? raw[0]
-        : (raw ?? t('auth.serverErrorFallback'));
+        : (raw ?? t("auth.serverErrorFallback"));
       setServerError(msg);
     },
   });
@@ -93,37 +104,21 @@ function LoginPage() {
           Panel izquierdo — ilustración + logo
           Visible solo en pantallas lg+
       ══════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col bg-background relative border-r border-border/50">
-        {/*
-          LOGO
-          ────
-          Archivo: /public/logo.svg
-          Para reemplazar: sustituir public/logo.svg con el logo definitivo.
-          Si el nuevo logo es PNG: cambiar la extensión aquí → src="/logo.png"
-          Tamaño recomendado: alto 36px, ancho proporcional.
-        */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col relative border-r border-border/50 overflow-hidden">
+        {/* Ilustración de fondo */}
+        <img
+          src="/illustration-login.png"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+
+        {/* Logo sobre la ilustración */}
         <div className="absolute top-7 left-8">
           <img
-            src="/logo.svg"
+            src="/logo.png"
             alt="SGD — Document Management System"
-            className="h-9 w-auto"
-          />
-        </div>
-
-        {/*
-          ILUSTRACIÓN
-          ───────────
-          Archivo: /public/illustration-login.svg
-          Para reemplazar: sustituir public/illustration-login.svg con la ilustración definitiva.
-          Si el nuevo archivo es PNG: cambiar la extensión aquí → src="/illustration-login.png"
-          Tamaño recomendado: ~480×420px.
-        */}
-        <div className="flex-1 flex items-center justify-center p-16">
-          <img
-            src="/illustration-login.svg"
-            alt=""
-            aria-hidden="true"
-            className="max-w-md w-full"
+            className="h-12 w-auto"
           />
         </div>
       </div>
@@ -141,7 +136,7 @@ function LoginPage() {
           {/* Logo en móvil (se oculta en lg porque ya aparece en el panel izquierdo) */}
           <div className="lg:hidden flex justify-center mb-8">
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt="SGD — Document Management System"
               className="h-9 w-auto"
             />
@@ -150,10 +145,10 @@ function LoginPage() {
           {/* Encabezado */}
           <div className="mb-7">
             <h1 className="text-2xl font-semibold tracking-tight">
-              {t('auth.welcomeTitle')}
+              {t("auth.welcomeTitle")}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {t('auth.welcomeSubtitle')}
+              {t("auth.welcomeSubtitle")}
             </p>
           </div>
 
@@ -173,11 +168,11 @@ function LoginPage() {
 
             {/* Correo electrónico */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">{t('auth.emailLabel')}</Label>
+              <Label htmlFor="email">{t("auth.emailLabel")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder={t('auth.emailPlaceholder')}
+                placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 autoFocus
                 disabled={isPending}
@@ -193,7 +188,7 @@ function LoginPage() {
 
             {/* Contraseña */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">{t('auth.passwordLabel')}</Label>
+              <Label htmlFor="password">{t("auth.passwordLabel")}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -211,7 +206,9 @@ function LoginPage() {
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                   aria-label={
-                    showPassword ? t('auth.hidePassword') : t('auth.showPassword')
+                    showPassword
+                      ? t("auth.hidePassword")
+                      : t("auth.showPassword")
                   }
                 >
                   {showPassword ? (
@@ -234,7 +231,7 @@ function LoginPage() {
                 type="button"
                 className="text-sm text-primary hover:underline underline-offset-4"
               >
-                {t('auth.forgotPassword')}
+                {t("auth.forgotPassword")}
               </button>
             </div>
 
@@ -248,10 +245,10 @@ function LoginPage() {
               {isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  {t('auth.verifyingCredentials')}
+                  {t("auth.verifyingCredentials")}
                 </>
               ) : (
-                t('auth.signIn')
+                t("auth.signIn")
               )}
             </Button>
           </form>
@@ -260,16 +257,16 @@ function LoginPage() {
           {import.meta.env.VITE_USE_MOCKS === "true" && (
             <div className="mt-6 rounded-lg bg-muted border border-border px-4 py-3 text-center">
               <p className="text-xs font-medium text-muted-foreground">
-                {t('auth.devMode')}
+                {t("auth.devMode")}
               </p>
               <p className="text-xs text-muted-foreground/60 mt-0.5">
-                {t('auth.devCredentials')}
+                {t("auth.devCredentials")}
               </p>
             </div>
           )}
 
           <p className="text-center text-xs text-muted-foreground/40 mt-8">
-            {t('auth.footer')}
+            {t("auth.footer")}
           </p>
         </div>
       </div>
