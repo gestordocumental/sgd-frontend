@@ -18,6 +18,7 @@ import { useOrgStructure } from '@/features/org-structure/hooks/use-org-structur
 import { OrgStructureTab } from '@/features/org-structure/components/OrgStructureTab'
 import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStructureDialogs'
 import { useMyPermissions } from '@/features/profile/hooks/use-my-permissions'
+import { useTypologies } from '@/features/doc-governance/hooks/use-typologies'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
@@ -70,6 +71,7 @@ function CompanyDashboard() {
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
   const orgStructure = useOrgStructure(companyId, mountedTabs.has('org-structure'))
+  const typologies   = useTypologies(companyId, mountedTabs.has('org-structure'))
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
@@ -156,7 +158,7 @@ function CompanyDashboard() {
       )}
       {canViewOrgStructure && mountedTabs.has('org-structure') && (
         <TabsContent value="org-structure" keepMounted className="flex-1 overflow-auto">
-          <OrgStructureTab hook={orgStructure} canWrite={canWriteOrgStructure} />
+          <OrgStructureTab hook={orgStructure} typologiesHook={typologies} canWrite={canWriteOrgStructure} />
         </TabsContent>
       )}
 

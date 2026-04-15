@@ -136,7 +136,28 @@
     "namePlaceholder": "Name",
     "descriptionPlaceholder": "Description (optional)",
     "deleteConfirmPre": "Are you sure you want to delete",
-    "deleteConfirmPost": "? This action cannot be undone."
+    "deleteConfirmPost": "? This action cannot be undone.",
+    "excel": {
+      "buttonLabel": "Excel",
+      "importing": "Importing...",
+      "downloadTemplate": "Download template",
+      "importFile": "Import file",
+      "importResult": "Import result",
+      "importSuccess": "Import completed successfully with no errors",
+      "importCompleted": "Import completed: {{departments}} departments, {{areas}} areas, {{positions}} positions created.",
+      "importWithErrors": "Import with errors: {{failed}} failed rows out of {{total}}.",
+      "importError": "Error importing the file",
+      "totalRows": "Total rows",
+      "failed": "Failed",
+      "departmentsCreated": "Departments created",
+      "departmentsExisting": "Existing departments",
+      "areasCreated": "Areas created",
+      "areasExisting": "Existing areas",
+      "positionsCreated": "Positions created",
+      "positionsExisting": "Existing positions",
+      "rowErrors": "Row errors",
+      "row": "Row {{number}}"
+    }
   },
   "companies": {
     "title": "Companies",

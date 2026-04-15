@@ -136,7 +136,28 @@
     "namePlaceholder": "Nombre",
     "descriptionPlaceholder": "Descripción (opcional)",
     "deleteConfirmPre": "¿Estás seguro de que deseas eliminar",
-    "deleteConfirmPost": "? Esta acción no se puede deshacer."
+    "deleteConfirmPost": "? Esta acción no se puede deshacer.",
+    "excel": {
+      "buttonLabel": "Excel",
+      "importing": "Importando...",
+      "downloadTemplate": "Descargar plantilla",
+      "importFile": "Importar archivo",
+      "importResult": "Resultado de importación",
+      "importSuccess": "Importación exitosa sin errores",
+      "importCompleted": "Importación completada: {{departments}} departamentos, {{areas}} áreas, {{positions}} cargos creados.",
+      "importWithErrors": "Importación con errores: {{failed}} filas fallidas de {{total}}.",
+      "importError": "Error al importar el archivo",
+      "totalRows": "Total filas",
+      "failed": "Fallidas",
+      "departmentsCreated": "Departamentos creados",
+      "departmentsExisting": "Departamentos existentes",
+      "areasCreated": "Áreas creadas",
+      "areasExisting": "Áreas existentes",
+      "positionsCreated": "Cargos creados",
+      "positionsExisting": "Cargos existentes",
+      "rowErrors": "Errores por fila",
+      "row": "Fila {{number}}"
+    }
   },
   "companies": {
     "title": "Empresas",

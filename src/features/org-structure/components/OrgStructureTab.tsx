@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Plus, Upload, Download, ChevronDown, CheckCircle, AlertCircle } from 'lucide-react'
+import { Pencil, Trash2, Plus, Upload, Download, ChevronDown, CheckCircle, AlertCircle, FileUp } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -15,6 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure'
 import type { BulkStructureResult } from '@/lib/api/org-structure'
+import { TypologyDialogs } from '@/features/doc-governance/components/TypologyDialogs'
+import type { useTypologies } from '@/features/doc-governance/hooks/use-typologies'
+import type { ApiTypology, ExtractionStatus, TypologyStatus } from '@/lib/api/typologies'
 
 function downloadTemplate() {
   const headers = [
@@ -25,34 +28,76 @@ function downloadTemplate() {
     'Cargo',
     'Descripción Cargo',
   ]
-  const rows = [
+  const colWidths = [
+    { wch: 24 }, { wch: 30 }, { wch: 20 }, { wch: 28 }, { wch: 26 }, { wch: 30 },
+  ]
+
+  // Hoja importable — solo encabezados, sin datos de ejemplo
+  const ws = XLSX.utils.aoa_to_sheet([headers])
+  ws['!cols'] = colWidths
+
+  // Hoja de ejemplo — para orientar al usuario sin riesgo de importar datos reales
+  const exampleRows = [
     ['Recursos Humanos', 'Gestión del talento humano', 'Selección', 'Reclutamiento y selección', 'Analista de Selección', 'Gestiona procesos de selección'],
     ['Recursos Humanos', '', 'Nómina', 'Liquidación de nómina', 'Auxiliar de Nómina', ''],
     ['Tecnología', 'Área de sistemas e infraestructura', 'Desarrollo', 'Desarrollo de software', 'Desarrollador Frontend', ''],
   ]
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-
-  // Ancho de columnas
-  ws['!cols'] = [
-    { wch: 24 }, { wch: 30 }, { wch: 20 }, { wch: 28 }, { wch: 26 }, { wch: 30 },
-  ]
+  const exampleSheet = XLSX.utils.aoa_to_sheet([headers, ...exampleRows])
+  exampleSheet['!cols'] = colWidths
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Estructura')
+  XLSX.utils.book_append_sheet(wb, exampleSheet, 'Ejemplo')
   XLSX.writeFile(wb, 'plantilla-estructura-organizacional.xlsx')
 }
 
 type OrgStructureHook = ReturnType<typeof useOrgStructure>
+type TypologiesHook   = ReturnType<typeof useTypologies>
 
 interface OrgStructureTabProps {
   hook: OrgStructureHook
+  typologiesHook: TypologiesHook
   canWrite?: boolean
 }
 
 const selectClass =
   'h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50'
 
-export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps) {
+// ── Typology status helpers ────────────────────────────────────────────────
+
+const typologyStatusLabel: Record<TypologyStatus, string> = {
+  INCOMPLETE: 'Incomplete',
+  ACTIVE:     'Active',
+  ARCHIVED:   'Archived',
+}
+
+const typologyStatusClass: Record<TypologyStatus, string> = {
+  INCOMPLETE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  ACTIVE:     'bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400',
+  ARCHIVED:   'bg-gray-100   text-gray-600   dark:bg-gray-800      dark:text-gray-400',
+}
+
+const extractionStatusLabel: Record<ExtractionStatus, string> = {
+  NOT_UPLOADED:         'No document',
+  PROCESSING:           'Processing',
+  COMPLETED:            'Completed',
+  DISCREPANCY:          'Discrepancy',
+  PENDING_CONFIRMATION: 'Pending',
+  CONFIRMED:            'Confirmed',
+  FAILED:               'Failed',
+}
+
+const extractionStatusClass: Record<ExtractionStatus, string> = {
+  NOT_UPLOADED:         'bg-gray-100   text-gray-600   dark:bg-gray-800      dark:text-gray-400',
+  PROCESSING:           'bg-blue-100   text-blue-800   dark:bg-blue-900/30   dark:text-blue-400',
+  COMPLETED:            'bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400',
+  DISCREPANCY:          'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+  PENDING_CONFIRMATION: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  CONFIRMED:            'bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400',
+  FAILED:               'bg-red-100    text-red-800    dark:bg-red-900/30    dark:text-red-400',
+}
+
+export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgStructureTabProps) {
   const { t } = useTranslation()
   const {
     departamentos, deptLoading,
@@ -77,13 +122,13 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
       onSuccess: (result) => {
         setBulkResult(result)
         if (result.failed === 0) {
-          toast.success(`Importación completada: ${result.departmentsCreated} departamentos, ${result.areasCreated} áreas, ${result.positionsCreated} cargos creados.`)
+          toast.success(t('orgStructure.excel.importCompleted', { departments: result.departmentsCreated, areas: result.areasCreated, positions: result.positionsCreated }))
         } else {
-          toast.warning(`Importación con errores: ${result.failed} filas fallidas de ${result.totalRows}.`)
+          toast.warning(t('orgStructure.excel.importWithErrors', { failed: result.failed, total: result.totalRows }))
         }
       },
       onError: (err: unknown) => {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al importar el archivo'
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('orgStructure.excel.importError')
         toast.error(msg)
       },
     })
@@ -96,6 +141,7 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
           <TabsTrigger value="departamentos">{t('orgStructure.departamentos')}</TabsTrigger>
           <TabsTrigger value="areas">{t('orgStructure.areas')}</TabsTrigger>
           <TabsTrigger value="cargos">{t('orgStructure.cargos')}</TabsTrigger>
+          <TabsTrigger value="typology">Typology</TabsTrigger>
         </TabsList>
 
         {/* ── Departamentos ─────────────────────────────────────── */}
@@ -118,17 +164,17 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
                       className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 h-8 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
                     >
                       <Upload className="size-4" />
-                      {bulkImportMutation.isPending ? 'Importando...' : 'Excel'}
+                      {bulkImportMutation.isPending ? t('orgStructure.excel.importing') : t('orgStructure.excel.buttonLabel')}
                       <ChevronDown className="size-3.5 opacity-60" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem onClick={downloadTemplate}>
                         <Download className="size-4" />
-                        Descargar plantilla
+                        {t('orgStructure.excel.downloadTemplate')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
                         <Upload className="size-4" />
-                        Importar archivo
+                        {t('orgStructure.excel.importFile')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -314,36 +360,125 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
             )}
           </div>
         </TabsContent>
+
+        {/* ── Typology ──────────────────────────────────────────── */}
+        <TabsContent value="typology" className="mt-4">
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Typology</h2>
+              {canWrite && (
+                <Button size="sm" onClick={typologiesHook.openCreate}>
+                  <Plus className="size-4" /> New typology
+                </Button>
+              )}
+            </div>
+
+            {typologiesHook.isLoading ? (
+              <EmptyState message={t('common.loading')} />
+            ) : typologiesHook.typologies.length === 0 ? (
+              <EmptyState message="No typologies registered" />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Area / Position</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Extraction</TableHead>
+                    {canWrite && <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {typologiesHook.typologies.map((typo: ApiTypology) => (
+                    <TableRow key={typo.id}>
+                      <TableCell className="font-medium">
+                        {typo.datosDeclarados.nombre ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {typo.datosDeclarados.codigo ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {typo.datosDeclarados.version ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {typo.estructuraOrg.departamentoNombre}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {[typo.estructuraOrg.areaNombre, typo.estructuraOrg.cargoNombre]
+                          .filter(Boolean)
+                          .join(' / ') || '—'}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typologyStatusClass[typo.typologyStatus]}`}>
+                          {typologyStatusLabel[typo.typologyStatus]}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${extractionStatusClass[typo.documento.extractionStatus]}`}>
+                          {extractionStatusLabel[typo.documento.extractionStatus]}
+                        </span>
+                      </TableCell>
+                      {canWrite && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {typo.documento.extractionStatus === 'NOT_UPLOADED' && (
+                              <Button
+                                variant="ghost" size="icon" className="size-7 text-blue-600 hover:text-blue-700"
+                                title="Cargar documento"
+                                onClick={() => typologiesHook.openUploadDoc(typo)}
+                              >
+                                <FileUp className="size-3.5" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="size-7" onClick={() => typologiesHook.openEdit(typo)}>
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => typologiesHook.setDeleteTypology(typo)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* ── Bulk import result dialog ──────────────────────────── */}
       <Dialog open={!!bulkResult} onOpenChange={(open) => { if (!open) setBulkResult(null) }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Resultado de importación</DialogTitle>
+            <DialogTitle>{t('orgStructure.excel.importResult')}</DialogTitle>
           </DialogHeader>
           {bulkResult && (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <Stat label="Total filas" value={bulkResult.totalRows} />
-                <Stat label="Fallidas" value={bulkResult.failed} highlight={bulkResult.failed > 0} />
-                <Stat label="Departamentos creados" value={bulkResult.departmentsCreated} />
-                <Stat label="Departamentos existentes" value={bulkResult.departmentsExisting} />
-                <Stat label="Áreas creadas" value={bulkResult.areasCreated} />
-                <Stat label="Áreas existentes" value={bulkResult.areasExisting} />
-                <Stat label="Cargos creados" value={bulkResult.positionsCreated} />
-                <Stat label="Cargos existentes" value={bulkResult.positionsExisting} />
+                <Stat label={t('orgStructure.excel.totalRows')} value={bulkResult.totalRows} />
+                <Stat label={t('orgStructure.excel.failed')} value={bulkResult.failed} highlight={bulkResult.failed > 0} />
+                <Stat label={t('orgStructure.excel.departmentsCreated')} value={bulkResult.departmentsCreated} />
+                <Stat label={t('orgStructure.excel.departmentsExisting')} value={bulkResult.departmentsExisting} />
+                <Stat label={t('orgStructure.excel.areasCreated')} value={bulkResult.areasCreated} />
+                <Stat label={t('orgStructure.excel.areasExisting')} value={bulkResult.areasExisting} />
+                <Stat label={t('orgStructure.excel.positionsCreated')} value={bulkResult.positionsCreated} />
+                <Stat label={t('orgStructure.excel.positionsExisting')} value={bulkResult.positionsExisting} />
               </div>
 
               {bulkResult.errors.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="font-medium text-destructive flex items-center gap-1.5">
-                    <AlertCircle className="size-4" /> Errores por fila
+                    <AlertCircle className="size-4" /> {t('orgStructure.excel.rowErrors')}
                   </p>
                   <div className="max-h-48 overflow-y-auto rounded-md border border-border divide-y divide-border">
                     {bulkResult.errors.map((err, i) => (
                       <div key={i} className="px-3 py-2 text-xs">
-                        <span className="font-medium">Fila {err.row}</span>
+                        <span className="font-medium">{t('orgStructure.excel.row', { number: err.row })}</span>
                         {err.department && <span className="text-muted-foreground"> · {err.department}</span>}
                         <p className="text-destructive mt-0.5">{err.reason}</p>
                       </div>
@@ -354,13 +489,16 @@ export function OrgStructureTab({ hook, canWrite = false }: OrgStructureTabProps
 
               {bulkResult.failed === 0 && (
                 <p className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
-                  <CheckCircle className="size-4" /> Importación exitosa sin errores
+                  <CheckCircle className="size-4" /> {t('orgStructure.excel.importSuccess')}
                 </p>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Typology dialogs ──────────────────────────────────── */}
+      <TypologyDialogs hook={typologiesHook} />
     </main>
   )
 }
