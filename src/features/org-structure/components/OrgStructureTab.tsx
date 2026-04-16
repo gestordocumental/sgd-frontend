@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Plus, Upload, Download, ChevronDown, CheckCircle, AlertCircle, FileUp } from 'lucide-react'
+import { Pencil, Trash2, Plus, Upload, Download, ChevronDown, CheckCircle, AlertCircle, FileUp, History, Eye, RefreshCw } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -63,28 +63,13 @@ interface OrgStructureTabProps {
 const selectClass =
   'h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50'
 
-// ── Typology status helpers ────────────────────────────────────────────────
-
-const typologyStatusLabel: Record<TypologyStatus, string> = {
-  INCOMPLETE: 'Incomplete',
-  ACTIVE:     'Active',
-  ARCHIVED:   'Archived',
-}
+// ── Typology / extraction status CSS classes (not translatable) ────────────
 
 const typologyStatusClass: Record<TypologyStatus, string> = {
   INCOMPLETE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
   ACTIVE:     'bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400',
   ARCHIVED:   'bg-gray-100   text-gray-600   dark:bg-gray-800      dark:text-gray-400',
-}
-
-const extractionStatusLabel: Record<ExtractionStatus, string> = {
-  NOT_UPLOADED:         'No document',
-  PROCESSING:           'Processing',
-  COMPLETED:            'Completed',
-  DISCREPANCY:          'Discrepancy',
-  PENDING_CONFIRMATION: 'Pending',
-  CONFIRMED:            'Confirmed',
-  FAILED:               'Failed',
+  DELETED:    'bg-red-100    text-red-700    dark:bg-red-900/30    dark:text-red-400',
 }
 
 const extractionStatusClass: Record<ExtractionStatus, string> = {
@@ -141,7 +126,7 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
           <TabsTrigger value="departamentos">{t('orgStructure.departamentos')}</TabsTrigger>
           <TabsTrigger value="areas">{t('orgStructure.areas')}</TabsTrigger>
           <TabsTrigger value="cargos">{t('orgStructure.cargos')}</TabsTrigger>
-          <TabsTrigger value="typology">Typology</TabsTrigger>
+          <TabsTrigger value="typology">{t('docGovernance.table.title')}</TabsTrigger>
         </TabsList>
 
         {/* ── Departamentos ─────────────────────────────────────── */}
@@ -206,10 +191,10 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
                       {canWrite && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditDept(d)}>
+                            <Button variant="ghost" size="icon" className="size-7" title={t('common.edit')} onClick={() => openEditDept(d)}>
                               <Pencil className="size-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteDept(d)}>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" title={t('common.delete')} onClick={() => setDeleteDept(d)}>
                               <Trash2 className="size-3.5" />
                             </Button>
                           </div>
@@ -268,10 +253,10 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
                       {canWrite && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditArea(a)}>
+                            <Button variant="ghost" size="icon" className="size-7" title={t('common.edit')} onClick={() => openEditArea(a)}>
                               <Pencil className="size-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteArea(a)}>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" title={t('common.delete')} onClick={() => setDeleteArea(a)}>
                               <Trash2 className="size-3.5" />
                             </Button>
                           </div>
@@ -344,10 +329,10 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
                       {canWrite && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditCargo(c)}>
+                            <Button variant="ghost" size="icon" className="size-7" title={t('common.edit')} onClick={() => openEditCargo(c)}>
                               <Pencil className="size-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => setDeleteCargo(c)}>
+                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" title={t('common.delete')} onClick={() => setDeleteCargo(c)}>
                               <Trash2 className="size-3.5" />
                             </Button>
                           </div>
@@ -365,10 +350,10 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
         <TabsContent value="typology" className="mt-4">
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Typology</h2>
+              <h2 className="text-sm font-semibold">{t('docGovernance.table.title')}</h2>
               {canWrite && (
                 <Button size="sm" onClick={typologiesHook.openCreate}>
-                  <Plus className="size-4" /> New typology
+                  <Plus className="size-4" /> {t('docGovernance.table.newTypology')}
                 </Button>
               )}
             </div>
@@ -376,19 +361,19 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
             {typologiesHook.isLoading ? (
               <EmptyState message={t('common.loading')} />
             ) : typologiesHook.typologies.length === 0 ? (
-              <EmptyState message="No typologies registered" />
+              <EmptyState message={t('docGovernance.table.empty')} />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Version</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Area / Position</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Extraction</TableHead>
-                    {canWrite && <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>}
+                    <TableHead>{t('docGovernance.table.name')}</TableHead>
+                    <TableHead>{t('docGovernance.table.code')}</TableHead>
+                    <TableHead>{t('docGovernance.table.version')}</TableHead>
+                    <TableHead>{t('docGovernance.table.department')}</TableHead>
+                    <TableHead>{t('docGovernance.table.areaPosition')}</TableHead>
+                    <TableHead>{t('docGovernance.table.status')}</TableHead>
+                    <TableHead>{t('docGovernance.table.extraction')}</TableHead>
+                    <TableHead className="w-28 text-right">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -413,35 +398,72 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typologyStatusClass[typo.typologyStatus]}`}>
-                          {typologyStatusLabel[typo.typologyStatus]}
+                          {t(`docGovernance.typologyStatus.${typo.typologyStatus}`)}
                         </span>
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${extractionStatusClass[typo.documento.extractionStatus]}`}>
-                          {extractionStatusLabel[typo.documento.extractionStatus]}
+                          {t(`docGovernance.extractionStatus.${typo.documento.extractionStatus}`)}
                         </span>
                       </TableCell>
-                      {canWrite && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            {typo.documento.extractionStatus === 'NOT_UPLOADED' && (
-                              <Button
-                                variant="ghost" size="icon" className="size-7 text-blue-600 hover:text-blue-700"
-                                title="Cargar documento"
-                                onClick={() => typologiesHook.openUploadDoc(typo)}
-                              >
-                                <FileUp className="size-3.5" />
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {typo.datosDeclarados.codigo && (
+                            <Button
+                              variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-foreground"
+                              title={t('docGovernance.table.viewHistory')}
+                              onClick={() => typologiesHook.setHistoryTypology(typo)}
+                            >
+                              <History className="size-3.5" />
+                            </Button>
+                          )}
+                          {typo.documento.extractionStatus !== 'NOT_UPLOADED' && (
+                            <Button
+                              variant="ghost" size="icon"
+                              className="size-7 text-muted-foreground hover:text-foreground"
+                              title={typo.documento.mimeType === 'application/pdf'
+                                ? t('docGovernance.table.viewDocument')
+                                : t('docGovernance.table.downloadDocument')}
+                              disabled={typologiesHook.viewDocumentMutation.isPending}
+                              onClick={() => typologiesHook.viewDocumentMutation.mutate(typo.id)}
+                            >
+                              {typo.documento.mimeType === 'application/pdf'
+                                ? <Eye className="size-3.5" />
+                                : <Download className="size-3.5" />}
+                            </Button>
+                          )}
+                          {typo.documento.extractionStatus === 'FAILED' && (
+                            <Button
+                              variant="ghost" size="icon"
+                              className="size-7 text-amber-600 hover:text-amber-700"
+                              title={t('docGovernance.table.retryExtraction')}
+                              disabled={typologiesHook.retryExtractionMutation.isPending}
+                              onClick={() => typologiesHook.retryExtractionMutation.mutate(typo.id)}
+                            >
+                              <RefreshCw className="size-3.5" />
+                            </Button>
+                          )}
+                          {canWrite && (
+                            <>
+                              {typo.documento.extractionStatus === 'NOT_UPLOADED' && (
+                                <Button
+                                  variant="ghost" size="icon" className="size-7 text-blue-600 hover:text-blue-700"
+                                  title={t('docGovernance.table.uploadDocument')}
+                                  onClick={() => typologiesHook.openUploadDoc(typo)}
+                                >
+                                  <FileUp className="size-3.5" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon" className="size-7" title={t('common.edit')} onClick={() => typologiesHook.openEdit(typo)}>
+                                <Pencil className="size-3.5" />
                               </Button>
-                            )}
-                            <Button variant="ghost" size="icon" className="size-7" onClick={() => typologiesHook.openEdit(typo)}>
-                              <Pencil className="size-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => typologiesHook.setDeleteTypology(typo)}>
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
+                              <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" title={t('common.delete')} onClick={() => typologiesHook.setDeleteTypology(typo)}>
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

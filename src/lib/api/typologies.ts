@@ -1,6 +1,6 @@
 import { apiClient } from './client'
 
-export type TypologyStatus = 'INCOMPLETE' | 'ACTIVE' | 'ARCHIVED'
+export type TypologyStatus = 'INCOMPLETE' | 'ACTIVE' | 'ARCHIVED' | 'DELETED'
 export type ExtractionStatus =
   | 'NOT_UPLOADED'
   | 'PROCESSING'
@@ -93,11 +93,38 @@ export const typologiesApi = {
     form.append('file', file)
     if (orgName) form.append('orgName', orgName)
     return apiClient
-      .post<ApiTypology>(`${base(orgId)}/${typologyId}/file`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      .post<ApiTypology>(`${base(orgId)}/${typologyId}/file`, form)
       .then((r) => r.data)
   },
+
+  newVersion: (
+    orgId: string,
+    typologyId: string,
+    file: File,
+    dto: { nombre?: string; version?: string; orgName?: string },
+  ) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (dto.nombre)  form.append('nombre',  dto.nombre)
+    if (dto.version) form.append('version', dto.version)
+    if (dto.orgName) form.append('orgName', dto.orgName)
+    return apiClient
+      .post<ApiTypology>(`${base(orgId)}/${typologyId}/new-version`, form)
+      .then((r) => r.data)
+  },
+
+  signedUrl: (orgId: string, typologyId: string) =>
+    apiClient
+      .get<{ signedUrl: string; expiresAt: string }>(`${base(orgId)}/${typologyId}/signed-url`)
+      .then((r) => r.data),
+
+  retryExtraction: (orgId: string, typologyId: string) =>
+    apiClient
+      .post<{ message: string; extractionStatus: string }>(`${base(orgId)}/${typologyId}/retry-extraction`)
+      .then((r) => r.data),
+
+  history: (orgId: string, codigo: string) =>
+    apiClient.get<ApiTypology[]>(`${base(orgId)}/history/${encodeURIComponent(codigo)}`).then((r) => r.data),
 
   previewExtract: (orgId: string, file: File, orgName?: string) => {
     const form = new FormData()
@@ -107,7 +134,6 @@ export const typologiesApi = {
       .post<{ nombre: string | null; codigo: string | null; version: string | null }>(
         `${base(orgId)}/preview-extract`,
         form,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
       )
       .then((r) => r.data)
   },

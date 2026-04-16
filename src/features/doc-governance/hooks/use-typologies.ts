@@ -13,6 +13,7 @@ function parseVersion(v: string): number[] {
   return v.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0)
 }
 
+/** @deprecated use isExactlyOneIncrement instead */
 export function versionGte(a: string, b: string): boolean {
   const pa = parseVersion(a)
   const pb = parseVersion(b)
@@ -21,6 +22,28 @@ export function versionGte(a: string, b: string): boolean {
     const bi = pb[i] ?? 0
     if (ai > bi) return true
     if (ai < bi) return false
+  }
+  return true
+}
+
+/**
+ * Returns true only if newVer is exactly one increment above oldVer.
+ * "05"→"06" ✓  "05"→"07" ✗  "v1.0"→"v1.1" ✓  "v1.9"→"v2.0" ✓  "v1.0"→"v2.1" ✗
+ */
+export function isExactlyOneIncrement(newVer: string, oldVer: string): boolean {
+  const nv = parseVersion(newVer)
+  const ov = parseVersion(oldVer)
+  const len = Math.max(nv.length, ov.length)
+  while (nv.length < len) nv.push(0)
+  while (ov.length < len) ov.push(0)
+  let diffIdx = -1
+  for (let i = 0; i < len; i++) {
+    if (nv[i] !== ov[i]) { diffIdx = i; break }
+  }
+  if (diffIdx === -1) return false
+  if (nv[diffIdx] !== ov[diffIdx] + 1) return false
+  for (let i = diffIdx + 1; i < len; i++) {
+    if (nv[i] !== 0) return false
   }
   return true
 }
@@ -59,6 +82,12 @@ export function useTypologies(orgId: string, enabled = true) {
   // File attached to the create dialog (uploaded right after creation)
   const [createFile, setCreateFile] = useState<File | null>(null)
 
+  // File attached to the edit dialog (triggers new-version flow)
+  const [editFile, setEditFile] = useState<File | null>(null)
+
+  // ── History dialog ─────────────────────────────────────────────────────
+  const [historyTypology, setHistoryTypology] = useState<ApiTypology | null>(null)
+
   // ── Upload document dialog (from table action) ─────────────────────────
   const [uploadDocTypology, setUploadDocTypology] = useState<ApiTypology | null>(null)
   const [uploadDocFile,     setUploadDocFile]     = useState<File | null>(null)
@@ -79,6 +108,7 @@ export function useTypologies(orgId: string, enabled = true) {
   })
 
   const uploadDocForm = useForm<UploadDocForm>({
+    resolver: zodResolver(uploadDocSchema),
     mode: 'onChange',
     defaultValues: { nombre: '', version: '' },
   })
@@ -89,6 +119,13 @@ export function useTypologies(orgId: string, enabled = true) {
     queryFn:  () => typologiesApi.list(orgId),
     staleTime: 30_000,
     enabled: enabled && !!orgId,
+    // Poll every 3 s while any typology is being processed — stops automatically
+    refetchInterval: (query) =>
+      (query.state.data as ApiTypology[] | undefined)?.some(
+        (t) => t.documento.extractionStatus === 'PROCESSING',
+      )
+        ? 3_000
+        : false,
   })
 
   const { data: departamentos = [] } = useQuery({
@@ -110,6 +147,13 @@ export function useTypologies(orgId: string, enabled = true) {
     queryFn:  () => orgStructureApi.listCargos(orgId, formDeptId, formAreaId),
     staleTime: 60_000,
     enabled: !!orgId && !!formDeptId && !!formAreaId,
+  })
+
+  const { data: historyItems = [], isLoading: historyLoading } = useQuery({
+    queryKey: ['typologies-history', orgId, historyTypology?.datosDeclarados.codigo],
+    queryFn:  () => typologiesApi.history(orgId, historyTypology!.datosDeclarados.codigo!),
+    enabled:  !!historyTypology?.datosDeclarados.codigo,
+    staleTime: 0,
   })
 
   // ── Invalidation ───────────────────────────────────────────────────────
@@ -160,7 +204,7 @@ export function useTypologies(orgId: string, enabled = true) {
     },
   })
 
-  // ── Edit mutation ──────────────────────────────────────────────────────
+  // ── Edit mutation (no file — regular PATCH) ────────────────────────────
   const editMutation = useMutation({
     mutationFn: (dto: TypologyForm) =>
       typologiesApi.update(orgId, editTypology!.id, {
@@ -176,6 +220,33 @@ export function useTypologies(orgId: string, enabled = true) {
       const msg = e.response?.data?.message
       if (msg) form.setError('root', { message: msg })
     },
+  })
+
+  // ── New version mutation (edit + file → archives old, creates new) ──────
+  const newVersionMutation = useMutation({
+    mutationFn: ({ dto, file }: { dto: TypologyForm; file: File }) =>
+      typologiesApi.newVersion(orgId, editTypology!.id, file, {
+        nombre:  dto.nombre  || undefined,
+        version: dto.version || undefined,
+        orgName: companyName ?? undefined,
+      }),
+    onSuccess: () => { invalidate(); setEditTypology(null); setEditFile(null) },
+    onError: (e: { response?: { data?: { message?: string } } }) => {
+      const msg = e.response?.data?.message
+      if (msg) form.setError('root', { message: msg })
+    },
+  })
+
+  // ── Retry extraction mutation ──────────────────────────────────────────
+  const retryExtractionMutation = useMutation({
+    mutationFn: (typologyId: string) => typologiesApi.retryExtraction(orgId, typologyId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
+  })
+
+  // ── View document (fetch signed URL and open in new tab) ──────────────
+  const viewDocumentMutation = useMutation({
+    mutationFn: (typologyId: string) => typologiesApi.signedUrl(orgId, typologyId),
+    onSuccess: ({ signedUrl }) => { window.open(signedUrl, '_blank', 'noopener,noreferrer') },
   })
 
   // ── Delete mutation ────────────────────────────────────────────────────
@@ -219,6 +290,7 @@ export function useTypologies(orgId: string, enabled = true) {
   const openCreate = () => { resetForm(); setCreateFile(null); setCreateOpen(true) }
 
   const openEdit = (typo: ApiTypology) => {
+    setEditFile(null)
     setEditTypology(typo)
     const deptId = typo.estructuraOrg.departamentoId
     const areaId = typo.estructuraOrg.areaId ?? ''
@@ -281,9 +353,17 @@ export function useTypologies(orgId: string, enabled = true) {
     uploadDocFile,     setUploadDocFile,
     uploadDocForm,
 
+    // Edit file (triggers new-version flow when set)
+    editFile, setEditFile,
+
+    // History dialog
+    historyTypology, setHistoryTypology,
+    historyItems, historyLoading,
+
     // Mutations
-    createMutation, editMutation, deleteMutation,
+    createMutation, editMutation, newVersionMutation, deleteMutation,
     uploadMutation, uploadDocMutation, previewExtractMutation,
+    viewDocumentMutation, retryExtractionMutation,
     extracting: previewExtractMutation.isPending,
   }
 }
