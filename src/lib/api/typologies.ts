@@ -93,7 +93,7 @@ export const typologiesApi = {
     form.append('file', file)
     if (orgName) form.append('orgName', orgName)
     return apiClient
-      .post<ApiTypology>(`${base(orgId)}/${typologyId}/file`, form)
+      .post<ApiTypology>(`${base(orgId)}/${typologyId}/file`, form, { headers: { 'Content-Type': undefined } })
       .then((r) => r.data)
   },
 
@@ -109,7 +109,7 @@ export const typologiesApi = {
     if (dto.version) form.append('version', dto.version)
     if (dto.orgName) form.append('orgName', dto.orgName)
     return apiClient
-      .post<ApiTypology>(`${base(orgId)}/${typologyId}/new-version`, form)
+      .post<ApiTypology>(`${base(orgId)}/${typologyId}/new-version`, form, { headers: { 'Content-Type': undefined } })
       .then((r) => r.data)
   },
 
@@ -134,6 +134,7 @@ export const typologiesApi = {
       .post<{ nombre: string | null; codigo: string | null; version: string | null }>(
         `${base(orgId)}/preview-extract`,
         form,
+        { headers: { 'Content-Type': undefined } },
       )
       .then((r) => r.data)
   },
