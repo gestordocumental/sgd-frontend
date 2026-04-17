@@ -160,7 +160,7 @@ export const orgStructureApi = {
     form.append('file', file)
     return apiClient
       .post<BulkStructureResult>(`${base(orgId)}/structure/bulk`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': undefined },
       })
       .then((r) => r.data)
   },
