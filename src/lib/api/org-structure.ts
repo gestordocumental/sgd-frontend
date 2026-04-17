@@ -60,6 +60,24 @@ export interface UpdateCargoDto {
   description?: string
 }
 
+export interface BulkStructureResult {
+  totalRows: number
+  departmentsCreated: number
+  departmentsExisting: number
+  areasCreated: number
+  areasExisting: number
+  positionsCreated: number
+  positionsExisting: number
+  failed: number
+  errors: Array<{
+    row: number
+    department?: string
+    area?: string
+    position?: string
+    reason: string
+  }>
+}
+
 const base = (orgId: string) => `/org/${orgId}`
 
 export const orgStructureApi = {
@@ -135,4 +153,15 @@ export const orgStructureApi = {
         `${base(orgId)}/departamentos/${departamentoId}/areas/${areaId}/cargos/${id}`,
       )
       .then((r) => r.data),
+
+  // ── Bulk import ───────────────────────────────────────────────────
+  bulkImportStructure: (orgId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiClient
+      .post<BulkStructureResult>(`${base(orgId)}/structure/bulk`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
 }

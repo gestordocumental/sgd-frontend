@@ -4,7 +4,6 @@ import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from '
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { NavItem } from '@/components/ui/nav-item'
 import { useAuthStore } from '@/store/authStore'
 import { isDeleted } from '@/lib/formatters'
 import { UserProfileCard } from '@/features/profile/components/UserProfileCard'
@@ -19,6 +18,7 @@ import { useOrgStructure } from '@/features/org-structure/hooks/use-org-structur
 import { OrgStructureTab } from '@/features/org-structure/components/OrgStructureTab'
 import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStructureDialogs'
 import { useMyPermissions } from '@/features/profile/hooks/use-my-permissions'
+import { useTypologies } from '@/features/doc-governance/hooks/use-typologies'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
@@ -71,55 +71,58 @@ function CompanyDashboard() {
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
   const orgStructure = useOrgStructure(companyId, mountedTabs.has('org-structure'))
+  const typologies   = useTypologies(companyId, mountedTabs.has('org-structure'))
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* ── Sidebar ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-60 flex-col border-r border-border bg-card shrink-0">
-        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border">
-          <div className="flex items-center justify-center size-8 rounded-md bg-primary shrink-0">
-            <FileText className="size-4 text-primary-foreground" />
+    <Tabs
+      value={effectiveTab}
+      onValueChange={(v) => handleTabChange(v as TabId)}
+      className="flex flex-col h-screen bg-background overflow-hidden gap-0"
+    >
+      {/* ── Header ──────────────────────────────────────────────────── */}
+      <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
+        {/* Brand + Tabs */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center justify-center size-8 rounded-md bg-primary shrink-0">
+              <FileText className="size-4 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">SGD Helisa</p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {companyUsers.company?.name ?? t('common.loading')}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">SGD Helisa</p>
-            <p className="text-[10px] text-muted-foreground truncate">{companyUsers.company?.name ?? t('common.loading')}</p>
-          </div>
-        </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">{t('dashboard.management')}</p>
-          <NavItem icon={<Building2 className="size-4" />} label={t('dashboard.company')} active={effectiveTab === 'company'} onClick={() => handleTabChange('company')} />
-          {canViewUsers && (
-            <NavItem icon={<Users className="size-4" />} label={t('common.users')} active={effectiveTab === 'users'} onClick={() => handleTabChange('users')} />
-          )}
-          {canViewOrgs && (
-            <NavItem icon={<Shield className="size-4" />} label={t('dashboard.rolesAndPermissions')} active={effectiveTab === 'roles'} onClick={() => handleTabChange('roles')} />
-          )}
-          {canViewOrgStructure && (
-            <NavItem icon={<FolderTree className="size-4" />} label={t('dashboard.orgStructure')} active={effectiveTab === 'org-structure'} onClick={() => handleTabChange('org-structure')} />
-          )}
-        </nav>
+          <div className="w-px h-6 bg-border shrink-0" />
 
-        <UserProfileCard />
-      </aside>
-
-      {/* ── Main ────────────────────────────────────────────────────── */}
-      <Tabs value={effectiveTab} onValueChange={(v) => handleTabChange(v as TabId)} className="flex-1 min-w-0 overflow-hidden gap-0">
-        <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
           <TabsList>
-            <TabsTrigger value="company"><Building2 className="size-4" />{t('dashboard.company')}</TabsTrigger>
+            <TabsTrigger value="company">
+              <Building2 className="size-4" />{t('dashboard.company')}
+            </TabsTrigger>
             {canViewUsers && (
-              <TabsTrigger value="users"><Users className="size-4" />{t('common.users')}</TabsTrigger>
+              <TabsTrigger value="users">
+                <Users className="size-4" />{t('common.users')}
+              </TabsTrigger>
             )}
             {canViewOrgs && (
-              <TabsTrigger value="roles"><Shield className="size-4" />{t('dashboard.rolesAndPermissions')}</TabsTrigger>
+              <TabsTrigger value="roles">
+                <Shield className="size-4" />{t('dashboard.rolesAndPermissions')}
+              </TabsTrigger>
             )}
             {canViewOrgStructure && (
-              <TabsTrigger value="org-structure"><FolderTree className="size-4" />{t('dashboard.orgStructure')}</TabsTrigger>
+              <TabsTrigger value="org-structure">
+                <FolderTree className="size-4" />{t('dashboard.orgStructure')}
+              </TabsTrigger>
             )}
           </TabsList>
+        </div>
+
+        {/* Actions + User controls */}
+        <div className="flex items-center gap-2">
           {effectiveTab === 'users' && canWriteUsers && (
             <Button size="sm" onClick={companyUsers.openCreate}>
               <UserPlus className="size-4" />{t('dashboard.newUser')}
@@ -130,37 +133,39 @@ function CompanyDashboard() {
               <Plus className="size-4" />{t('dashboard.newRole')}
             </Button>
           )}
-        </header>
+          <UserProfileCard variant="header" />
+        </div>
+      </header>
 
-        <TabsContent value="company" className="overflow-auto">
-          <CompanyTab
-            company={companyUsers.company}
-            activeUsersCount={activeUsers.length}
-            totalUsersCount={companyUsers.users.length}
-            rolesCount={roles.roles.length}
-          />
+      {/* ── Content ─────────────────────────────────────────────────── */}
+      <TabsContent value="company" className="flex-1 overflow-auto">
+        <CompanyTab
+          company={companyUsers.company}
+          activeUsersCount={activeUsers.length}
+          totalUsersCount={companyUsers.users.length}
+          rolesCount={roles.roles.length}
+        />
+      </TabsContent>
+      {canViewUsers && mountedTabs.has('users') && (
+        <TabsContent value="users" keepMounted className="flex-1 overflow-auto">
+          <CompanyUsersTable hook={companyUsers} canWrite={canWriteUsers} />
         </TabsContent>
-        {canViewUsers && mountedTabs.has('users') && (
-          <TabsContent value="users" keepMounted className="overflow-auto">
-            <CompanyUsersTable hook={companyUsers} canWrite={canWriteUsers} />
-          </TabsContent>
-        )}
-        {canViewOrgs && mountedTabs.has('roles') && (
-          <TabsContent value="roles" keepMounted className="overflow-auto">
-            <RolesTab hook={roles} users={companyUsers.users} canWrite={canWriteOrgs} />
-          </TabsContent>
-        )}
-        {canViewOrgStructure && mountedTabs.has('org-structure') && (
-          <TabsContent value="org-structure" keepMounted className="overflow-auto">
-            <OrgStructureTab hook={orgStructure} canWrite={canWriteOrgStructure} />
-          </TabsContent>
-        )}
-      </Tabs>
+      )}
+      {canViewOrgs && mountedTabs.has('roles') && (
+        <TabsContent value="roles" keepMounted className="flex-1 overflow-auto">
+          <RolesTab hook={roles} users={companyUsers.users} canWrite={canWriteOrgs} />
+        </TabsContent>
+      )}
+      {canViewOrgStructure && mountedTabs.has('org-structure') && (
+        <TabsContent value="org-structure" keepMounted className="flex-1 overflow-auto">
+          <OrgStructureTab hook={orgStructure} typologiesHook={typologies} canWrite={canWriteOrgStructure} />
+        </TabsContent>
+      )}
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <CompanyUserDialogs hook={companyUsers} companyName={companyUsers.company?.name} companyId={companyId} />
       <RoleDialogs hook={roles} activeUsers={activeUsers} allUsers={companyUsers.users} />
       <OrgStructureDialogs hook={orgStructure} />
-    </div>
+    </Tabs>
   )
 }

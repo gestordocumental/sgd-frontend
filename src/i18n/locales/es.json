@@ -38,6 +38,7 @@
     "address": "Dirección",
     "phone": "Teléfono",
     "created": "Creado",
+    "updated": "Actualizado",
     "description": "Descripción",
     "saving": "Guardando...",
     "creating": "Creando...",
@@ -52,7 +53,8 @@
     "user": "Usuario",
     "users": "Usuarios",
     "role": "Rol",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "actions": "Acciones"
   },
   "profile": {
     "myProfile": "Mi perfil",
@@ -67,6 +69,7 @@
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "signIn": "Iniciar sesión",
     "verifyingCredentials": "Verificando credenciales...",
+    "loadingWorkspace": "Cargando espacio de trabajo...",
     "hidePassword": "Ocultar contraseña",
     "showPassword": "Mostrar contraseña",
     "serverErrorFallback": "Error al conectar con el servidor. Por favor intenta de nuevo.",
@@ -135,7 +138,28 @@
     "namePlaceholder": "Nombre",
     "descriptionPlaceholder": "Descripción (opcional)",
     "deleteConfirmPre": "¿Estás seguro de que deseas eliminar",
-    "deleteConfirmPost": "? Esta acción no se puede deshacer."
+    "deleteConfirmPost": "? Esta acción no se puede deshacer.",
+    "excel": {
+      "buttonLabel": "Excel",
+      "importing": "Importando...",
+      "downloadTemplate": "Descargar plantilla",
+      "importFile": "Importar archivo",
+      "importResult": "Resultado de importación",
+      "importSuccess": "Importación exitosa sin errores",
+      "importCompleted": "Importación completada: {{departments}} departamentos, {{areas}} áreas, {{positions}} cargos creados.",
+      "importWithErrors": "Importación con errores: {{failed}} filas fallidas de {{total}}.",
+      "importError": "Error al importar el archivo",
+      "totalRows": "Total filas",
+      "failed": "Fallidas",
+      "departmentsCreated": "Departamentos creados",
+      "departmentsExisting": "Departamentos existentes",
+      "areasCreated": "Áreas creadas",
+      "areasExisting": "Áreas existentes",
+      "positionsCreated": "Cargos creados",
+      "positionsExisting": "Cargos existentes",
+      "rowErrors": "Errores por fila",
+      "row": "Fila {{number}}"
+    }
   },
   "companies": {
     "title": "Empresas",
@@ -302,6 +326,99 @@
       "revokePermissionConfirmMid": "asignado directamente a",
       "revokePermissionConfirmPost": "? El usuario puede conservar el permiso si lo tiene a través de un rol.",
       "revokeButton": "Revocar"
+    }
+  },
+  "docGovernance": {
+    "typologyStatus": {
+      "INCOMPLETE": "Incompleta",
+      "ACTIVE":     "Activa",
+      "ARCHIVED":   "Archivada",
+      "DELETED":    "Eliminada"
+    },
+    "extractionStatus": {
+      "NOT_UPLOADED":         "Sin documento",
+      "PROCESSING":           "Procesando",
+      "COMPLETED":            "Completado",
+      "DISCREPANCY":          "Discrepancia",
+      "PENDING_CONFIRMATION": "Pendiente",
+      "CONFIRMED":            "Confirmado",
+      "FAILED":               "Fallido"
+    },
+    "table": {
+      "title":         "Tipología",
+      "name":          "Nombre",
+      "code":          "Código",
+      "version":       "Versión",
+      "department":    "Departamento",
+      "areaPosition":  "Área / Cargo",
+      "status":        "Estado",
+      "extraction":    "Extracción",
+      "empty":         "No hay tipologías registradas",
+      "viewHistory":      "Ver historial",
+      "viewDocument":     "Ver documento",
+      "downloadDocument": "Descargar documento",
+      "uploadDocument":   "Cargar documento",
+      "retryExtraction":  "Reintentar extracción",
+      "newTypology":   "Nueva tipología"
+    },
+    "form": {
+      "createTitle":                "Nueva tipología",
+      "editTitle":                  "Editar tipología",
+      "nameLabel":                  "Nombre",
+      "namePlaceholder":            "Ej: Política de Seguridad",
+      "codeLabel":                  "Código",
+      "codePlaceholder":            "Ej: POL-SEG-001",
+      "versionLabel":               "Versión",
+      "versionPlaceholder":         "Ej: v1.0",
+      "departmentLabel":            "Departamento",
+      "areaLabel":                  "Área (opcional)",
+      "positionLabel":              "Cargo (opcional)",
+      "selectDepartment":           "Seleccione un departamento",
+      "noArea":                     "Sin área",
+      "noPosition":                 "Sin cargo",
+      "documentLabel":              "Documento (opcional)",
+      "newDocumentLabel":           "Nuevo documento (opcional)",
+      "documentHintAfterSelect":    "Revisa los campos extraídos y edítalos si es necesario antes de crear",
+      "documentHintBeforeSelect":   "Al seleccionar el archivo se extraerán automáticamente nombre, código y versión",
+      "editDocumentHintAfterSelect":"Versión actual: {{version}} — ingresa una versión mayor. Los campos extraídos se han pre-rellenado.",
+      "editDocumentHintBeforeSelect":"Adjunta un archivo para crear una nueva versión y re-extraer la metadata automáticamente.",
+      "extracting":                 "Extrayendo información del documento…",
+      "versionIncrementError":      "Debe incrementarse en exactamente una unidad respecto a la versión actual ({{version}})",
+      "createNewVersion":           "Crear nueva versión",
+      "creatingNewVersion":         "Creando nueva versión…",
+      "saving":                     "Guardando…",
+      "extractingShort":            "Extrayendo…"
+    },
+    "upload": {
+      "title":                 "Cargar documento",
+      "codeLabel":             "Código",
+      "nameLabel":             "Nombre",
+      "namePlaceholder":       "Nombre del documento",
+      "versionLabel":          "Versión",
+      "versionHint":           "Versión actual: {{version}} — ingrese exactamente un incremento mayor",
+      "fileLabel":             "Archivo",
+      "uploading":             "Subiendo…",
+      "uploadButton":          "Subir documento",
+      "selectFileError":       "Seleccione un archivo para subir",
+      "versionIncrementError": "La versión debe incrementarse en exactamente una unidad respecto a la versión actual ({{version}})"
+    },
+    "delete": {
+      "title":       "Eliminar tipología",
+      "confirmPre":  "¿Está seguro de eliminar la tipología",
+      "confirmPost": "? Esta acción no se puede deshacer.",
+      "deleting":    "Eliminando…"
+    },
+    "history": {
+      "title":         "Historial de tipología",
+      "loading":       "Cargando historial…",
+      "empty":         "Sin registros.",
+      "deletedSuffix": "· eliminada"
+    },
+    "file": {
+      "selectLabel": "Seleccionar archivo",
+      "clearLabel":  "Quitar archivo",
+      "hint":        "PDF, DOCX, XLSX · máx {{maxMb}} MB",
+      "sizeError":   "El archivo no puede superar {{maxMb}} MB"
     }
   },
   "permissions": {

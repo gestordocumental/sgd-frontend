@@ -38,6 +38,7 @@
     "address": "Address",
     "phone": "Phone",
     "created": "Created",
+    "updated": "Updated",
     "description": "Description",
     "saving": "Saving...",
     "creating": "Creating...",
@@ -52,7 +53,8 @@
     "user": "User",
     "users": "Users",
     "role": "Role",
-    "logout": "Log out"
+    "logout": "Log out",
+    "actions": "Actions"
   },
   "profile": {
     "myProfile": "My profile",
@@ -67,6 +69,7 @@
     "forgotPassword": "Forgot your password?",
     "signIn": "Sign in",
     "verifyingCredentials": "Verifying credentials...",
+    "loadingWorkspace": "Loading workspace...",
     "hidePassword": "Hide password",
     "showPassword": "Show password",
     "serverErrorFallback": "Error connecting to the server. Please try again.",
@@ -135,7 +138,28 @@
     "namePlaceholder": "Name",
     "descriptionPlaceholder": "Description (optional)",
     "deleteConfirmPre": "Are you sure you want to delete",
-    "deleteConfirmPost": "? This action cannot be undone."
+    "deleteConfirmPost": "? This action cannot be undone.",
+    "excel": {
+      "buttonLabel": "Excel",
+      "importing": "Importing...",
+      "downloadTemplate": "Download template",
+      "importFile": "Import file",
+      "importResult": "Import result",
+      "importSuccess": "Import completed successfully with no errors",
+      "importCompleted": "Import completed: {{departments}} departments, {{areas}} areas, {{positions}} positions created.",
+      "importWithErrors": "Import with errors: {{failed}} failed rows out of {{total}}.",
+      "importError": "Error importing the file",
+      "totalRows": "Total rows",
+      "failed": "Failed",
+      "departmentsCreated": "Departments created",
+      "departmentsExisting": "Existing departments",
+      "areasCreated": "Areas created",
+      "areasExisting": "Existing areas",
+      "positionsCreated": "Positions created",
+      "positionsExisting": "Existing positions",
+      "rowErrors": "Row errors",
+      "row": "Row {{number}}"
+    }
   },
   "companies": {
     "title": "Companies",
@@ -302,6 +326,99 @@
       "revokePermissionConfirmMid": "directly assigned to",
       "revokePermissionConfirmPost": "? The user may still retain the permission if they have it through a role.",
       "revokeButton": "Revoke"
+    }
+  },
+  "docGovernance": {
+    "typologyStatus": {
+      "INCOMPLETE": "Incomplete",
+      "ACTIVE":     "Active",
+      "ARCHIVED":   "Archived",
+      "DELETED":    "Deleted"
+    },
+    "extractionStatus": {
+      "NOT_UPLOADED":         "No document",
+      "PROCESSING":           "Processing",
+      "COMPLETED":            "Completed",
+      "DISCREPANCY":          "Discrepancy",
+      "PENDING_CONFIRMATION": "Pending",
+      "CONFIRMED":            "Confirmed",
+      "FAILED":               "Failed"
+    },
+    "table": {
+      "title":         "Typology",
+      "name":          "Name",
+      "code":          "Code",
+      "version":       "Version",
+      "department":    "Department",
+      "areaPosition":  "Area / Position",
+      "status":        "Status",
+      "extraction":    "Extraction",
+      "empty":         "No typologies registered",
+      "viewHistory":      "View history",
+      "viewDocument":     "View document",
+      "downloadDocument": "Download document",
+      "uploadDocument":   "Upload document",
+      "retryExtraction":  "Retry extraction",
+      "newTypology":   "New typology"
+    },
+    "form": {
+      "createTitle":                "New typology",
+      "editTitle":                  "Edit typology",
+      "nameLabel":                  "Name",
+      "namePlaceholder":            "e.g. Security Policy",
+      "codeLabel":                  "Code",
+      "codePlaceholder":            "e.g. POL-SEC-001",
+      "versionLabel":               "Version",
+      "versionPlaceholder":         "e.g. v1.0",
+      "departmentLabel":            "Department",
+      "areaLabel":                  "Area (optional)",
+      "positionLabel":              "Position (optional)",
+      "selectDepartment":           "Select a department",
+      "noArea":                     "No area",
+      "noPosition":                 "No position",
+      "documentLabel":              "Document (optional)",
+      "newDocumentLabel":           "New document (optional)",
+      "documentHintAfterSelect":    "Review the extracted fields and edit them if necessary before creating",
+      "documentHintBeforeSelect":   "Selecting a file will automatically extract name, code and version",
+      "editDocumentHintAfterSelect":"Current version: {{version}} — enter a higher version. Extracted fields have been pre-filled.",
+      "editDocumentHintBeforeSelect":"Attach a file to create a new version and re-extract metadata automatically.",
+      "extracting":                 "Extracting document information…",
+      "versionIncrementError":      "Version must be incremented by exactly one unit from the current version ({{version}})",
+      "createNewVersion":           "Create new version",
+      "creatingNewVersion":         "Creating new version…",
+      "saving":                     "Saving…",
+      "extractingShort":            "Extracting…"
+    },
+    "upload": {
+      "title":                 "Upload document",
+      "codeLabel":             "Code",
+      "nameLabel":             "Name",
+      "namePlaceholder":       "Document name",
+      "versionLabel":          "Version",
+      "versionHint":           "Current version: {{version}} — enter exactly one increment higher",
+      "fileLabel":             "File",
+      "uploading":             "Uploading…",
+      "uploadButton":          "Upload document",
+      "selectFileError":       "Please select a file to upload",
+      "versionIncrementError": "Version must be incremented by exactly one unit from the current version ({{version}})"
+    },
+    "delete": {
+      "title":       "Delete typology",
+      "confirmPre":  "Are you sure you want to delete the typology",
+      "confirmPost": "? This action cannot be undone.",
+      "deleting":    "Deleting…"
+    },
+    "history": {
+      "title":         "Typology history",
+      "loading":       "Loading history…",
+      "empty":         "No records.",
+      "deletedSuffix": "· deleted"
+    },
+    "file": {
+      "selectLabel": "Select file",
+      "clearLabel":  "Remove file",
+      "hint":        "PDF, DOCX, XLSX · max {{maxMb}} MB",
+      "sizeError":   "File cannot exceed {{maxMb}} MB"
     }
   },
   "permissions": {

@@ -5,7 +5,6 @@ import { FileText, Users, Building2, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NavItem } from "@/components/ui/nav-item";
 import { useAuthStore } from "@/store/authStore";
 import { isDeleted } from "@/lib/formatters";
 import { useAdminUsers } from "@/features/users/hooks/use-admin-users";
@@ -32,49 +31,29 @@ function AdminDashboard() {
   const companies = useAdminCompanies();
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* ── Sidebar ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-60 flex-col border-r border-border bg-card shrink-0">
-        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border">
-          <div className="flex items-center justify-center size-8 rounded-md bg-primary shrink-0">
-            <FileText className="size-4 text-primary-foreground" />
+    <Tabs
+      value={activeTab}
+      onValueChange={(v) => startTransition(() => setActiveTab(v as "users" | "companies"))}
+      className="flex flex-col h-screen bg-background overflow-hidden gap-0"
+    >
+      {/* ── Header ──────────────────────────────────────────────────── */}
+      <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
+        {/* Brand + Tabs */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center justify-center size-8 rounded-md bg-primary shrink-0">
+              <FileText className="size-4 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">SGD Helisa</p>
+              <p className="text-[10px] text-muted-foreground">
+                {t("dashboard.adminPanel")}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">SGD Helisa</p>
-            <p className="text-[10px] text-muted-foreground">
-              {t("dashboard.adminPanel")}
-            </p>
-          </div>
-        </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">
-            {t("dashboard.management")}
-          </p>
-          <NavItem
-            icon={<Users className="size-4" />}
-            label={t("common.users")}
-            active={activeTab === "users"}
-            onClick={() => startTransition(() => setActiveTab("users"))}
-          />
-          <NavItem
-            icon={<Building2 className="size-4" />}
-            label={t("companies.title")}
-            active={activeTab === "companies"}
-            onClick={() => startTransition(() => setActiveTab("companies"))}
-          />
-        </nav>
+          <div className="w-px h-6 bg-border shrink-0" />
 
-        <UserProfileCard />
-      </aside>
-
-      {/* ── Main ────────────────────────────────────────────────────── */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => startTransition(() => setActiveTab(v as "users" | "companies"))}
-        className="flex-1 min-w-0 overflow-hidden gap-0"
-      >
-        <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
           <TabsList>
             <TabsTrigger value="users">
               <Users className="size-4" />
@@ -85,6 +64,10 @@ function AdminDashboard() {
               {t("companies.title")}
             </TabsTrigger>
           </TabsList>
+        </div>
+
+        {/* Actions + User controls */}
+        <div className="flex items-center gap-2">
           {activeTab === "users" ? (
             <Button size="sm" onClick={() => users.openCreate("super-admin")}>
               <UserPlus className="size-4" /> {t("dashboard.newUser")}
@@ -94,29 +77,31 @@ function AdminDashboard() {
               <Building2 className="size-4" /> {t("dashboard.newCompany")}
             </Button>
           )}
-        </header>
+          <UserProfileCard variant="header" />
+        </div>
+      </header>
 
-        <TabsContent value="users" className="overflow-auto">
-          <UsersTable hook={users} />
-        </TabsContent>
-        <TabsContent value="companies" className="overflow-auto">
-          <CompaniesTable
-            hook={companies}
-            onCreateUser={(companyId) => users.openCreate("company", companyId)}
-            onEditUser={users.openEdit}
-            onDeleteUser={users.setDeleteUser}
-            onToggleUserStatus={(u) =>
-              isDeleted(u)
-                ? users.restoreMutation.mutate(u.id)
-                : users.deleteMutation.mutate(u.id)
-            }
-          />
-        </TabsContent>
-      </Tabs>
+      {/* ── Content ─────────────────────────────────────────────────── */}
+      <TabsContent value="users" className="flex-1 overflow-auto">
+        <UsersTable hook={users} />
+      </TabsContent>
+      <TabsContent value="companies" className="flex-1 overflow-auto">
+        <CompaniesTable
+          hook={companies}
+          onCreateUser={(companyId) => users.openCreate("company", companyId)}
+          onEditUser={users.openEdit}
+          onDeleteUser={users.setDeleteUser}
+          onToggleUserStatus={(u) =>
+            isDeleted(u)
+              ? users.restoreMutation.mutate(u.id)
+              : users.deleteMutation.mutate(u.id)
+          }
+        />
+      </TabsContent>
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <UserDialogs hook={users} />
       <CompanyDialogs hook={companies} />
-    </div>
+    </Tabs>
   );
 }
