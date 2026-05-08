@@ -2,7 +2,6 @@ import type { ElementType } from 'react'
 import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -191,10 +190,8 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
       {/* Actions */}
       <div className="w-8">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground">
-              <MoreHorizontal className="size-4" />
-            </Button>
+          <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+            <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => hook.setDetailWorkflow(workflow)}>

@@ -458,7 +458,7 @@
       "approvalSteps": "Approval steps"
     },
     "actions": {
-      "viewDetail":     "View detail",
+      "viewDetail":     "View details",
       "viewTimeline":   "View timeline",
       "startApproval":     "Start approval",
       "approve":           "Approve",

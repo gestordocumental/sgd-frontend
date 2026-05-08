@@ -1422,7 +1422,7 @@ function TimelineDialog({ hook }: { hook: WorkflowsHook }) {
             <div className="relative">
               <div className="absolute left-3.5 top-0 bottom-0 w-px bg-border" />
               <div className="space-y-4">
-                {timeline.map((event, i) => (
+                {timeline.map((event) => (
                   <TimelineEventRow key={event.id} event={event} userName={userName} />
                 ))}
               </div>
