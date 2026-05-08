@@ -155,8 +155,8 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
   const canStartApproval = isCreator && workflow.status === 'DRAFT'
   const canResubmit = isCreator && workflow.status === 'RETURNED_TO_CREATOR'
   const canDelete = canWrite && isCreator && (workflow.status === 'DRAFT' || workflow.status === 'CANCELLED')
-  const canStartReviewCycle = isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE'
-  const canCompleteStep = isFinalUser && workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && workflow.currentAssignedUserId === user?.id
+  const canStartReviewCycle = canApprove && isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE'
+  const canCompleteStep = canApprove && isFinalUser && workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && workflow.currentAssignedUserId === user?.id
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
@@ -226,7 +226,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => hook.openReviewCycle(workflow)}>
-                  <Play className="size-4" />Iniciar revisión
+                  <Play className="size-4" />{t('workflows.actions.startReviewCycle')}
                 </DropdownMenuItem>
               </>
             )}
@@ -234,7 +234,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => hook.openCompleteStep(workflow)}>
-                  <CheckCircle className="size-4" />Completar paso de revisión
+                  <CheckCircle className="size-4" />{t('workflows.actions.completeReviewStep')}
                 </DropdownMenuItem>
               </>
             )}

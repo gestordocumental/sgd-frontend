@@ -999,7 +999,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
 
                               {(step.notes ?? []).map((note) => (
                                 <div key={note.id} className="ml-7 rounded-md bg-muted/40 border border-border px-2.5 py-2">
-                                  <p className="text-xs text-foreground">{note.content}</p>
+                                  <p className="text-xs text-foreground break-words">{note.content}</p>
                                   <p className="text-[10px] text-muted-foreground mt-0.5">
                                     {new Date(note.createdAt).toLocaleString()}
                                   </p>
@@ -1062,7 +1062,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                           </div>
                           {lastAction?.observations && (
                             <div className="ml-8 rounded-md bg-muted/50 border border-border px-2.5 py-1.5">
-                              <p className="text-[11px] text-muted-foreground italic">
+                              <p className="text-[11px] text-muted-foreground italic break-words">
                                 "{lastAction.observations}"
                               </p>
                               <p className="text-[10px] text-muted-foreground/70 mt-0.5">
@@ -1193,7 +1193,7 @@ function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
 
   return (
     <Dialog open={!!approveWorkflow} onOpenChange={(o) => { if (!o) setApproveWorkflow(null) }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('workflows.dialogs.approveTitle')}</DialogTitle>
         </DialogHeader>
@@ -1234,7 +1234,7 @@ function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
                 {approveAttachmentFiles.map((file, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2 text-sm">
                     <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 truncate">{file.name}</span>
+                    <span className="flex-1 min-w-0 truncate">{file.name}</span>
                     <button
                       type="button"
                       aria-label="Eliminar archivo"
@@ -1423,7 +1423,7 @@ function TimelineDialog({ hook }: { hook: WorkflowsHook }) {
               <div className="absolute left-3.5 top-0 bottom-0 w-px bg-border" />
               <div className="space-y-4">
                 {timeline.map((event, i) => (
-                  <TimelineEventRow key={event.id} event={event} isLast={i === timeline.length - 1} userName={userName} />
+                  <TimelineEventRow key={event.id} event={event} userName={userName} />
                 ))}
               </div>
             </div>
@@ -1442,7 +1442,6 @@ function TimelineEventRow({
   userName,
 }: {
   event: ApiTimelineEvent
-  isLast: boolean
   userName: (id: string) => string
 }) {
   const Icon = TIMELINE_ICON[event.eventType] ?? ChevronRight
@@ -1645,7 +1644,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
 
   return (
     <Dialog open={!!completeStepWorkflow} onOpenChange={(o) => { if (!o) setCompleteStepWorkflow(null) }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Completar paso de revisión</DialogTitle>
         </DialogHeader>
@@ -1681,7 +1680,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
                 {completeStepFiles.map((file, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2 text-sm">
                     <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 truncate">{file.name}</span>
+                    <span className="flex-1 min-w-0 truncate">{file.name}</span>
                     <button
                       type="button"
                       aria-label="Eliminar archivo"

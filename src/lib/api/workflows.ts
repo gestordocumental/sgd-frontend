@@ -107,8 +107,8 @@ export interface ApiAdminStep {
   stepOrder: number
   status: AdminStepStatus
   completedAt: string | null
-  notes: ApiAdminStepNote[]
-  attachments: ApiAdminStepAttachment[]
+  notes?: ApiAdminStepNote[]
+  attachments?: ApiAdminStepAttachment[]
 }
 
 export interface ApiAdminCycle {
@@ -148,7 +148,7 @@ export interface ApiWorkflow {
   approvalActions: ApiApprovalAction[]
   attachments: ApiWorkflowAttachment[]
   activeAdminCycle: ApiAdminCycle | null
-  adminCycles: ApiAdminCycle[]
+  adminCycles?: ApiAdminCycle[]
   createdAt: string
   updatedAt: string
 }
@@ -172,7 +172,7 @@ export interface WorkflowFileDto {
   storageKey: string
   originalName: string
   mimeType: string
-  fileSizeBytes: number
+  fileSizeBytes?: number
 }
 
 export interface CreateWorkflowDto {

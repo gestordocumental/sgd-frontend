@@ -372,8 +372,10 @@ export function useWorkflows(companyId: string) {
     mutationFn: async ({
       workflow, notes, files,
     }: { workflow: ApiWorkflow; notes: string; files: File[] }) => {
-      const cycle = workflow.activeAdminCycle!
-      const currentStep = cycle.steps.find((s) => s.status === 'PENDING')!
+      const cycle = workflow.activeAdminCycle
+      if (!cycle) throw new Error('No hay ciclo de revisión activo')
+      const currentStep = cycle.steps.find((s) => s.status === 'PENDING')
+      if (!currentStep) throw new Error('No hay paso pendiente en el ciclo')
       const uploadedAttachments = await Promise.all(
         files.map((f) => workflowFilesApi.upload(workflow.orgId, f)),
       )

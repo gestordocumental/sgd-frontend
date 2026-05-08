@@ -460,11 +460,13 @@
     "actions": {
       "viewDetail":     "View detail",
       "viewTimeline":   "View timeline",
-      "startApproval":  "Start approval",
-      "approve":        "Approve",
-      "reject":         "Reject",
-      "resubmit":       "Resubmit",
-      "delete":         "Delete"
+      "startApproval":     "Start approval",
+      "approve":           "Approve",
+      "reject":            "Reject",
+      "resubmit":          "Resubmit",
+      "delete":            "Delete",
+      "startReviewCycle":  "Start review cycle",
+      "completeReviewStep":"Complete review step"
     },
     "empty":            "No workflows registered",
     "emptyMyTasks":     "No pending approval tasks",

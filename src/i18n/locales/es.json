@@ -460,11 +460,13 @@
     "actions": {
       "viewDetail":     "Ver detalle",
       "viewTimeline":   "Ver trazabilidad",
-      "startApproval":  "Iniciar aprobación",
-      "approve":        "Aprobar",
-      "reject":         "Rechazar",
-      "resubmit":       "Reenviar",
-      "delete":         "Eliminar"
+      "startApproval":     "Iniciar aprobación",
+      "approve":           "Aprobar",
+      "reject":            "Rechazar",
+      "resubmit":          "Reenviar",
+      "delete":            "Eliminar",
+      "startReviewCycle":  "Iniciar revisión",
+      "completeReviewStep":"Completar paso de revisión"
     },
     "empty":            "No hay flujos de trabajo registrados",
     "emptyMyTasks":     "No tienes tareas de aprobación pendientes",
