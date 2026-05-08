@@ -97,7 +97,7 @@ function CompleteRegistrationPage() {
         </div>
         <div className="flex-1 flex items-center justify-center p-16">
           <img
-            src="/illustration-login.png"
+            src="/illustration-login.svg"
             alt=""
             aria-hidden="true"
             className="max-w-md w-full"

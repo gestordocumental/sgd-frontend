@@ -110,7 +110,9 @@
     "newRole": "Nuevo rol",
     "company": "Empresa",
     "rolesAndPermissions": "Roles y permisos",
-    "orgStructure": "Gobierno Documental"
+    "orgStructure": "Gobierno Documental",
+    "workflows": "Flujos de trabajo",
+    "newWorkflow": "Nuevo flujo"
   },
   "orgStructure": {
     "departamentos": "Departamentos",
@@ -419,6 +421,108 @@
       "clearLabel":  "Quitar archivo",
       "hint":        "PDF, DOCX, XLSX · máx {{maxMb}} MB",
       "sizeError":   "El archivo no puede superar {{maxMb}} MB"
+    }
+  },
+  "workflows": {
+    "tabs": {
+      "all":         "Todos",
+      "myTasks":     "Mis tareas",
+      "myAvailable": "Disponibles para mí"
+    },
+    "status": {
+      "DRAFT":                     "Borrador",
+      "PENDING_APPROVAL":          "Pendiente aprobación",
+      "RETURNED_TO_CREATOR":       "Devuelto al creador",
+      "PENDING_REVIEW_CYCLE":      "Pendiente revisión",
+      "AVAILABLE_FOR_FINAL_USERS": "Disponible",
+      "ADMIN_CYCLE_IN_PROGRESS":   "Ciclo admin activo",
+      "CLOSED":                    "Cerrado",
+      "CANCELLED":                 "Cancelado"
+    },
+    "approvalStepStatus": {
+      "WAITING":  "En espera",
+      "PENDING":  "Pendiente",
+      "APPROVED": "Aprobado",
+      "REJECTED": "Rechazado"
+    },
+    "table": {
+      "title":    "Título",
+      "typology": "Tipología",
+      "status":   "Estado"
+    },
+    "detail": {
+      "typology":      "Tipología",
+      "createdAt":     "Creado",
+      "mainDocument":  "Documento principal",
+      "attachments":   "Adjuntos de soporte",
+      "approvalSteps": "Pasos de aprobación"
+    },
+    "actions": {
+      "viewDetail":     "Ver detalle",
+      "viewTimeline":   "Ver trazabilidad",
+      "startApproval":  "Iniciar aprobación",
+      "approve":        "Aprobar",
+      "reject":         "Rechazar",
+      "resubmit":       "Reenviar",
+      "delete":         "Eliminar"
+    },
+    "empty":            "No hay flujos de trabajo registrados",
+    "emptyMyTasks":     "No tienes tareas de aprobación pendientes",
+    "emptyMyAvailable": "No hay flujos disponibles para ti",
+    "dialogs": {
+      "createTitle":                    "Nuevo flujo de trabajo",
+      "titleLabel":                     "Título",
+      "titlePlaceholder":               "Ej: Aprobación de Política de Seguridad",
+      "descriptionPlaceholder":         "Descripción del flujo (opcional)",
+      "typologyLabel":                   "Tipología",
+      "typologyPlaceholder":            "Selecciona una tipología...",
+      "typologySearch":                 "Buscar tipología...",
+      "typologyEmpty":                  "No hay tipologías activas",
+      "approversLabel":                 "Aprobadores (en orden)",
+      "approversHint":                  "El orden en que los agregas es el orden de aprobación",
+      "addApproverPlaceholder":         "Agregar aprobador...",
+      "approverSearch":                 "Buscar usuario...",
+      "approverEmpty":                  "No hay usuarios activos en esta organización",
+      "approverAllAdded":               "Todos los usuarios ya fueron agregados",
+      "documentLabel":                  "Documento del flujo",
+      "documentHint":                   "Sube el documento para extraer y comparar título, código y versión con los de la tipología seleccionada",
+      "documentDrop":                   "Arrastra aquí o haz clic para seleccionar (PDF, DOCX, XLSX)",
+      "documentExtracting":             "Extrayendo información del documento...",
+      "documentExtracted":              "Datos extraídos",
+      "documentNombre":                 "Nombre",
+      "documentCodigo":                 "Código",
+      "documentVersion":                "Versión",
+      "documentMatch":                  "Coincide",
+      "documentMismatch":               "No coincide",
+      "documentSelectTypologyToCompare":"Selecciona una tipología para comparar los datos extraídos",
+      "documentMismatchBlocked":        "El documento no coincide con la tipología. Corrígelo para poder crear el flujo.",
+      "attachmentsLabel":               "Adjuntos de soporte",
+      "attachmentsHint":                "Archivos adicionales que quedarán disponibles durante todo el flujo",
+      "attachmentsAdd":                 "Agregar archivo adjunto",
+      "optional":                       "opcional",
+      "createButton":                   "Crear flujo",
+      "approveTitle":                   "Aprobar flujo",
+      "approveConfirmPre":              "¿Aprobar el paso actual del flujo",
+      "approveConfirmPost":             "?",
+      "approveButton":                  "Aprobar",
+      "rejectTitle":                    "Rechazar flujo",
+      "rejectConfirmPre":               "¿Rechazar el paso actual del flujo",
+      "rejectConfirmPost":              "? El creador recibirá las observaciones.",
+      "rejectButton":                   "Rechazar",
+      "resubmitTitle":                  "Reenviar flujo",
+      "resubmitConfirmPre":             "¿Reenviar el flujo",
+      "resubmitConfirmPost":            "? Se enviará nuevamente al aprobador.",
+      "resubmitButton":                 "Reenviar",
+      "observationsLabel":              "Observaciones",
+      "observationsPlaceholder":        "Observaciones opcionales",
+      "rejectObservationsPlaceholder":  "Motivo del rechazo (mínimo 10 caracteres)",
+      "resubmitObservationsPlaceholder":"Cambios realizados (opcional)",
+      "timelineTitle":                  "Trazabilidad del flujo",
+      "timelineEmpty":                  "Sin eventos registrados",
+      "deleteTitle":                    "Eliminar flujo",
+      "deleteConfirmPre":               "¿Estás seguro de que deseas eliminar el flujo",
+      "deleteConfirmPost":              "? Esta acción no se puede deshacer.",
+      "deleteButton":                   "Eliminar"
     }
   },
   "permissions": {

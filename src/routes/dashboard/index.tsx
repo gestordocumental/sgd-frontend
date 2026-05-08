@@ -1,6 +1,6 @@
 import { useState, startTransition } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree } from 'lucide-react'
+import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree, GitBranch } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -19,6 +19,9 @@ import { OrgStructureTab } from '@/features/org-structure/components/OrgStructur
 import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStructureDialogs'
 import { useMyPermissions } from '@/features/profile/hooks/use-my-permissions'
 import { useTypologies } from '@/features/doc-governance/hooks/use-typologies'
+import { useWorkflows } from '@/features/workflows/hooks/use-workflows'
+import { WorkflowsTable } from '@/features/workflows/components/WorkflowsTable'
+import { WorkflowDialogs } from '@/features/workflows/components/WorkflowDialogs'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
@@ -29,7 +32,7 @@ export const Route = createFileRoute('/dashboard/')({
   component: CompanyDashboard,
 })
 
-type TabId = 'company' | 'users' | 'roles' | 'org-structure'
+type TabId = 'company' | 'users' | 'roles' | 'org-structure' | 'workflows'
 
 function CompanyDashboard() {
   const { user: me, isSuperAdmin } = useAuthStore()
@@ -45,9 +48,12 @@ function CompanyDashboard() {
   const canViewUsers = hasPermission('USERS', 'READ')
   const canViewOrgs = hasPermission('ORGS', 'READ')
   const canViewOrgStructure = hasPermission('ORG_STRUCTURE', 'READ')
+  const canViewWorkflows = hasPermission('WORKFLOWS', 'READ')
   const canWriteUsers = hasPermission('USERS', 'WRITE')
   const canWriteOrgs = hasPermission('ORGS', 'WRITE')
   const canWriteOrgStructure = hasPermission('ORG_STRUCTURE', 'WRITE')
+  const canWriteWorkflows = hasPermission('WORKFLOWS', 'WRITE')
+  const canApproveWorkflows = hasPermission('WORKFLOWS', 'APPROVE')
 
   // If the active tab is inaccessible (permissions denied or still loading),
   // fall back to 'company' without mutating state — derived during render.
@@ -56,6 +62,7 @@ function CompanyDashboard() {
     if (activeTab === 'users' && !canViewUsers) return 'company'
     if (activeTab === 'roles' && !canViewOrgs) return 'company'
     if (activeTab === 'org-structure' && !canViewOrgStructure) return 'company'
+    if (activeTab === 'workflows' && !canViewWorkflows) return 'company'
     return activeTab
   })()
 
@@ -72,6 +79,7 @@ function CompanyDashboard() {
   const roles = useRoles(companyId)
   const orgStructure = useOrgStructure(companyId, mountedTabs.has('org-structure'))
   const typologies   = useTypologies(companyId, mountedTabs.has('org-structure'))
+  const workflows    = useWorkflows(companyId)
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
@@ -118,6 +126,16 @@ function CompanyDashboard() {
                 <FolderTree className="size-4" />{t('dashboard.orgStructure')}
               </TabsTrigger>
             )}
+            {canViewWorkflows && (
+              <TabsTrigger value="workflows">
+                <GitBranch className="size-4" />{t('dashboard.workflows')}
+                {workflows.myTasks.length > 0 && (
+                  <span className="ml-1.5 flex items-center justify-center size-4 rounded-full bg-destructive text-[9px] text-destructive-foreground font-bold">
+                    {workflows.myTasks.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -131,6 +149,11 @@ function CompanyDashboard() {
           {effectiveTab === 'roles' && canWriteOrgs && (
             <Button size="sm" onClick={roles.openCreate}>
               <Plus className="size-4" />{t('dashboard.newRole')}
+            </Button>
+          )}
+          {effectiveTab === 'workflows' && canWriteWorkflows && (
+            <Button size="sm" onClick={workflows.openCreate}>
+              <Plus className="size-4" />{t('dashboard.newWorkflow')}
             </Button>
           )}
           <UserProfileCard variant="header" />
@@ -162,10 +185,17 @@ function CompanyDashboard() {
         </TabsContent>
       )}
 
+      {canViewWorkflows && mountedTabs.has('workflows') && (
+        <TabsContent value="workflows" keepMounted className="flex-1 overflow-auto">
+          <WorkflowsTable hook={workflows} canWrite={canWriteWorkflows} canApprove={canApproveWorkflows} />
+        </TabsContent>
+      )}
+
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <CompanyUserDialogs hook={companyUsers} companyName={companyUsers.company?.name} companyId={companyId} />
       <RoleDialogs hook={roles} activeUsers={activeUsers} allUsers={companyUsers.users} />
       <OrgStructureDialogs hook={orgStructure} />
+      <WorkflowDialogs hook={workflows} canApprove={canApproveWorkflows} />
     </Tabs>
   )
 }

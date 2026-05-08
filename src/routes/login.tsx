@@ -117,7 +117,7 @@ function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 flex-col relative border-r border-border/50 overflow-hidden">
         {/* Ilustración de fondo */}
         <img
-          src="/illustration-login.png"
+          src="/illustration-login.svg"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-contain"
