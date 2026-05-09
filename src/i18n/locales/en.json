@@ -110,7 +110,9 @@
     "newRole": "New role",
     "company": "Company",
     "rolesAndPermissions": "Roles & permissions",
-    "orgStructure": "Document Governance"
+    "orgStructure": "Document Governance",
+    "workflows": "Workflows",
+    "newWorkflow": "New workflow"
   },
   "orgStructure": {
     "departamentos": "Departments",
@@ -419,6 +421,110 @@
       "clearLabel":  "Remove file",
       "hint":        "PDF, DOCX, XLSX · max {{maxMb}} MB",
       "sizeError":   "File cannot exceed {{maxMb}} MB"
+    }
+  },
+  "workflows": {
+    "tabs": {
+      "all":         "All",
+      "myTasks":     "My tasks",
+      "myAvailable": "Available to me"
+    },
+    "status": {
+      "DRAFT":                     "Draft",
+      "PENDING_APPROVAL":          "Pending approval",
+      "RETURNED_TO_CREATOR":       "Returned to creator",
+      "PENDING_REVIEW_CYCLE":      "Pending review",
+      "AVAILABLE_FOR_FINAL_USERS": "Available",
+      "ADMIN_CYCLE_IN_PROGRESS":   "Admin cycle active",
+      "CLOSED":                    "Closed",
+      "CANCELLED":                 "Cancelled"
+    },
+    "approvalStepStatus": {
+      "WAITING":  "Waiting",
+      "PENDING":  "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "table": {
+      "title":    "Title",
+      "typology": "Typology",
+      "status":   "Status"
+    },
+    "detail": {
+      "typology":      "Typology",
+      "createdAt":     "Created",
+      "mainDocument":  "Main document",
+      "attachments":   "Supporting attachments",
+      "approvalSteps": "Approval steps"
+    },
+    "actions": {
+      "viewDetail":     "View details",
+      "viewTimeline":   "View timeline",
+      "startApproval":     "Start approval",
+      "approve":           "Approve",
+      "reject":            "Reject",
+      "resubmit":          "Resubmit",
+      "delete":            "Delete",
+      "startReviewCycle":  "Start review cycle",
+      "completeReviewStep":"Complete review step"
+    },
+    "empty":            "No workflows registered",
+    "emptyMyTasks":     "No pending approval tasks",
+    "emptyMyAvailable": "No workflows available to you",
+    "dialogs": {
+      "createTitle":                    "New workflow",
+      "titleLabel":                     "Title",
+      "titlePlaceholder":               "e.g. Security Policy Approval",
+      "descriptionPlaceholder":         "Workflow description (optional)",
+      "typologyLabel":                   "Typology",
+      "typologyPlaceholder":            "Select a typology...",
+      "typologySearch":                 "Search typology...",
+      "typologyEmpty":                  "No active typologies found",
+      "approversLabel":                 "Approvers (in order)",
+      "approversHint":                  "The order you add them is the approval order",
+      "addApproverPlaceholder":         "Add approver...",
+      "approverSearch":                 "Search user...",
+      "approverEmpty":                  "No active users in this organization",
+      "approverAllAdded":               "All users have already been added",
+      "documentLabel":                  "Workflow document",
+      "documentHint":                   "Upload the document to extract and compare its title, code and version against the selected typology",
+      "documentDrop":                   "Drag here or click to select (PDF, DOCX, XLSX)",
+      "documentExtracting":             "Extracting document information...",
+      "documentExtracted":              "Extracted data",
+      "documentNombre":                 "Name",
+      "documentCodigo":                 "Code",
+      "documentVersion":                "Version",
+      "documentMatch":                  "Matches",
+      "documentMismatch":               "Mismatch",
+      "documentSelectTypologyToCompare":"Select a typology to compare extracted data",
+      "documentMismatchBlocked":        "Document doesn't match the typology. Fix it before creating the workflow.",
+      "attachmentsLabel":               "Supporting attachments",
+      "attachmentsHint":                "Additional files that will remain accessible throughout the workflow lifecycle",
+      "attachmentsAdd":                 "Add attachment",
+      "optional":                       "optional",
+      "createButton":                   "Create workflow",
+      "approveTitle":                   "Approve workflow",
+      "approveConfirmPre":              "Approve the current step of workflow",
+      "approveConfirmPost":             "?",
+      "approveButton":                  "Approve",
+      "rejectTitle":                    "Reject workflow",
+      "rejectConfirmPre":               "Reject the current step of workflow",
+      "rejectConfirmPost":              "? The creator will receive your observations.",
+      "rejectButton":                   "Reject",
+      "resubmitTitle":                  "Resubmit workflow",
+      "resubmitConfirmPre":             "Resubmit workflow",
+      "resubmitConfirmPost":            "? It will be sent back to the approver.",
+      "resubmitButton":                 "Resubmit",
+      "observationsLabel":              "Observations",
+      "observationsPlaceholder":        "Optional observations",
+      "rejectObservationsPlaceholder":  "Reason for rejection (minimum 10 characters)",
+      "resubmitObservationsPlaceholder":"Changes made (optional)",
+      "timelineTitle":                  "Workflow timeline",
+      "timelineEmpty":                  "No events recorded",
+      "deleteTitle":                    "Delete workflow",
+      "deleteConfirmPre":               "Are you sure you want to delete workflow",
+      "deleteConfirmPost":              "? This action cannot be undone.",
+      "deleteButton":                   "Delete"
     }
   },
   "permissions": {
