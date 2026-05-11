@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { usersApi, type ApiUserWithRoles, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
+import { usersApi, type ApiUserWithRoles, type ApiUserCreated, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
 import { rolesApi } from '@/lib/api/roles'
 import { companiesApi } from '@/lib/api/companies'
 import { orgStructureApi } from '@/lib/api/org-structure'
@@ -33,6 +33,7 @@ export function useCompanyUsers(companyId: string) {
   const queryClient = useQueryClient()
 
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [invitedUser, setInvitedUser] = useState<ApiUserCreated | null>(null)
   const [editUser, setEditUser] = useState<ApiUserWithRoles | null>(null)
   const [deleteUser, setDeleteUser] = useState<ApiUserWithRoles | null>(null)
 
@@ -120,7 +121,11 @@ export function useCompanyUsers(companyId: string) {
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
-    onSuccess: () => { invalidate(); setCreateUserOpen(false) },
+    onSuccess: (created) => {
+      invalidate()
+      setCreateUserOpen(false)
+      setInvitedUser(created)
+    },
     onError: (error: { response?: { data?: { message?: string } } }) => {
       const msg = error.response?.data?.message
       if (msg) createForm.setError('email', { message: msg })
@@ -192,6 +197,7 @@ export function useCompanyUsers(companyId: string) {
     editSelectedAreaId,
     setEditSelectedAreaId,
     createUserOpen, setCreateUserOpen,
+    invitedUser, setInvitedUser,
     editUser, setEditUser,
     deleteUser, setDeleteUser,
     createForm,

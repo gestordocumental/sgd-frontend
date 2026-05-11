@@ -57,6 +57,11 @@ export interface UserOrgRoleResponseDto {
   createdAt: string
 }
 
+export interface ApiUserCreated extends ApiUser {
+  /** Token de invitación de un solo uso (72 h). Mismo token enviado por email. */
+  invitationToken: string;
+}
+
 export interface CompleteRegistrationDto {
   token: string;
   firstName: string;
@@ -78,7 +83,7 @@ export const usersApi = {
     apiClient.get<ApiUserWithRoles[]>(`/users/by-org/${orgId}`).then((r) => r.data),
 
   create: (dto: CreateUserDto) =>
-    apiClient.post<ApiUser>("/users", dto).then((r) => r.data),
+    apiClient.post<ApiUserCreated>("/users", dto).then((r) => r.data),
 
   update: (id: string, dto: UpdateUserDto) =>
     apiClient.patch<ApiUser>(`/users/${id}`, dto).then((r) => r.data),

@@ -278,7 +278,14 @@
       "createButton": "Crear usuario",
       "deleteButton": "Eliminar",
       "newUserTitle": "Nuevo usuario · {{companyName}}",
-      "rolePlaceholder": "Sin rol (opcional)"
+      "rolePlaceholder": "Sin rol (opcional)",
+      "invitationSent": {
+        "title": "Invitación enviada",
+        "description": "Se envió un correo de invitación a {{email}}. Comparte el enlace a continuación si el correo no llegó.",
+        "linkLabel": "Enlace de registro",
+        "copyTitle": "Copiar enlace",
+        "expiry": "Este enlace expira en 72 horas."
+      }
     }
   },
   "roles": {

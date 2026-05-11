@@ -278,7 +278,14 @@
       "idNumberPlaceholder": "1234567890",
       "createButton": "Create user",
       "deleteButton": "Delete",
-      "newUserTitle": "New user · {{companyName}}"
+      "newUserTitle": "New user · {{companyName}}",
+      "invitationSent": {
+        "title": "Invitation sent",
+        "description": "An invitation email was sent to {{email}}. Share the link below if the email didn't arrive.",
+        "linkLabel": "Registration link",
+        "copyTitle": "Copy link",
+        "expiry": "This link expires in 72 hours."
+      }
     }
   },
   "roles": {
