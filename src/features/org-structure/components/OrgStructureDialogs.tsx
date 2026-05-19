@@ -43,6 +43,8 @@ export function OrgStructureDialogs({ hook }: OrgStructureDialogsProps) {
     areaForm, createAreaMutation, editAreaMutation, deleteAreaMutation,
     createCargoOpen, setCreateCargoOpen, editCargo, setEditCargo, deleteCargo, setDeleteCargo,
     cargoForm, createCargoMutation, editCargoMutation, deleteCargoMutation,
+    createDeptCargoOpen, setCreateDeptCargoOpen, editDeptCargo, setEditDeptCargo, deleteDeptCargo, setDeleteDeptCargo,
+    deptCargoForm, createDeptCargoMutation, editDeptCargoMutation, deleteDeptCargoMutation,
   } = hook
 
   const onSubmitDept = (values: StructureForm) => {
@@ -60,9 +62,15 @@ export function OrgStructureDialogs({ hook }: OrgStructureDialogsProps) {
     else createCargoMutation.mutate(values)
   }
 
+  const onSubmitDeptCargo = (values: StructureForm) => {
+    if (editDeptCargo) editDeptCargoMutation.mutate(values)
+    else createDeptCargoMutation.mutate(values)
+  }
+
   const deptPending = createDeptMutation.isPending || editDeptMutation.isPending
   const areaPending = createAreaMutation.isPending || editAreaMutation.isPending
   const cargoPending = createCargoMutation.isPending || editCargoMutation.isPending
+  const deptCargoPending = createDeptCargoMutation.isPending || editDeptCargoMutation.isPending
 
   return (
     <>
@@ -208,6 +216,55 @@ export function OrgStructureDialogs({ hook }: OrgStructureDialogsProps) {
               onClick={() => deleteCargo && deleteCargoMutation.mutate(deleteCargo)}
             >
               {deleteCargoMutation.isPending ? t('common.deleting') : t('common.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dept-level cargo form ──────────────────────────────── */}
+      <Dialog
+        open={createDeptCargoOpen || !!editDeptCargo}
+        onOpenChange={(o) => { if (!o) { setCreateDeptCargoOpen(false); setEditDeptCargo(null) } }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editDeptCargo ? t('orgStructure.editCargo') : t('orgStructure.newCargo')}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={deptCargoForm.handleSubmit(onSubmitDeptCargo)} className="space-y-4 pt-2">
+            <StructureFormFields form={deptCargoForm} nameId="dept-cargo-name" descId="dept-cargo-desc" />
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => { setCreateDeptCargoOpen(false); setEditDeptCargo(null) }}>
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit" disabled={deptCargoPending || !deptCargoForm.formState.isValid}>
+                {deptCargoPending ? t('common.saving') : editDeptCargo ? t('common.saveChanges') : t('common.create')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dept-level cargo delete ────────────────────────────── */}
+      <Dialog open={!!deleteDeptCargo} onOpenChange={(o) => { if (!o) setDeleteDeptCargo(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('orgStructure.deleteCargo')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {t('orgStructure.deleteConfirmPre')}{' '}
+            <span className="font-medium text-foreground">{deleteDeptCargo?.name}</span>
+            {t('orgStructure.deleteConfirmPost')}
+          </p>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" onClick={() => setDeleteDeptCargo(null)}>{t('common.cancel')}</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteDeptCargoMutation.isPending}
+              onClick={() => deleteDeptCargo && deleteDeptCargoMutation.mutate(deleteDeptCargo)}
+            >
+              {deleteDeptCargoMutation.isPending ? t('common.deleting') : t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

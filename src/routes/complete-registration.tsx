@@ -90,7 +90,7 @@ function CompleteRegistrationPage() {
       <div className="hidden lg:flex lg:w-1/2 flex-col bg-background relative border-r border-border/50">
         <div className="absolute top-7 left-8">
           <img
-            src="/logo.png"
+            src="/logo.svg"
             alt="SGD — Document Management System"
             className="h-9 w-auto"
           />
@@ -111,7 +111,7 @@ function CompleteRegistrationPage() {
 
           {/* Logo en móvil */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img src="/logo.png" alt="SGD" className="h-9 w-auto" />
+            <img src="/logo.svg" alt="SGD" className="h-9 w-auto" />
           </div>
 
           {/* ── Estado: token inválido ──────────────────────────────── */}

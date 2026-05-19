@@ -22,7 +22,7 @@ export interface ApiArea {
 export interface ApiCargo {
   id: string
   orgId: string
-  areaId: string
+  areaId: string | null
   departamentoId: string
   name: string
   description: string | null
@@ -118,6 +118,27 @@ export const orgStructureApi = {
   // ── Cargos (flat — all cargos in the org) ────────────────────────
   listAllCargos: (orgId: string) =>
     apiClient.get<ApiCargo[]>(`${base(orgId)}/cargos`).then((r) => r.data),
+
+  // ── Cargos (department-level, no area) ───────────────────────────
+  listDeptCargos: (orgId: string, departamentoId: string) =>
+    apiClient
+      .get<ApiCargo[]>(`${base(orgId)}/departamentos/${departamentoId}/cargos`)
+      .then((r) => r.data),
+
+  createDeptCargo: (orgId: string, departamentoId: string, dto: CreateCargoDto) =>
+    apiClient
+      .post<ApiCargo>(`${base(orgId)}/departamentos/${departamentoId}/cargos`, dto)
+      .then((r) => r.data),
+
+  updateDeptCargo: (orgId: string, departamentoId: string, id: string, dto: UpdateCargoDto) =>
+    apiClient
+      .patch<ApiCargo>(`${base(orgId)}/departamentos/${departamentoId}/cargos/${id}`, dto)
+      .then((r) => r.data),
+
+  deleteDeptCargo: (orgId: string, departamentoId: string, id: string) =>
+    apiClient
+      .delete<void>(`${base(orgId)}/departamentos/${departamentoId}/cargos/${id}`)
+      .then((r) => r.data),
 
   // ── Cargos (nested by area) ───────────────────────────────────────
   listCargos: (orgId: string, departamentoId: string, areaId: string) =>

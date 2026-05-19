@@ -34,7 +34,6 @@ export function WorkflowDialogs({ hook, canApprove = false }: WorkflowDialogsPro
       <DetailWorkflowDialog hook={hook} canApprove={canApprove} />
       <ApproveDialog hook={hook} />
       <RejectDialog hook={hook} />
-      <ResubmitDialog hook={hook} />
       <TimelineDialog hook={hook} />
       <DeleteWorkflowDialog hook={hook} />
       <StartReviewCycleDialog hook={hook} />
@@ -101,342 +100,332 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
 
   return (
     <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-4xl max-h-[92vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{t('workflows.dialogs.createTitle')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={submitCreate} className="space-y-4 pt-2">
+        <form onSubmit={submitCreate} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-2">
 
-          {/* Título */}
-          <FormField
-            id="wf-title"
-            label={t('workflows.dialogs.titleLabel')}
-            error={createForm.formState.errors.title?.message}
-          >
-            <Input
-              id="wf-title"
-              placeholder={t('workflows.dialogs.titlePlaceholder')}
-              {...createForm.register('title')}
-            />
-          </FormField>
+              {/* ── Columna izquierda: datos + documento ── */}
+              <div className="space-y-4">
 
-          {/* Descripción */}
-          <FormField
-            id="wf-desc"
-            label={`${t('common.description')} (${t('workflows.dialogs.optional')})`}
-            error={createForm.formState.errors.description?.message}
-          >
-            <Input
-              id="wf-desc"
-              placeholder={t('workflows.dialogs.descriptionPlaceholder')}
-              {...createForm.register('description')}
-            />
-          </FormField>
+                {/* Título */}
+                <FormField
+                  id="wf-title"
+                  label={t('workflows.dialogs.titleLabel')}
+                  error={createForm.formState.errors.title?.message}
+                >
+                  <Input
+                    id="wf-title"
+                    placeholder={t('workflows.dialogs.titlePlaceholder')}
+                    {...createForm.register('title')}
+                  />
+                </FormField>
 
-          {/* Tipología */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">{t('workflows.dialogs.typologyLabel')}</label>
-            <SearchableSelect
-              options={typologyOptions}
-              value={selectedTypologyId}
-              onChange={(id) => {
-                setSelectedTypologyId(id)
-                notifyNoFinalUsersMutation.reset()
-                removeFinalUser(finalUserIds[0])
-              }}
-              placeholder={t('workflows.dialogs.typologyPlaceholder')}
-              searchPlaceholder={t('workflows.dialogs.typologySearch')}
-              emptyText={t('workflows.dialogs.typologyEmpty')}
-            />
-            {createError === 'Selecciona una tipología' && (
-              <p className="text-xs text-destructive">{createError}</p>
-            )}
-          </div>
+                {/* Descripción */}
+                <FormField
+                  id="wf-desc"
+                  label={`${t('common.description')} (${t('workflows.dialogs.optional')})`}
+                  error={createForm.formState.errors.description?.message}
+                >
+                  <Input
+                    id="wf-desc"
+                    placeholder={t('workflows.dialogs.descriptionPlaceholder')}
+                    {...createForm.register('description')}
+                  />
+                </FormField>
 
-          {/* Documento principal */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              {t('workflows.dialogs.documentLabel')}{' '}
-              <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
-            </label>
-            <p className="text-xs text-muted-foreground">{t('workflows.dialogs.documentHint')}</p>
+                {/* Tipología */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">{t('workflows.dialogs.typologyLabel')}</label>
+                  <SearchableSelect
+                    options={typologyOptions}
+                    value={selectedTypologyId}
+                    onChange={(id) => {
+                      setSelectedTypologyId(id)
+                      notifyNoFinalUsersMutation.reset()
+                      removeFinalUser(finalUserIds[0])
+                    }}
+                    placeholder={t('workflows.dialogs.typologyPlaceholder')}
+                    searchPlaceholder={t('workflows.dialogs.typologySearch')}
+                    emptyText={t('workflows.dialogs.typologyEmpty')}
+                  />
+                  {createError === 'Selecciona una tipología' && (
+                    <p className="text-xs text-destructive">{createError}</p>
+                  )}
+                </div>
 
-            {/* Drop zone */}
-            <label
-              htmlFor="wf-document-file"
-              className="flex flex-col items-center justify-center gap-1.5 w-full h-20 rounded-md border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors bg-muted/30 hover:bg-muted/50"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault()
-                const file = e.dataTransfer.files[0]
-                if (file) handleDocumentFile(file)
-              }}
-            >
-              {documentFile ? (
-                <>
-                  <FileText className="size-4 text-primary" />
-                  <span className="text-xs text-foreground font-medium px-2 text-center truncate max-w-full">
-                    {documentFile.name}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Upload className="size-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{t('workflows.dialogs.documentDrop')}</span>
-                </>
-              )}
-              <input
-                id="wf-document-file"
-                type="file"
-                className="sr-only"
-                accept=".pdf,.docx,.xlsx"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleDocumentFile(file)
-                  e.target.value = ''
-                }}
-              />
-            </label>
-
-            {/* Estado de extracción */}
-            {documentExtractionLoading && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="size-3 animate-spin" />
-                {t('workflows.dialogs.documentExtracting')}
-              </div>
-            )}
-            {documentExtractionError && (
-              <p className="text-xs text-destructive">{documentExtractionError}</p>
-            )}
-
-            {/* Panel de comparación */}
-            {documentExtraction && (
-              <div className="rounded-md border border-border p-3 space-y-2 bg-muted/20">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  {t('workflows.dialogs.documentExtracted')}
-                </p>
-                <ExtractionComparisonRow
-                  label={t('workflows.dialogs.documentNombre')}
-                  extracted={documentExtraction.nombre}
-                  match={documentComparison?.nombre ?? undefined}
-                />
-                <ExtractionComparisonRow
-                  label={t('workflows.dialogs.documentCodigo')}
-                  extracted={documentExtraction.codigo}
-                  match={documentComparison?.codigo ?? undefined}
-                />
-                <ExtractionComparisonRow
-                  label={t('workflows.dialogs.documentVersion')}
-                  extracted={documentExtraction.version}
-                  match={documentComparison?.version ?? undefined}
-                />
-                {!selectedTypologyId && (
-                  <p className="text-[11px] text-muted-foreground italic">
-                    {t('workflows.dialogs.documentSelectTypologyToCompare')}
-                  </p>
-                )}
-                {createBlocked && documentComparison && (
-                  <p className="text-[11px] text-destructive font-medium">
-                    {t('workflows.dialogs.documentMismatchBlocked')}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Adjuntos de soporte */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              {t('workflows.dialogs.attachmentsLabel')}{' '}
-              <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
-            </label>
-            <p className="text-xs text-muted-foreground">{t('workflows.dialogs.attachmentsHint')}</p>
-
-            {supportingFiles.length > 0 && (
-              <div className="rounded-md border border-border divide-y divide-border">
-                {supportingFiles.map((file, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5 px-3 py-2">
-                    <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className="flex-1 text-xs truncate">{file.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Eliminar adjunto"
-                      className="size-6 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => removeSupportingFile(idx)}
-                    >
-                      <Trash2 className="size-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <label
-              htmlFor="wf-attachment-file"
-              className="flex items-center justify-center gap-1.5 w-full h-9 rounded-md border border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors text-xs text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/30"
-            >
-              <Upload className="size-3.5" />
-              {t('workflows.dialogs.attachmentsAdd')}
-              <input
-                id="wf-attachment-file"
-                type="file"
-                className="sr-only"
-                accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) addSupportingFile(file)
-                  e.target.value = ''
-                }}
-              />
-            </label>
-          </div>
-
-          {/* Aprobadores */}
-          <div className="space-y-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">{t('workflows.dialogs.approversLabel')}</label>
-              <p className="text-xs text-muted-foreground">{t('workflows.dialogs.approversHint')}</p>
-            </div>
-
-            {selectedApproversData.length > 0 && (
-              <div className="rounded-md border border-border divide-y divide-border">
-                {selectedApproversData.map(({ id, user }, index) => (
-                  <div key={id} className="flex items-center gap-2.5 px-3 py-2.5">
-                    <GripVertical className="size-3.5 text-muted-foreground/40 shrink-0" />
-                    <div className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
-                      </p>
-                      {user?.position && (
-                        <p className="text-xs text-muted-foreground truncate">{user.position}</p>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Eliminar aprobador"
-                      className="size-7 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => removeApprover(id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <SearchableSelect
-              options={availableApproverOptions}
-              value=""
-              onChange={addApprover}
-              placeholder={t('workflows.dialogs.addApproverPlaceholder')}
-              searchPlaceholder={t('workflows.dialogs.approverSearch')}
-              emptyText={
-                approverEligibleUsers.length === 0
-                  ? 'No hay usuarios con permiso de aprobación'
-                  : t('workflows.dialogs.approverAllAdded')
-              }
-            />
-            {createError === 'Agrega al menos un aprobador' && (
-              <p className="text-xs text-destructive">{createError}</p>
-            )}
-          </div>
-
-          {/* Usuarios finales */}
-          <div className="space-y-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Usuarios finales</label>
-              <p className="text-xs text-muted-foreground">
-                Usuarios que podrán acceder al workflow una vez aprobado. Se filtran según la estructura organizacional de la tipología seleccionada.
-              </p>
-            </div>
-
-            {selectedFinalUsersData.length > 0 && (
-              <div className="rounded-md border border-border divide-y divide-border">
-                {selectedFinalUsersData.map(({ id, user }) => (
-                  <div key={id} className="flex items-center gap-2.5 px-3 py-2.5">
-                    <User className="size-3.5 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
-                      </p>
-                      {user?.position && (
-                        <p className="text-xs text-muted-foreground truncate">{user.position}</p>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Eliminar usuario final"
-                      className="size-7 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => removeFinalUser(id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!selectedTypologyId ? (
-              <p className="text-xs text-muted-foreground italic px-1">
-                Selecciona una tipología para ver los usuarios elegibles.
-              </p>
-            ) : finalUserEligibleUsers.length === 0 ? (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 space-y-2">
-                <p className="text-xs text-amber-800">
-                  No hay usuarios con el cargo, área o departamento requerido por esta tipología. Notifica a los administradores para que configuren los usuarios correctamente.
-                </p>
-                {notifyNoFinalUsersMutation.isSuccess ? (
-                  <p className="text-xs text-green-700 font-medium">
-                    Notificación enviada a los administradores.
-                  </p>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="border-amber-400 text-amber-800 hover:bg-amber-100"
-                    disabled={notifyNoFinalUsersMutation.isPending || adminUserIds.length === 0}
-                    onClick={() =>
-                      notifyNoFinalUsersMutation.mutate({
-                        typologyId:   selectedTypologyId,
-                        typologyName: selectedTypology?.datosDeclarados.nombre ?? selectedTypologyId,
-                        recipientIds: adminUserIds,
-                      })
-                    }
+                {/* Documento principal */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    {t('workflows.dialogs.documentLabel')}{' '}
+                    <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground">{t('workflows.dialogs.documentHint')}</p>
+                  <label
+                    htmlFor="wf-document-file"
+                    className="flex flex-col items-center justify-center gap-1.5 w-full h-20 rounded-md border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors bg-muted/30 hover:bg-muted/50"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const file = e.dataTransfer.files[0]
+                      if (file) handleDocumentFile(file)
+                    }}
                   >
-                    {notifyNoFinalUsersMutation.isPending
-                      ? 'Enviando...'
-                      : adminUserIds.length === 0
-                        ? 'No hay administradores registrados'
-                        : 'Notificar a los administradores'}
-                  </Button>
-                )}
+                    {documentFile ? (
+                      <>
+                        <FileText className="size-4 text-primary" />
+                        <span className="text-xs text-foreground font-medium px-2 text-center truncate max-w-full">
+                          {documentFile.name}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="size-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{t('workflows.dialogs.documentDrop')}</span>
+                      </>
+                    )}
+                    <input
+                      id="wf-document-file"
+                      type="file"
+                      className="sr-only"
+                      accept=".pdf,.docx,.xlsx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleDocumentFile(file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  {documentExtractionLoading && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3 animate-spin" />
+                      {t('workflows.dialogs.documentExtracting')}
+                    </div>
+                  )}
+                  {documentExtractionError && (
+                    <p className="text-xs text-destructive">{documentExtractionError}</p>
+                  )}
+                  {documentExtraction && (
+                    <div className="rounded-md border border-border p-3 space-y-2 bg-muted/20">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {t('workflows.dialogs.documentExtracted')}
+                      </p>
+                      <ExtractionComparisonRow
+                        label={t('workflows.dialogs.documentNombre')}
+                        extracted={documentExtraction.nombre}
+                        match={documentComparison?.nombre ?? undefined}
+                      />
+                      <ExtractionComparisonRow
+                        label={t('workflows.dialogs.documentCodigo')}
+                        extracted={documentExtraction.codigo}
+                        match={documentComparison?.codigo ?? undefined}
+                      />
+                      <ExtractionComparisonRow
+                        label={t('workflows.dialogs.documentVersion')}
+                        extracted={documentExtraction.version}
+                        match={documentComparison?.version ?? undefined}
+                      />
+                      {!selectedTypologyId && (
+                        <p className="text-[11px] text-muted-foreground italic">
+                          {t('workflows.dialogs.documentSelectTypologyToCompare')}
+                        </p>
+                      )}
+                      {createBlocked && documentComparison && (
+                        <p className="text-[11px] text-destructive font-medium">
+                          {t('workflows.dialogs.documentMismatchBlocked')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Adjuntos de soporte */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    {t('workflows.dialogs.attachmentsLabel')}{' '}
+                    <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground">{t('workflows.dialogs.attachmentsHint')}</p>
+                  {supportingFiles.length > 0 && (
+                    <div className="rounded-md border border-border divide-y divide-border">
+                      {supportingFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-2.5 px-3 py-2">
+                          <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
+                          <span className="flex-1 text-xs truncate">{file.name}</span>
+                          <Button
+                            type="button" variant="ghost" size="icon"
+                            aria-label="Eliminar adjunto"
+                            className="size-6 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => removeSupportingFile(idx)}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label
+                    htmlFor="wf-attachment-file"
+                    className="flex items-center justify-center gap-1.5 w-full h-9 rounded-md border border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors text-xs text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/30"
+                  >
+                    <Upload className="size-3.5" />
+                    {t('workflows.dialogs.attachmentsAdd')}
+                    <input
+                      id="wf-attachment-file"
+                      type="file"
+                      className="sr-only"
+                      accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) addSupportingFile(file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
-            ) : finalUserIds.length === 0 ? (
-              <SearchableSelect
-                options={availableFinalUserOptions}
-                value=""
-                onChange={addFinalUser}
-                placeholder="Seleccionar usuario final..."
-                searchPlaceholder="Buscar usuario..."
-                emptyText="No hay usuarios que coincidan con la estructura de esta tipología"
-              />
-            ) : null}
-            {createError === 'Agrega al menos un usuario final' && (
-              <p className="text-xs text-destructive">{createError}</p>
-            )}
+
+              {/* ── Columna derecha: personas ── */}
+              <div className="space-y-4">
+
+                {/* Aprobadores */}
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">{t('workflows.dialogs.approversLabel')}</label>
+                    <p className="text-xs text-muted-foreground">{t('workflows.dialogs.approversHint')}</p>
+                  </div>
+                  {selectedApproversData.length > 0 && (
+                    <div className="rounded-md border border-border divide-y divide-border">
+                      {selectedApproversData.map(({ id, user }, index) => (
+                        <div key={id} className="flex items-center gap-2.5 px-3 py-2.5">
+                          <GripVertical className="size-3.5 text-muted-foreground/40 shrink-0" />
+                          <div className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
+                            </p>
+                            {user?.position && (
+                              <p className="text-xs text-muted-foreground truncate">{user.position}</p>
+                            )}
+                          </div>
+                          <Button
+                            type="button" variant="ghost" size="icon"
+                            aria-label="Eliminar aprobador"
+                            className="size-7 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => removeApprover(id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <SearchableSelect
+                    options={availableApproverOptions}
+                    value=""
+                    onChange={addApprover}
+                    placeholder={t('workflows.dialogs.addApproverPlaceholder')}
+                    searchPlaceholder={t('workflows.dialogs.approverSearch')}
+                    emptyText={
+                      approverEligibleUsers.length === 0
+                        ? 'No hay usuarios con permiso de aprobación'
+                        : t('workflows.dialogs.approverAllAdded')
+                    }
+                  />
+                  {createError === 'Agrega al menos un aprobador' && (
+                    <p className="text-xs text-destructive">{createError}</p>
+                  )}
+                </div>
+
+                {/* Usuarios finales */}
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Usuarios finales</label>
+                    <p className="text-xs text-muted-foreground">
+                      Usuarios que podrán acceder al workflow una vez aprobado. Se filtran según la estructura organizacional de la tipología seleccionada.
+                    </p>
+                  </div>
+                  {selectedFinalUsersData.length > 0 && (
+                    <div className="rounded-md border border-border divide-y divide-border">
+                      {selectedFinalUsersData.map(({ id, user }) => (
+                        <div key={id} className="flex items-center gap-2.5 px-3 py-2.5">
+                          <User className="size-3.5 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
+                            </p>
+                            {user?.position && (
+                              <p className="text-xs text-muted-foreground truncate">{user.position}</p>
+                            )}
+                          </div>
+                          <Button
+                            type="button" variant="ghost" size="icon"
+                            aria-label="Eliminar usuario final"
+                            className="size-7 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => removeFinalUser(id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!selectedTypologyId ? (
+                    <p className="text-xs text-muted-foreground italic px-1">
+                      Selecciona una tipología para ver los usuarios elegibles.
+                    </p>
+                  ) : finalUserEligibleUsers.length === 0 ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 space-y-2">
+                      <p className="text-xs text-amber-800">
+                        No hay usuarios con el cargo, área o departamento requerido por esta tipología. Notifica a los administradores para que configuren los usuarios correctamente.
+                      </p>
+                      {notifyNoFinalUsersMutation.isSuccess ? (
+                        <p className="text-xs text-green-700 font-medium">Notificación enviada a los administradores.</p>
+                      ) : (
+                        <Button
+                          type="button" size="sm" variant="outline"
+                          className="border-amber-400 text-amber-800 hover:bg-amber-100"
+                          disabled={notifyNoFinalUsersMutation.isPending || adminUserIds.length === 0}
+                          onClick={() =>
+                            notifyNoFinalUsersMutation.mutate({
+                              typologyId:   selectedTypologyId,
+                              typologyName: selectedTypology?.datosDeclarados.nombre ?? selectedTypologyId,
+                              recipientIds: adminUserIds,
+                            })
+                          }
+                        >
+                          {notifyNoFinalUsersMutation.isPending
+                            ? 'Enviando...'
+                            : adminUserIds.length === 0
+                              ? 'No hay administradores registrados'
+                              : 'Notificar a los administradores'}
+                        </Button>
+                      )}
+                    </div>
+                  ) : finalUserIds.length === 0 ? (
+                    <SearchableSelect
+                      options={availableFinalUserOptions}
+                      value=""
+                      onChange={addFinalUser}
+                      placeholder="Seleccionar usuario final..."
+                      searchPlaceholder="Buscar usuario..."
+                      emptyText="No hay usuarios que coincidan con la estructura de esta tipología"
+                    />
+                  ) : null}
+                  {createError === 'Agrega al menos un usuario final' && (
+                    <p className="text-xs text-destructive">{createError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-4 shrink-0 border-t border-border mt-4">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               {t('common.cancel')}
             </Button>
@@ -534,7 +523,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
 
   return (
     <Dialog open={!!editWorkflow} onOpenChange={(o) => { if (!o) setEditWorkflow(null) }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar workflow</DialogTitle>
         </DialogHeader>
@@ -796,7 +785,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
 function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canApprove: boolean }) {
   const { t } = useTranslation()
   const { user, accessToken } = useAuthStore()
-  const { detailWorkflow, setDetailWorkflow, startApprovalMutation, openApprove, openReject, openResubmit, openTimeline, openEdit, orgUsersMap, openReviewCycle, openCompleteStep } = hook
+  const { detailWorkflow, setDetailWorkflow, startApprovalMutation, openApprove, openReject, openTimeline, openEdit, orgUsersMap, openReviewCycle, openCompleteStep } = hook
 
   const userName = (userId: string) => orgUsersMap.get(userId) ?? userId
 
@@ -810,7 +799,6 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
   const isFinalUser = detailWorkflow.finalUserIds?.includes(currentUserId ?? '') ?? false
   const canStartApproval = isCreator && detailWorkflow.status === 'DRAFT'
   const canApproveStep = canApprove && isCurrentApprover && detailWorkflow.status === 'PENDING_APPROVAL'
-  const canResubmit = isCreator && detailWorkflow.status === 'RETURNED_TO_CREATOR'
   const canStartReviewCycle = isFinalUser && detailWorkflow.status === 'PENDING_REVIEW_CYCLE'
   const canCompleteAdminStep = detailWorkflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && detailWorkflow.currentAssignedUserId === (currentUserId ?? user?.id)
 
@@ -834,267 +822,242 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
 
   return (
     <Dialog open={!!detailWorkflow} onOpenChange={(o) => { if (!o) setDetailWorkflow(null) }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-4xl max-h-[92vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="pr-6 leading-snug">{detailWorkflow.title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-1">
-          <div className="flex items-center gap-3">
-            <WorkflowStatusBadge status={detailWorkflow.status} />
-          </div>
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="grid grid-cols-2 gap-x-6 pt-1">
 
-          {detailWorkflow.description && (
-            <p className="text-sm text-muted-foreground">{detailWorkflow.description}</p>
-          )}
-
-          <Separator />
-
-          <div className="space-y-2 text-sm">
-            <InfoRow label={t('workflows.detail.typology')}>
-              <span className="font-mono text-xs">{detailWorkflow.typologyCode}</span>
-              <span className="text-muted-foreground ml-1">— {detailWorkflow.typologyName}</span>
-              <Badge variant="outline" className="text-xs ml-1">{detailWorkflow.typologyVersion}</Badge>
-            </InfoRow>
-            <InfoRow label="Creado por">
-              {userName(detailWorkflow.createdBy)}
-            </InfoRow>
-            <InfoRow label={t('workflows.detail.createdAt')}>
-              {new Date(detailWorkflow.createdAt).toLocaleString()}
-            </InfoRow>
-          </div>
-
-          {/* Documento principal */}
-          {mainDocMeta?.storageKey && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {t('workflows.detail.mainDocument')}
-                </p>
-                <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5">
-                  <FileText className="size-4 text-primary shrink-0" />
-                  <span className="flex-1 text-sm truncate">{mainDocMeta.originalName ?? mainDocMeta.storageKey}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Descargar documento"
-                    className="size-7 shrink-0"
-                    onClick={() => handleOpenFile(mainDocMeta.storageKey!)}
-                  >
-                    <Download className="size-3.5" />
-                  </Button>
-                </div>
+            {/* ── Columna izquierda: info + documentos ── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <WorkflowStatusBadge status={detailWorkflow.status} />
               </div>
-            </>
-          )}
 
-          {/* Adjuntos de soporte */}
-          {allAttachments.length > 0 && (
-            <>
+              {detailWorkflow.description && (
+                <p className="text-sm text-muted-foreground">{detailWorkflow.description}</p>
+              )}
+
               <Separator />
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {t('workflows.detail.attachments')}
-                </p>
-                <div className="rounded-md border border-border divide-y divide-border">
-                  {allAttachments.map((att) => (
-                    <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
-                      <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
-                      <span className="flex-1 text-xs truncate">{att.originalName}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Descargar adjunto"
-                        className="size-7 shrink-0"
-                        onClick={() => handleOpenFile(att.storageKey)}
-                      >
+
+              <div className="space-y-2 text-sm">
+                <InfoRow label={t('workflows.detail.typology')}>
+                  <span className="font-mono text-xs">{detailWorkflow.typologyCode}</span>
+                  <span className="text-muted-foreground ml-1">— {detailWorkflow.typologyName}</span>
+                  <Badge variant="outline" className="text-xs ml-1">{detailWorkflow.typologyVersion}</Badge>
+                </InfoRow>
+                <InfoRow label="Creado por">{userName(detailWorkflow.createdBy)}</InfoRow>
+                <InfoRow label={t('workflows.detail.createdAt')}>
+                  {new Date(detailWorkflow.createdAt).toLocaleString()}
+                </InfoRow>
+              </div>
+
+              {/* Documento principal */}
+              {mainDocMeta?.storageKey && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      {t('workflows.detail.mainDocument')}
+                    </p>
+                    <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5">
+                      <FileText className="size-4 text-primary shrink-0" />
+                      <span className="flex-1 text-sm truncate">{mainDocMeta.originalName ?? mainDocMeta.storageKey}</span>
+                      <Button type="button" variant="ghost" size="icon" aria-label="Descargar documento" className="size-7 shrink-0" onClick={() => handleOpenFile(mainDocMeta.storageKey!)}>
                         <Download className="size-3.5" />
                       </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Adjuntos de aprobación */}
-          {approvalAttachments.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Documentos adjuntos de aprobación
-                </p>
-                <div className="rounded-md border border-border divide-y divide-border">
-                  {approvalAttachments.map((att, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
-                      <CheckCircle className="size-3.5 text-green-500 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs truncate">{att.originalName}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{userName(att.userId)}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Descargar adjunto"
-                        className="size-7 shrink-0"
-                        onClick={() => handleOpenFile(att.storageKey)}
-                      >
-                        <Download className="size-3.5" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Ciclos de revisión */}
-          {(detailWorkflow.adminCycles ?? []).length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Ciclos de revisión
-                </p>
-                {(detailWorkflow.adminCycles ?? []).map((cycle) => (
-                  <div key={cycle.id} className="space-y-3">
-                    {(detailWorkflow.adminCycles ?? []).length > 1 && (
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Ciclo #{cycle.cycleNumber}{' '}
-                        <span className={cycle.status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}>
-                          ({cycle.status === 'COMPLETED' ? 'Completado' : 'En progreso'})
-                        </span>
-                      </p>
-                    )}
-                    <div className="space-y-2">
-                      {[...cycle.steps]
-                        .sort((a, b) => a.stepOrder - b.stepOrder)
-                        .map((step) => {
-                          const hasContent = (step.notes?.length ?? 0) > 0 || (step.attachments?.length ?? 0) > 0
-                          return (
-                            <div key={step.id} className="rounded-md border border-border p-3 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <div className="flex items-center justify-center size-5 rounded-full border text-[10px] font-bold shrink-0 text-muted-foreground">
-                                  {step.stepOrder}
-                                </div>
-                                <User className="size-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-xs font-medium flex-1 truncate">{userName(step.userId)}</span>
-                                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
-                                  step.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200'
-                                  : step.status === 'PENDING'  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                  : 'bg-muted text-muted-foreground border-muted-foreground/20'
-                                }`}>
-                                  {step.status === 'COMPLETED' ? 'Completado' : step.status === 'PENDING' ? 'Pendiente' : 'En espera'}
-                                </span>
-                              </div>
-
-                              {step.status === 'COMPLETED' && !hasContent && (
-                                <p className="text-[11px] text-muted-foreground italic pl-7">Sin comentarios ni adjuntos.</p>
-                              )}
-
-                              {(step.notes ?? []).map((note) => (
-                                <div key={note.id} className="ml-7 rounded-md bg-muted/40 border border-border px-2.5 py-2">
-                                  <p className="text-xs text-foreground break-words">{note.content}</p>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                                    {new Date(note.createdAt).toLocaleString()}
-                                  </p>
-                                </div>
-                              ))}
-
-                              {(step.attachments ?? []).length > 0 && (
-                                <div className="ml-7 rounded-md border border-border divide-y divide-border">
-                                  {(step.attachments ?? []).map((att) => (
-                                    <div key={att.id} className="flex items-center gap-2 px-2.5 py-1.5">
-                                      <Paperclip className="size-3 text-muted-foreground shrink-0" />
-                                      <span className="flex-1 text-xs truncate">{att.originalName}</span>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-6 shrink-0"
-                                        onClick={() => handleOpenFile(att.storageKey)}
-                                      >
-                                        <Download className="size-3" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
-          )}
+                </>
+              )}
 
-          {detailWorkflow.approvalSteps.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {t('workflows.detail.approvalSteps')}
-                </p>
-                <div className="space-y-2">
-                  {detailWorkflow.approvalSteps
-                    .sort((a, b) => a.stepOrder - b.stepOrder)
-                    .map((step) => {
-                      const actions = (detailWorkflow.approvalActions ?? [])
-                        .filter((a) => a.stepId === step.id)
-                        .sort((a, b) => b.attemptNumber - a.attemptNumber)
-                      const lastAction = actions[0] ?? null
-                      return (
-                        <div key={step.id} className="space-y-1">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex items-center justify-center size-5 rounded-full border text-[10px] font-bold shrink-0 text-muted-foreground">
-                              {step.stepOrder}
-                            </div>
-                            <User className="size-3.5 text-muted-foreground shrink-0" />
-                            <span className="text-xs flex-1 truncate">{userName(step.userId)}</span>
-                            <ApprovalStepBadge status={step.status} />
-                          </div>
-                          {lastAction?.observations && (
-                            <div className="ml-8 rounded-md bg-muted/50 border border-border px-2.5 py-1.5">
-                              <p className="text-[11px] text-muted-foreground italic break-words">
-                                "{lastAction.observations}"
-                              </p>
-                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                                {lastAction.action === 'APPROVED' ? 'Aprobado' : 'Rechazado'} · {new Date(lastAction.createdAt).toLocaleString()}
-                              </p>
-                            </div>
-                          )}
+              {/* Adjuntos de soporte */}
+              {allAttachments.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      {t('workflows.detail.attachments')}
+                    </p>
+                    <div className="rounded-md border border-border divide-y divide-border">
+                      {allAttachments.map((att) => (
+                        <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                          <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
+                          <span className="flex-1 text-xs truncate">{att.originalName}</span>
+                          <Button type="button" variant="ghost" size="icon" aria-label="Descargar adjunto" className="size-7 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
+                            <Download className="size-3.5" />
+                          </Button>
                         </div>
-                      )
-                    })}
-                </div>
-              </div>
-            </>
-          )}
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
-          {(detailWorkflow.finalUserIds?.length ?? 0) > 0 && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Usuario final
-                </p>
-                <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5">
-                  <User className="size-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-sm">{userName(detailWorkflow.finalUserIds![0])}</span>
+              {/* Adjuntos de aprobación */}
+              {approvalAttachments.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      Documentos adjuntos de aprobación
+                    </p>
+                    <div className="rounded-md border border-border divide-y divide-border">
+                      {approvalAttachments.map((att, i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
+                          <CheckCircle className="size-3.5 text-green-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs truncate">{att.originalName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{userName(att.userId)}</p>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" aria-label="Descargar adjunto" className="size-7 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
+                            <Download className="size-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ── Columna derecha: aprobación + ciclos + usuario final ── */}
+            <div className="space-y-4">
+
+              {/* Pasos de aprobación */}
+              {detailWorkflow.approvalSteps.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    {t('workflows.detail.approvalSteps')}
+                  </p>
+                  <div className="space-y-2">
+                    {detailWorkflow.approvalSteps
+                      .sort((a, b) => a.stepOrder - b.stepOrder)
+                      .map((step) => {
+                        const actions = (detailWorkflow.approvalActions ?? [])
+                          .filter((a) => a.stepId === step.id)
+                          .sort((a, b) => b.attemptNumber - a.attemptNumber)
+                        const lastAction = actions[0] ?? null
+                        return (
+                          <div key={step.id} className="space-y-1">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex items-center justify-center size-5 rounded-full border text-[10px] font-bold shrink-0 text-muted-foreground">
+                                {step.stepOrder}
+                              </div>
+                              <User className="size-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-xs flex-1 truncate">{userName(step.userId)}</span>
+                              <ApprovalStepBadge status={step.status} />
+                            </div>
+                            {lastAction?.observations && (
+                              <div className="ml-8 rounded-md bg-muted/50 border border-border px-2.5 py-1.5">
+                                <p className="text-[11px] text-muted-foreground italic break-words">
+                                  "{lastAction.observations}"
+                                </p>
+                                <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                                  {lastAction.action === 'APPROVED' ? 'Aprobado' : 'Rechazado'} · {new Date(lastAction.createdAt).toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              )}
+
+              {/* Ciclos de revisión */}
+              {(detailWorkflow.adminCycles ?? []).length > 0 && (
+                <>
+                  {detailWorkflow.approvalSteps.length > 0 && <Separator />}
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Ciclos de revisión
+                    </p>
+                    {(detailWorkflow.adminCycles ?? []).map((cycle) => (
+                      <div key={cycle.id} className="space-y-3">
+                        {(detailWorkflow.adminCycles ?? []).length > 1 && (
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Ciclo #{cycle.cycleNumber}{' '}
+                            <span className={cycle.status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}>
+                              ({cycle.status === 'COMPLETED' ? 'Completado' : 'En progreso'})
+                            </span>
+                          </p>
+                        )}
+                        <div className="space-y-2">
+                          {[...cycle.steps]
+                            .sort((a, b) => a.stepOrder - b.stepOrder)
+                            .map((step) => {
+                              const hasContent = (step.notes?.length ?? 0) > 0 || (step.attachments?.length ?? 0) > 0
+                              return (
+                                <div key={step.id} className="rounded-md border border-border p-3 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center size-5 rounded-full border text-[10px] font-bold shrink-0 text-muted-foreground">
+                                      {step.stepOrder}
+                                    </div>
+                                    <User className="size-3.5 text-muted-foreground shrink-0" />
+                                    <span className="text-xs font-medium flex-1 truncate">{userName(step.userId)}</span>
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+                                      step.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200'
+                                      : step.status === 'PENDING'  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                      : 'bg-muted text-muted-foreground border-muted-foreground/20'
+                                    }`}>
+                                      {step.status === 'COMPLETED' ? 'Completado' : step.status === 'PENDING' ? 'Pendiente' : 'En espera'}
+                                    </span>
+                                  </div>
+                                  {step.status === 'COMPLETED' && !hasContent && (
+                                    <p className="text-[11px] text-muted-foreground italic pl-7">Sin comentarios ni adjuntos.</p>
+                                  )}
+                                  {(step.notes ?? []).map((note) => (
+                                    <div key={note.id} className="ml-7 rounded-md bg-muted/40 border border-border px-2.5 py-2">
+                                      <p className="text-xs text-foreground break-words">{note.content}</p>
+                                      <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(note.createdAt).toLocaleString()}</p>
+                                    </div>
+                                  ))}
+                                  {(step.attachments ?? []).length > 0 && (
+                                    <div className="ml-7 rounded-md border border-border divide-y divide-border">
+                                      {(step.attachments ?? []).map((att) => (
+                                        <div key={att.id} className="flex items-center gap-2 px-2.5 py-1.5">
+                                          <Paperclip className="size-3 text-muted-foreground shrink-0" />
+                                          <span className="flex-1 text-xs truncate">{att.originalName}</span>
+                                          <Button type="button" variant="ghost" size="icon" className="size-6 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
+                                            <Download className="size-3" />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Usuario final */}
+              {(detailWorkflow.finalUserIds?.length ?? 0) > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      Usuario final
+                    </p>
+                    <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5">
+                      <User className="size-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-sm">{userName(detailWorkflow.finalUserIds![0])}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        <DialogFooter className="flex-wrap gap-2 pt-2">
+        <DialogFooter className="flex-wrap gap-2 pt-4 shrink-0 border-t border-border mt-2">
           <Button
             variant="outline"
             size="sm"
@@ -1125,7 +1088,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
               <Button
                 size="sm"
                 variant="outline"
-                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                style={{ color: '#dc2626', borderColor: '#dc2626' }}
                 onClick={() => { setDetailWorkflow(null); openReject(detailWorkflow) }}
               >
                 {t('workflows.actions.reject')}
@@ -1137,14 +1100,6 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                 {t('workflows.actions.approve')}
               </Button>
             </>
-          )}
-          {canResubmit && (
-            <Button
-              size="sm"
-              onClick={() => { setDetailWorkflow(null); openResubmit(detailWorkflow) }}
-            >
-              {t('workflows.actions.resubmit')}
-            </Button>
           )}
           {canStartReviewCycle && (
             <Button
@@ -1321,7 +1276,7 @@ function RejectDialog({ hook }: { hook: WorkflowsHook }) {
             </Button>
             <Button
               type="submit"
-              variant="destructive"
+              style={{ backgroundColor: '#dc2626' }}
               disabled={rejectMutation.isPending || !rejectForm.formState.isValid}
             >
               {rejectMutation.isPending ? t('common.processing') : t('workflows.dialogs.rejectButton')}
@@ -1333,54 +1288,6 @@ function RejectDialog({ hook }: { hook: WorkflowsHook }) {
   )
 }
 
-// ── Resubmit ──────────────────────────────────────────────────────────────────
-
-function ResubmitDialog({ hook }: { hook: WorkflowsHook }) {
-  const { t } = useTranslation()
-  const { resubmitWorkflow, setResubmitWorkflow, resubmitForm, resubmitMutation } = hook
-
-  return (
-    <Dialog open={!!resubmitWorkflow} onOpenChange={(o) => { if (!o) setResubmitWorkflow(null) }}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{t('workflows.dialogs.resubmitTitle')}</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          {t('workflows.dialogs.resubmitConfirmPre')}{' '}
-          <span className="font-medium text-foreground">"{resubmitWorkflow?.title}"</span>
-          {t('workflows.dialogs.resubmitConfirmPost')}
-        </p>
-        <form
-          onSubmit={resubmitForm.handleSubmit((values) => {
-            if (!resubmitWorkflow) return
-            resubmitMutation.mutate({ id: resubmitWorkflow.id, dto: values })
-          })}
-          className="space-y-4"
-        >
-          <FormField
-            id="resubmit-obs"
-            label={`${t('workflows.dialogs.observationsLabel')} (${t('workflows.dialogs.optional')})`}
-            error={resubmitForm.formState.errors.observations?.message}
-          >
-            <Input
-              id="resubmit-obs"
-              placeholder={t('workflows.dialogs.resubmitObservationsPlaceholder')}
-              {...resubmitForm.register('observations')}
-            />
-          </FormField>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setResubmitWorkflow(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={resubmitMutation.isPending}>
-              {resubmitMutation.isPending ? t('common.processing') : t('workflows.dialogs.resubmitButton')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 // ── Timeline ──────────────────────────────────────────────────────────────────
 
@@ -1449,7 +1356,7 @@ function TimelineEventRow({
 
   return (
     <div className="flex gap-3 pl-1">
-      <div className={`relative z-10 flex items-center justify-center size-6 rounded-full border-2 bg-background shrink-0 ${isNegative ? 'border-red-400 text-red-500' : 'border-green-500 text-green-600'}`}>
+      <div className={`relative z-10 flex items-center justify-center size-6 rounded-full border-2 bg-background shrink-0 ${isNegative ? 'border-green-500 text-green-600' : 'border-green-500 text-green-600'}`} style={isNegative ? { borderColor: '#0060C5', color: '#0060C5' } : undefined}>
         <Icon className="size-3" />
       </div>
       <div className="flex-1 min-w-0 pb-1">
@@ -1767,7 +1674,7 @@ function ExtractionComparisonRow({
           {t('workflows.dialogs.documentMatch')}
         </Badge>
       ) : (
-        <Badge variant="outline" className="text-[10px] px-1.5 shrink-0 bg-red-50 text-red-700 border-red-200">
+        <Badge variant="outline" className="text-[10px] px-1.5 shrink-0 border" style={{ backgroundColor: '#e8f1fb', color: '#0060C5', borderColor: '#99c0ea' }}>
           {t('workflows.dialogs.documentMismatch')}
         </Badge>
       )}
@@ -1777,14 +1684,15 @@ function ExtractionComparisonRow({
 
 function ApprovalStepBadge({ status }: { status: string }) {
   const { t } = useTranslation()
-  const cfg: Record<string, { className: string }> = {
+  const cfg: Record<string, { className: string; style?: React.CSSProperties }> = {
     WAITING:  { className: 'bg-muted text-muted-foreground border-muted-foreground/20' },
     PENDING:  { className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
     APPROVED: { className: 'bg-green-50 text-green-700 border-green-200' },
-    REJECTED: { className: 'bg-red-50 text-red-700 border-red-200' },
+    REJECTED: { className: 'border', style: { backgroundColor: '#e8f1fb', color: '#0060C5', borderColor: '#99c0ea' } },
   }
+  const entry = cfg[status]
   return (
-    <Badge variant="outline" className={`text-[10px] px-1.5 ${cfg[status]?.className ?? ''}`}>
+    <Badge variant="outline" className={`text-[10px] px-1.5 ${entry?.className ?? ''}`} style={entry?.style}>
       {t(`workflows.approvalStepStatus.${status}`, { defaultValue: status })}
     </Badge>
   )

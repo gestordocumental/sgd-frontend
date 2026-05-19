@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useRef } from "react";
 import {
   LogOut,
   ChevronsUpDown,
@@ -12,9 +13,10 @@ import {
   Briefcase,
   CreditCard,
   User,
+  Camera,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,16 +28,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { authApi } from "@/lib/api/auth";
+import { usersApi } from "@/lib/api/users";
 import { useAuthStore } from "@/store/authStore";
 import { initials } from "@/lib/formatters";
 import { useUserProfile } from "../hooks/use-user-profile";
 
 interface UserProfileCardProps {
   variant?: "sidebar" | "header";
+  onWorkflowClick?: (workflowId: string) => void;
 }
 
-export function UserProfileCard({ variant = "sidebar" }: UserProfileCardProps) {
+export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserProfileCardProps) {
   const navigate = useNavigate();
   const { clearAuth } = useAuthStore();
   const queryClient = useQueryClient();
@@ -64,6 +69,23 @@ export function UserProfileCard({ variant = "sidebar" }: UserProfileCardProps) {
     },
   });
 
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  const avatarMutation = useMutation({
+    mutationFn: (file: File) => usersApi.uploadAvatar(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] })
+    },
+  })
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) avatarMutation.mutate(file)
+    e.target.value = ''
+  }
+
+  const avatarUrl = userDetails?.avatarUrl ?? null
+
   const fullName = userDetails
     ? [userDetails.firstName, userDetails.lastName].filter(Boolean).join(" ") ||
       email
@@ -86,6 +108,27 @@ export function UserProfileCard({ variant = "sidebar" }: UserProfileCardProps) {
         <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider py-1">
           {t("profile.myProfile")}
         </DropdownMenuLabel>
+
+        {/* Avatar con botón de cambio */}
+        <div className="px-1.5 pb-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarMutation.isPending}
+            className="relative group"
+            title={t('profile.changeAvatar')}
+          >
+            <Avatar className="size-14">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}
+              <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                {fullName ? initials(fullName) : (email?.[0]?.toUpperCase() ?? '?')}
+              </AvatarFallback>
+            </Avatar>
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="size-4 text-white" />
+            </span>
+          </button>
+        </div>
 
         {/* Datos del usuario */}
         <div className="px-1.5 pb-1 space-y-1">
@@ -229,9 +272,18 @@ export function UserProfileCard({ variant = "sidebar" }: UserProfileCardProps) {
     return (
       <div className="flex items-center gap-1">
         <LanguageSwitcher />
+        <NotificationBell onWorkflowClick={onWorkflowClick} />
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent transition-colors text-left">
             <Avatar className="size-7 shrink-0">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}
               <AvatarFallback className="text-xs bg-primary/10 text-primary">
                 {fullName
                   ? initials(fullName)
@@ -263,10 +315,18 @@ export function UserProfileCard({ variant = "sidebar" }: UserProfileCardProps) {
 
   return (
     <div className="px-3 py-3 border-t border-border">
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleAvatarChange}
+      />
       {/* ── User info + context switcher ──────────────────────────── */}
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2.5 w-full rounded-lg px-1.5 py-1.5 hover:bg-accent transition-colors text-left">
           <Avatar className="size-8 shrink-0">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
               {fullName
                 ? initials(fullName)

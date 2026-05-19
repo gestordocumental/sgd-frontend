@@ -123,14 +123,7 @@ function LoginPage() {
           className="absolute inset-0 h-full w-full object-contain"
         />
 
-        {/* Logo sobre la ilustración */}
-        <div className="absolute top-7 left-8">
-          <img
-            src="/logo.png"
-            alt="SGD — Document Management System"
-            className="h-12 w-auto"
-          />
-        </div>
+
       </div>
 
       {/* ══════════════════════════════════════════
@@ -146,9 +139,9 @@ function LoginPage() {
           {/* Logo en móvil (se oculta en lg porque ya aparece en el panel izquierdo) */}
           <div className="lg:hidden flex justify-center mb-8">
             <img
-              src="/logo.png"
+              src="/logo.svg"
               alt="SGD — Document Management System"
-              className="h-9 w-auto"
+              className="h-20 w-auto mix-blend-multiply dark:mix-blend-screen"
             />
           </div>
 

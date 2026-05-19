@@ -151,6 +151,11 @@ export function useCompanyUsers(companyId: string) {
     onSuccess: invalidate,
   })
 
+  const resendInvitationMutation = useMutation({
+    mutationFn: (id: string) => usersApi.resendInvitation(id),
+    onSuccess: (data) => { setInvitedUser(data) },
+  })
+
   const editForm = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema), mode: 'onChange' })
 
   const openCreate = () => {
@@ -208,5 +213,6 @@ export function useCompanyUsers(companyId: string) {
     editMutation,
     deleteMutation,
     restoreMutation,
+    resendInvitationMutation,
   }
 }

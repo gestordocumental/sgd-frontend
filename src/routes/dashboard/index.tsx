@@ -1,8 +1,7 @@
-import { useState, startTransition } from 'react'
+import { useState, startTransition, useCallback } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { FileText, Users, Building2, Shield, UserPlus, Plus, FolderTree, GitBranch } from 'lucide-react'
+import { FileText, Users, Building2, Shield, FolderTree, GitBranch, ClipboardList, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuthStore } from '@/store/authStore'
 import { isDeleted } from '@/lib/formatters'
@@ -22,6 +21,10 @@ import { useTypologies } from '@/features/doc-governance/hooks/use-typologies'
 import { useWorkflows } from '@/features/workflows/hooks/use-workflows'
 import { WorkflowsTable } from '@/features/workflows/components/WorkflowsTable'
 import { WorkflowDialogs } from '@/features/workflows/components/WorkflowDialogs'
+import { useAudit } from '@/features/audit/hooks/use-audit'
+import { AuditTable } from '@/features/audit/components/AuditTable'
+import { useOrgDashboard } from '@/features/dashboard/hooks/use-org-dashboard'
+import { OrgDashboard } from '@/features/dashboard/components/OrgDashboard'
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
@@ -32,16 +35,16 @@ export const Route = createFileRoute('/dashboard/')({
   component: CompanyDashboard,
 })
 
-type TabId = 'company' | 'users' | 'roles' | 'org-structure' | 'workflows'
+type TabId = 'overview' | 'company' | 'users' | 'roles' | 'org-structure' | 'workflows' | 'audit'
 
 function CompanyDashboard() {
   const { user: me, isSuperAdmin } = useAuthStore()
   const { t } = useTranslation()
   const companyId = me?.companyId ?? ''
-  const [activeTab, setActiveTab] = useState<TabId>('company')
+  const [activeTab, setActiveTab] = useState<TabId>('overview')
   // Tracks which tabs have been visited at least once. Tabs are lazy-mounted on
   // first visit and kept alive (keepMounted) afterwards to avoid remount cost.
-  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(['company']))
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(['overview']))
 
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(companyId, isSuperAdmin)
 
@@ -49,6 +52,7 @@ function CompanyDashboard() {
   const canViewOrgs = hasPermission('ORGS', 'READ')
   const canViewOrgStructure = hasPermission('ORG_STRUCTURE', 'READ')
   const canViewWorkflows = hasPermission('WORKFLOWS', 'READ')
+  const canViewAudit = hasPermission('AUDIT', 'READ')
   const canWriteUsers = hasPermission('USERS', 'WRITE')
   const canWriteOrgs = hasPermission('ORGS', 'WRITE')
   const canWriteOrgStructure = hasPermission('ORG_STRUCTURE', 'WRITE')
@@ -59,10 +63,11 @@ function CompanyDashboard() {
   // fall back to 'company' without mutating state — derived during render.
   const effectiveTab: TabId = (() => {
     if (permissionsLoading) return activeTab
-    if (activeTab === 'users' && !canViewUsers) return 'company'
-    if (activeTab === 'roles' && !canViewOrgs) return 'company'
-    if (activeTab === 'org-structure' && !canViewOrgStructure) return 'company'
-    if (activeTab === 'workflows' && !canViewWorkflows) return 'company'
+    if (activeTab === 'users' && !canViewUsers) return 'overview'
+    if (activeTab === 'roles' && !canViewOrgs) return 'overview'
+    if (activeTab === 'org-structure' && !canViewOrgStructure) return 'overview'
+    if (activeTab === 'workflows' && !canViewWorkflows) return 'overview'
+    if (activeTab === 'audit' && !canViewAudit) return 'overview'
     return activeTab
   })()
 
@@ -80,6 +85,13 @@ function CompanyDashboard() {
   const orgStructure = useOrgStructure(companyId, mountedTabs.has('org-structure'))
   const typologies   = useTypologies(companyId, mountedTabs.has('org-structure'))
   const workflows    = useWorkflows(companyId)
+  const audit        = useAudit(companyId, mountedTabs.has('audit'))
+  const orgDashboard = useOrgDashboard(companyId, mountedTabs.has('overview'))
+
+  const handleWorkflowNotificationClick = useCallback(async (workflowId: string) => {
+    handleTabChange('workflows')
+    await workflows.openDetailById(workflowId)
+  }, [workflows.openDetailById])
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 
@@ -90,77 +102,72 @@ function CompanyDashboard() {
       className="flex flex-col h-screen bg-background overflow-hidden gap-0"
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card shrink-0">
-        {/* Brand + Tabs */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="flex items-center justify-center size-8 rounded-md bg-primary shrink-0">
-              <FileText className="size-4 text-primary-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">SGD Helisa</p>
-              <p className="text-[10px] text-muted-foreground truncate">
-                {companyUsers.company?.name ?? t('common.loading')}
-              </p>
-            </div>
-          </div>
+      <header className="flex items-center px-4 h-16 border-b border-border bg-card shrink-0 gap-3">
+        {/* Logo — nunca se encoge */}
+        <div className="shrink-0">
+          <img src="/logo.svg" alt="Logo" className="h-14 w-auto mix-blend-multiply dark:mix-blend-screen" />
+        </div>
 
-          <div className="w-px h-6 bg-border shrink-0" />
+        <div className="w-px h-6 bg-border shrink-0" />
 
-          <TabsList>
+        {/* Pestañas — toma el espacio disponible y hace scroll si no caben */}
+        <div className="flex-1 min-w-0 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <TabsList className="w-max">
+            <TabsTrigger value="overview">
+              <LayoutDashboard className="size-4" /><span className="hidden xl:inline">{t('dashboard.overview')}</span>
+            </TabsTrigger>
             <TabsTrigger value="company">
-              <Building2 className="size-4" />{t('dashboard.company')}
+              <Building2 className="size-4" /><span className="hidden xl:inline">{t('dashboard.company')}</span>
             </TabsTrigger>
             {canViewUsers && (
               <TabsTrigger value="users">
-                <Users className="size-4" />{t('common.users')}
+                <Users className="size-4" /><span className="hidden xl:inline">{t('common.users')}</span>
               </TabsTrigger>
             )}
             {canViewOrgs && (
               <TabsTrigger value="roles">
-                <Shield className="size-4" />{t('dashboard.rolesAndPermissions')}
+                <Shield className="size-4" /><span className="hidden xl:inline">{t('dashboard.rolesAndPermissions')}</span>
               </TabsTrigger>
             )}
             {canViewOrgStructure && (
               <TabsTrigger value="org-structure">
-                <FolderTree className="size-4" />{t('dashboard.orgStructure')}
+                <FolderTree className="size-4" /><span className="hidden xl:inline">{t('dashboard.orgStructure')}</span>
               </TabsTrigger>
             )}
             {canViewWorkflows && (
               <TabsTrigger value="workflows">
-                <GitBranch className="size-4" />{t('dashboard.workflows')}
+                <GitBranch className="size-4" /><span className="hidden xl:inline">{t('dashboard.workflows')}</span>
                 {workflows.myTasks.length > 0 && (
-                  <span className="ml-1.5 flex items-center justify-center size-4 rounded-full bg-destructive text-[9px] text-destructive-foreground font-bold">
+                  <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold" style={{ backgroundColor: '#0060C5' }}>
                     {workflows.myTasks.length}
                   </span>
                 )}
               </TabsTrigger>
             )}
+            {canViewAudit && (
+              <TabsTrigger value="audit">
+                <ClipboardList className="size-4" /><span className="hidden xl:inline">{t('dashboard.audit')}</span>
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
-        {/* Actions + User controls */}
-        <div className="flex items-center gap-2">
-          {effectiveTab === 'users' && canWriteUsers && (
-            <Button size="sm" onClick={companyUsers.openCreate}>
-              <UserPlus className="size-4" />{t('dashboard.newUser')}
-            </Button>
-          )}
-          {effectiveTab === 'roles' && canWriteOrgs && (
-            <Button size="sm" onClick={roles.openCreate}>
-              <Plus className="size-4" />{t('dashboard.newRole')}
-            </Button>
-          )}
-          {effectiveTab === 'workflows' && canWriteWorkflows && (
-            <Button size="sm" onClick={workflows.openCreate}>
-              <Plus className="size-4" />{t('dashboard.newWorkflow')}
-            </Button>
-          )}
-          <UserProfileCard variant="header" />
+        {/* Controles — nunca se encogen ni se solapan */}
+        <div className="flex items-center gap-2 shrink-0">
+          <UserProfileCard variant="header" onWorkflowClick={handleWorkflowNotificationClick} />
         </div>
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
+      <TabsContent value="overview" className="flex-1 overflow-auto">
+        <OrgDashboard
+          typologyStats={orgDashboard.typologyStats.data}
+          workflowStats={orgDashboard.workflowStats.data}
+          isLoading={orgDashboard.typologyStats.isLoading || orgDashboard.workflowStats.isLoading}
+          users={companyUsers.users}
+          usersLoading={companyUsers.usersLoading}
+        />
+      </TabsContent>
       <TabsContent value="company" className="flex-1 overflow-auto">
         <CompanyTab
           company={companyUsers.company}
@@ -188,6 +195,11 @@ function CompanyDashboard() {
       {canViewWorkflows && mountedTabs.has('workflows') && (
         <TabsContent value="workflows" keepMounted className="flex-1 overflow-auto">
           <WorkflowsTable hook={workflows} canWrite={canWriteWorkflows} canApprove={canApproveWorkflows} />
+        </TabsContent>
+      )}
+      {canViewAudit && mountedTabs.has('audit') && (
+        <TabsContent value="audit" keepMounted className="flex-1 overflow-auto">
+          <AuditTable hook={audit} users={companyUsers.users} />
         </TabsContent>
       )}
 

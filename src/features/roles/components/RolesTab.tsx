@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Shield, Key, ChevronRight, ChevronDown, MoreHorizontal, Pencil, Trash2, UserPlus, X } from 'lucide-react'
+import { Shield, Key, ChevronRight, ChevronDown, MoreHorizontal, Pencil, Trash2, UserPlus, X, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ interface RolesTabProps {
 }
 
 export function RolesTab({ hook, users, canWrite = false }: RolesTabProps) {
+  const { t } = useTranslation()
   const {
     roles,
     rolesLoading,
@@ -27,6 +28,7 @@ export function RolesTab({ hook, users, canWrite = false }: RolesTabProps) {
     expandedRoles, setExpandedRoles,
     expandedPermissions, setExpandedPermissions,
     openEdit,
+    openCreate,
     setDeleteRole,
     removeUserFromRoleMutation,
     setAssignRoleUser,
@@ -48,6 +50,14 @@ export function RolesTab({ hook, users, canWrite = false }: RolesTabProps) {
 
   return (
     <main className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{t('dashboard.rolesAndPermissions')}</h2>
+        {canWrite && (
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4" />{t('dashboard.newRole')}
+          </Button>
+        )}
+      </div>
       <RolesViewTabs
         roles={roles}
         rolesLoading={rolesLoading}

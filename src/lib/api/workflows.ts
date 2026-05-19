@@ -5,7 +5,8 @@ import { apiClient } from './client'
 export type WorkflowStatus =
   | 'DRAFT'
   | 'PENDING_APPROVAL'
-  | 'RETURNED_TO_CREATOR'
+  | 'RETURNED_TO_CREATOR'   // legacy — filas antiguas en BD
+  | 'REJECTED'              // terminal — rechazado definitivamente
   | 'PENDING_REVIEW_CYCLE'
   | 'AVAILABLE_FOR_FINAL_USERS'
   | 'ADMIN_CYCLE_IN_PROGRESS'
@@ -203,7 +204,28 @@ export interface ListWorkflowsParams {
 
 // ── API object ────────────────────────────────────────────────────────────────
 
+export interface WorkflowStats {
+  totalWorkflows: number
+  statusCounts: Record<string, number>
+  myPendingTasks: number
+  weeklyTrend: { week: string; count: number }[]
+  storageTotalBytes: number
+  totalAttachments: number
+}
+
+export interface WorkflowOrgStorageStat {
+  orgId: string
+  storageTotalBytes: number
+  totalAttachments: number
+}
+
 export const workflowsApi = {
+  stats: () =>
+    apiClient.get<WorkflowStats>('/workflows/stats').then((r) => r.data),
+
+  storagePerOrg: () =>
+    apiClient.get<WorkflowOrgStorageStat[]>('/workflows/admin/storage-per-org').then((r) => r.data),
+
   list: (params?: ListWorkflowsParams) =>
     apiClient.get<PaginatedWorkflows>('/workflows', { params }).then((r) => r.data),
 
@@ -236,9 +258,6 @@ export const workflowsApi = {
 
   reject: (id: string, dto: { observations: string }) =>
     apiClient.post<ApiWorkflow>(`/workflows/${id}/reject`, dto).then((r) => r.data),
-
-  resubmit: (id: string, dto: { observations?: string }) =>
-    apiClient.post<ApiWorkflow>(`/workflows/${id}/resubmit`, dto).then((r) => r.data),
 
   getTimeline: (id: string) =>
     apiClient.get<ApiTimelineEvent[]>(`/workflows/${id}/timeline`).then((r) => r.data),

@@ -175,6 +175,11 @@ export function useAdminUsers() {
     onSuccess: invalidate,
   });
 
+  const resendInvitationMutation = useMutation({
+    mutationFn: (id: string) => usersApi.resendInvitation(id),
+    onSuccess: (data) => { setInvitedUser(data); },
+  });
+
   const toggleSuperAdminMutation = useMutation({
     mutationFn: ({ id, isSuperAdmin }: { id: string; isSuperAdmin: boolean }) =>
       usersApi.toggleSuperAdmin(id, isSuperAdmin),
@@ -263,5 +268,6 @@ export function useAdminUsers() {
     deleteMutation,
     restoreMutation,
     toggleSuperAdminMutation,
+    resendInvitationMutation,
   };
 }

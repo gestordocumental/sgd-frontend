@@ -1,4 +1,14 @@
 {
+  "notifications": {
+    "title": "Notificaciones",
+    "label": "Ver notificaciones",
+    "empty": "No tienes notificaciones",
+    "markAllRead": "Marcar todas como leídas",
+    "justNow": "Ahora mismo",
+    "minutesAgo": "Hace {{n}} min",
+    "hoursAgo": "Hace {{n}} h",
+    "daysAgo": "Hace {{n}} días"
+  },
   "validation": {
     "required": "Este campo es requerido",
     "email": {
@@ -30,6 +40,8 @@
     "active": "Activo",
     "inactive": "Inactivo",
     "deleted": "Eliminado",
+    "all": "Todos",
+    "noResults": "Sin resultados",
     "noRole": "Sin rol",
     "status": "Estado",
     "name": "Nombre",
@@ -54,11 +66,14 @@
     "users": "Usuarios",
     "role": "Rol",
     "logout": "Cerrar sesión",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "search": "Buscar",
+    "clear": "Limpiar"
   },
   "profile": {
     "myProfile": "Mi perfil",
-    "switchContext": "Cambiar a"
+    "switchContext": "Cambiar a",
+    "changeAvatar": "Cambiar foto de perfil"
   },
   "auth": {
     "welcomeTitle": "Bienvenido a SGD",
@@ -112,7 +127,139 @@
     "rolesAndPermissions": "Roles y permisos",
     "orgStructure": "Gobierno Documental",
     "workflows": "Flujos de trabajo",
-    "newWorkflow": "Nuevo flujo"
+    "newWorkflow": "Nuevo flujo",
+    "audit": "Auditoría",
+    "overview": "Resumen",
+    "kpi": {
+      "totalTypologies": "Tipologías totales",
+      "activeTypologies": "Tipologías activas",
+      "uploadedDocuments": "Documentos cargados",
+      "storageUsed": "Espacio usado",
+      "totalWorkflows": "Flujos totales",
+      "myPendingTasks": "Mis tareas pendientes",
+      "totalOrgs": "Organizaciones",
+      "totalUsers": "Usuarios totales"
+    },
+    "charts": {
+      "workflowStatus": "Estado de flujos",
+      "extractionStatus": "Estado de extracción",
+      "weeklyTrend": "Creación semanal (8 semanas)",
+      "storagePerOrg": "Espacio usado por organización",
+      "workflowsPerOrg": "Flujos por organización",
+      "usersPerOrg": "Usuarios por organización"
+    },
+    "noData": "Sin datos aún"
+  },
+  "audit": {
+    "title": "Registro de auditoría",
+    "events": "eventos",
+    "empty": "No se encontraron eventos de auditoría.",
+    "pagination": "Página {{page}} de {{total}}",
+    "filters": {
+      "action": "Acción",
+      "resourceType": "Tipo de recurso",
+      "service": "Servicio",
+      "from": "Desde",
+      "to": "Hasta",
+      "all": "Todos",
+      "correlationId": "ID de correlación",
+      "correlationIdPlaceholder": "Pega un ID de correlación..."
+    },
+    "columns": {
+      "timestamp": "Fecha y hora",
+      "service": "Servicio",
+      "action": "Acción",
+      "resourceType": "Tipo de recurso",
+      "resource": "Recurso",
+      "actor": "Actor",
+      "ip": "IP",
+      "correlationId": "ID de correlación"
+    },
+    "actions": {
+      "USER_CREATED":              "Usuario creado",
+      "USER_UPDATED":              "Usuario actualizado",
+      "USER_DELETED":              "Usuario eliminado",
+      "USER_RESTORED":             "Usuario restaurado",
+      "USER_ORG_ASSIGNED":         "Usuario asignado a org",
+      "USER_ORG_ROLE_UPDATED":     "Rol de usuario actualizado",
+      "USER_REMOVED_FROM_ORG":     "Usuario removido de org",
+      "USER_SUPER_ADMIN_CHANGED":  "Estado super admin cambiado",
+      "DEPARTAMENTO_CREATED":      "Departamento creado",
+      "DEPARTAMENTO_UPDATED":      "Departamento actualizado",
+      "DEPARTAMENTO_DELETED":      "Departamento eliminado",
+      "DEPARTAMENTO_RESTORED":     "Departamento restaurado",
+      "AREA_CREATED":              "Área creada",
+      "AREA_UPDATED":              "Área actualizada",
+      "AREA_DELETED":              "Área eliminada",
+      "AREA_RESTORED":             "Área restaurada",
+      "CARGO_CREATED":             "Cargo creado",
+      "CARGO_UPDATED":             "Cargo actualizado",
+      "CARGO_DELETED":             "Cargo eliminado",
+      "CARGO_RESTORED":            "Cargo restaurado",
+      "TYPOLOGY_CREATED":          "Tipología creada",
+      "TYPOLOGY_UPDATED":          "Tipología actualizada",
+      "TYPOLOGY_DELETED":          "Tipología eliminada",
+      "TYPOLOGY_VERSION_CREATED":  "Nueva versión de tipología",
+      "TYPOLOGY_DOCUMENT_UPLOADED":"Documento cargado",
+      "TYPOLOGY_EXTRACTION_RETRIED":"Extracción reintentada",
+      "TYPOLOGY_DISCREPANCY_RESOLVED":"Discrepancia resuelta",
+      "WORKFLOW_CREATED":          "Flujo creado",
+      "WORKFLOW_UPDATED":          "Flujo actualizado",
+      "APPROVAL_STARTED":          "Aprobación iniciada",
+      "STEP_APPROVED":             "Paso aprobado",
+      "STEP_REJECTED":             "Paso rechazado",
+      "WORKFLOW_RETURNED_TO_CREATOR":"Devuelto al creador",
+      "WORKFLOW_RESUBMITTED":      "Flujo reenviado",
+      "WORKFLOW_APPROVED":         "Flujo aprobado",
+      "ATTACHMENT_ADDED":          "Adjunto agregado",
+      "NOTE_ADDED":                "Nota agregada",
+      "ADMIN_CYCLE_STARTED":       "Ciclo admin iniciado",
+      "ADMIN_STEP_COMPLETED":      "Paso admin completado",
+      "ADMIN_CYCLE_COMPLETED":     "Ciclo admin completado",
+      "WORKFLOW_CLOSED":           "Flujo cerrado",
+      "WORKFLOW_CANCELLED":        "Flujo cancelado"
+    },
+    "detail": {
+      "title":                "Detalle del evento de auditoría",
+      "view":                 "Ver detalle",
+      "changes":              "Cambios",
+      "modified":             "Modificado",
+      "copy":                 "Copiar ID de correlación",
+      "filterByCorrelation":  "Filtrar por este ID de correlación"
+    },
+    "export": {
+      "button":           "Exportar Excel",
+      "title":            "Exportar registro de auditoría",
+      "maxRecords":       "Máximo de registros",
+      "download":         "Descargar",
+      "downloading":      "Descargando...",
+      "empty":            "No se encontraron registros para el período seleccionado.",
+      "error":            "Error al generar la exportación. Por favor intenta de nuevo.",
+      "byCorrelationId":  "Exportar por ID de correlación",
+      "correlationNote":  "Se exportarán todos los eventos con este ID de correlación (hasta 5000).",
+      "orByDate":         "o por rango de fechas"
+    },
+    "fields": {
+      "name":         "Nombre",
+      "description":  "Descripción",
+      "firstName":    "Nombre",
+      "lastName":     "Apellido",
+      "email":        "Correo",
+      "position":     "Cargo",
+      "isSuperAdmin": "Super admin",
+      "title":        "Título",
+      "approvers":    "Aprobadores",
+      "mainDocument": "Documento principal",
+      "attachments":  "Adjuntos"
+    },
+    "resourceTypes": {
+      "user":         "Usuario",
+      "cargo":        "Cargo",
+      "area":         "Área",
+      "departamento": "Departamento",
+      "typology":     "Tipología",
+      "workflow":     "Flujo de trabajo"
+    }
   },
   "orgStructure": {
     "departamentos": "Departamentos",
@@ -131,6 +278,7 @@
     "deleteCargo": "Eliminar cargo",
     "selectDepartamento": "Seleccionar departamento",
     "selectArea": "Seleccionar área",
+    "noArea": "— Nivel departamento —",
     "selectCargo": "Seleccionar cargo",
     "selectDepartamentoFirst": "Selecciona un departamento para ver sus áreas",
     "selectAreaFirst": "Selecciona un departamento y un área para ver sus cargos",
@@ -250,7 +398,8 @@
       "delete": "Eliminar",
       "restore": "Restaurar",
       "removeSuperAdmin": "Quitar Super Admin",
-      "grantSuperAdmin": "Otorgar Super Admin"
+      "grantSuperAdmin": "Otorgar Super Admin",
+      "resendInvitation": "Reenviar invitación"
     },
     "dialogs": {
       "createTitle": "Nuevo usuario",
@@ -285,6 +434,10 @@
         "linkLabel": "Enlace de registro",
         "copyTitle": "Copiar enlace",
         "expiry": "Este enlace expira en 72 horas."
+      },
+      "invitationResent": {
+        "title": "Invitación reenviada",
+        "description": "Se generó un nuevo enlace de invitación para {{email}}. El enlace anterior ha sido invalidado."
       }
     }
   },
@@ -439,7 +592,8 @@
     "status": {
       "DRAFT":                     "Borrador",
       "PENDING_APPROVAL":          "Pendiente aprobación",
-      "RETURNED_TO_CREATOR":       "Devuelto al creador",
+      "RETURNED_TO_CREATOR":       "Rechazado",
+      "REJECTED":                  "Rechazado",
       "PENDING_REVIEW_CYCLE":      "Pendiente revisión",
       "AVAILABLE_FOR_FINAL_USERS": "Disponible",
       "ADMIN_CYCLE_IN_PROGRESS":   "Ciclo admin activo",

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,14 +24,9 @@ const rejectSchema = z.object({
   observations: z.string().min(10, 'Mínimo 10 caracteres').max(3000, 'Máximo 3000 caracteres'),
 })
 
-const resubmitSchema = z.object({
-  observations: z.string().max(2000).optional(),
-})
-
 export type CreateWorkflowForm = z.infer<typeof createWorkflowSchema>
 export type ApproveForm = z.infer<typeof approveSchema>
 export type RejectForm = z.infer<typeof rejectSchema>
-export type ResubmitForm = z.infer<typeof resubmitSchema>
 
 export type WorkflowsInnerTab = 'all' | 'my-tasks' | 'my-available'
 
@@ -76,7 +71,6 @@ export function useWorkflows(companyId: string) {
   const [detailWorkflow, setDetailWorkflow] = useState<ApiWorkflow | null>(null)
   const [approveWorkflow, setApproveWorkflow] = useState<ApiWorkflow | null>(null)
   const [rejectWorkflow, setRejectWorkflow] = useState<ApiWorkflow | null>(null)
-  const [resubmitWorkflow, setResubmitWorkflow] = useState<ApiWorkflow | null>(null)
   const [timelineWorkflowId, setTimelineWorkflowId] = useState<string | null>(null)
   const [deleteWorkflow, setDeleteWorkflow] = useState<ApiWorkflow | null>(null)
   const [editWorkflow, setEditWorkflow] = useState<ApiWorkflow | null>(null)
@@ -111,7 +105,6 @@ export function useWorkflows(companyId: string) {
     staleTime: 0,
     refetchInterval: 15_000,
     refetchOnWindowFocus: true,
-    enabled: innerTab === 'my-tasks',
   })
 
   const { data: myAvailable = [], isLoading: myAvailableLoading } = useQuery({
@@ -120,7 +113,6 @@ export function useWorkflows(companyId: string) {
     staleTime: 0,
     refetchInterval: 15_000,
     refetchOnWindowFocus: true,
-    enabled: innerTab === 'my-available',
   })
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
@@ -302,7 +294,6 @@ export function useWorkflows(companyId: string) {
     mutationFn: (id: string) => workflowsApi.startApproval(id),
     onSuccess: (updated) => {
       invalidateAll()
-      setDetailWorkflow(updated)
       queryClient.setQueryData(['workflow', updated.id], updated)
     },
   })
@@ -332,18 +323,6 @@ export function useWorkflows(companyId: string) {
       invalidateAll()
       setRejectWorkflow(null)
       rejectForm.reset()
-    },
-  })
-
-  const resubmitMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: ResubmitForm }) =>
-      workflowsApi.resubmit(id, dto),
-    onSuccess: (updated) => {
-      invalidateAll()
-      setResubmitWorkflow(null)
-      setDetailWorkflow(updated)
-      queryClient.setQueryData(['workflow', updated.id], updated)
-      resubmitForm.reset()
     },
   })
 
@@ -416,11 +395,6 @@ export function useWorkflows(companyId: string) {
 
   const rejectForm = useForm<RejectForm>({
     resolver: zodResolver(rejectSchema),
-    mode: 'onChange',
-  })
-
-  const resubmitForm = useForm<ResubmitForm>({
-    resolver: zodResolver(resubmitSchema),
     mode: 'onChange',
   })
 
@@ -499,6 +473,30 @@ export function useWorkflows(companyId: string) {
     })
   })
 
+  // ── Open detail by ID (used from notification bell) ──────────────────────
+  // Use a ref to access latest cached data without adding them as deps,
+  // avoiding unnecessary recreation of the callback on every poll cycle.
+  const cachedRef = useRef({ paginatedWorkflows, myTasks, myAvailable })
+  cachedRef.current = { paginatedWorkflows, myTasks, myAvailable }
+
+  const openDetailById = useCallback(async (workflowId: string) => {
+    const { paginatedWorkflows: pw, myTasks: mt, myAvailable: ma } = cachedRef.current
+    const cached = [
+      ...(pw?.data ?? []),
+      ...mt,
+      ...ma,
+    ].find((w) => w.id === workflowId)
+
+    if (cached) {
+      setDetailWorkflow(cached)
+    } else {
+      try {
+        const workflow = await workflowsApi.getById(workflowId)
+        setDetailWorkflow(workflow)
+      } catch { /* ignore — detail simply won't open */ }
+    }
+  }, [])
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   const openCreate = () => {
     createForm.reset({ title: '', description: '' })
@@ -523,11 +521,6 @@ export function useWorkflows(companyId: string) {
   const openReject = (workflow: ApiWorkflow) => {
     rejectForm.reset()
     setRejectWorkflow(workflow)
-  }
-
-  const openResubmit = (workflow: ApiWorkflow) => {
-    resubmitForm.reset()
-    setResubmitWorkflow(workflow)
   }
 
   const openTimeline = (workflowId: string) => {
@@ -638,7 +631,6 @@ export function useWorkflows(companyId: string) {
     approveWorkflow, setApproveWorkflow,
     approveAttachmentFiles, setApproveAttachmentFiles,
     rejectWorkflow, setRejectWorkflow,
-    resubmitWorkflow, setResubmitWorkflow,
     timelineWorkflowId, setTimelineWorkflowId,
     deleteWorkflow, setDeleteWorkflow,
     editWorkflow, setEditWorkflow,
@@ -691,7 +683,6 @@ export function useWorkflows(companyId: string) {
     startApprovalMutation,
     approveMutation,
     rejectMutation,
-    resubmitMutation,
     createAdminCycleMutation,
     skipReviewCycleMutation,
     completeStepMutation,
@@ -702,7 +693,6 @@ export function useWorkflows(companyId: string) {
     editForm,
     approveForm,
     rejectForm,
-    resubmitForm,
 
     // Review cycle state
     reviewCycleWorkflow, setReviewCycleWorkflow,
@@ -713,13 +703,13 @@ export function useWorkflows(companyId: string) {
 
     // Helpers
     openCreate,
+    openDetailById,
     addApprover,
     removeApprover,
     addFinalUser,
     removeFinalUser,
     openApprove,
     openReject,
-    openResubmit,
     openTimeline,
     openEdit,
     openReviewCycle,

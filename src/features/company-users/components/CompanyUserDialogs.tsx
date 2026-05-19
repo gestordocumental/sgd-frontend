@@ -74,18 +74,22 @@ export function CompanyUserDialogs({
 
   return (
     <>
-      {/* ── Invitación enviada ────────────────────────────────────── */}
+      {/* ── Invitación enviada / reenviada ────────────────────────── */}
       <Dialog open={!!invitedUser} onOpenChange={(o) => { if (!o) setInvitedUser(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
-              {t('users.dialogs.invitationSent.title')}
+              {invitedUser?.invitationResent
+                ? t('users.dialogs.invitationResent.title')
+                : t('users.dialogs.invitationSent.title')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-1">
             <p className="text-sm text-muted-foreground">
-              {t('users.dialogs.invitationSent.description', { email: invitedUser?.email })}
+              {invitedUser?.invitationResent
+                ? t('users.dialogs.invitationResent.description', { email: invitedUser?.email })
+                : t('users.dialogs.invitationSent.description', { email: invitedUser?.email })}
             </p>
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

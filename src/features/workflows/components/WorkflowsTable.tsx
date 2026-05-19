@@ -1,7 +1,10 @@
-import type { ElementType } from 'react'
-import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import type { ElementType, CSSProperties } from 'react'
+import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, Plus, Copy, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,6 +14,8 @@ import { useAuthStore } from '@/store/authStore'
 
 type WorkflowsHook = ReturnType<typeof useWorkflows>
 
+const PAGE_SIZE = 20
+
 interface WorkflowsTableProps {
   hook: WorkflowsHook
   canWrite?: boolean
@@ -19,11 +24,48 @@ interface WorkflowsTableProps {
 
 export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: WorkflowsTableProps) {
   const { t } = useTranslation()
-  const { innerTab, setInnerTab } = hook
+  const { innerTab, setInnerTab, statusFilter, setStatusFilter } = hook
+
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleStatus = (v: string) => {
+    setStatusFilter(v === 'all' ? undefined : v as WorkflowStatus)
+    setPage(1)
+  }
+
+  const STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: 'all',                      label: t('common.all') },
+    { value: 'DRAFT',                    label: t('workflows.status.DRAFT') },
+    { value: 'PENDING_APPROVAL',         label: t('workflows.status.PENDING_APPROVAL') },
+    { value: 'REJECTED',                 label: t('workflows.status.REJECTED') },
+    { value: 'PENDING_REVIEW_CYCLE',     label: t('workflows.status.PENDING_REVIEW_CYCLE') },
+    { value: 'AVAILABLE_FOR_FINAL_USERS',label: t('workflows.status.AVAILABLE_FOR_FINAL_USERS') },
+    { value: 'ADMIN_CYCLE_IN_PROGRESS',  label: t('workflows.status.ADMIN_CYCLE_IN_PROGRESS') },
+    { value: 'CLOSED',                   label: t('workflows.status.CLOSED') },
+    { value: 'CANCELLED',                label: t('workflows.status.CANCELLED') },
+  ]
+
+  const filteredAll = (hook.workflows ?? []).filter((wf) => {
+    const q = search.toLowerCase()
+    return !q || wf.title.toLowerCase().includes(q) || (wf.description ?? '').toLowerCase().includes(q)
+  })
+  const totalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginatedAll = filteredAll.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
     <main className="p-6 space-y-4">
-      <Tabs value={innerTab} onValueChange={(v) => setInnerTab(v as typeof innerTab)} className="gap-0">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{t('dashboard.workflows')}</h2>
+        {canWrite && (
+          <Button size="sm" onClick={hook.openCreate}>
+            <Plus className="size-4" />{t('dashboard.newWorkflow')}
+          </Button>
+        )}
+      </div>
+      <Tabs value={innerTab} onValueChange={(v) => { setInnerTab(v as typeof innerTab); setPage(1) }} className="gap-0">
         <TabsList className="w-fit">
           <TabsTrigger value="all">
             <FileText className="size-4" />{t('workflows.tabs.all')}
@@ -31,7 +73,7 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
           <TabsTrigger value="my-tasks">
             <AlertCircle className="size-4" />{t('workflows.tabs.myTasks')}
             {hook.myTasks.length > 0 && (
-              <span className="ml-1.5 flex items-center justify-center size-4 rounded-full bg-destructive text-[9px] text-destructive-foreground font-bold">
+              <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold" style={{ backgroundColor: '#0060C5' }}>
                 {hook.myTasks.length}
               </span>
             )}
@@ -41,15 +83,40 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-4">
+        <TabsContent value="all" className="mt-4 space-y-3">
+          {/* Filters bar */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder={t('common.search')}
+                className="h-8 pl-8 w-52 text-sm"
+              />
+            </div>
+            <select
+              value={statusFilter ?? 'all'}
+              onChange={(e) => handleStatus(e.target.value)}
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
           <WorkflowList
-            workflows={hook.workflows}
+            workflows={paginatedAll}
             isLoading={hook.workflowsLoading}
             hook={hook}
             canWrite={canWrite}
             canApprove={canApprove}
-            emptyKey="workflows.empty"
+            emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.empty'}
           />
+          {totalPages > 1 && (
+            <Pager page={safePage} totalPages={totalPages} total={filteredAll.length} onChange={setPage} />
+          )}
         </TabsContent>
 
         <TabsContent value="my-tasks" className="mt-4">
@@ -75,6 +142,27 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
         </TabsContent>
       </Tabs>
     </main>
+  )
+}
+
+// ── Pager ─────────────────────────────────────────────────────────────────────
+
+function Pager({ page, totalPages, total, onChange }: {
+  page: number; totalPages: number; total: number; onChange: (p: number) => void
+}) {
+  return (
+    <div className="flex items-center justify-between px-1 py-2 text-sm text-muted-foreground">
+      <span>{total} resultado{total !== 1 ? 's' : ''}</span>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+          <ChevronLeft className="size-4" />
+        </Button>
+        <span className="px-2 text-xs">{page} / {totalPages}</span>
+        <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -117,10 +205,11 @@ function WorkflowList({ workflows, isLoading, hook, canWrite, canApprove, emptyK
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
       {/* Header */}
-      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-2.5 bg-muted/40">
+      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 bg-muted/40">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('workflows.table.title')}</span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">{t('workflows.table.typology')}</span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-36">{t('workflows.table.status')}</span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-28">{t('audit.columns.correlationId')}</span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-8" />
       </div>
       {workflows.map((wf) => (
@@ -152,13 +241,12 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
   const isFinalUser = workflow.finalUserIds?.includes(user?.id ?? '') ?? false
 
   const canStartApproval = isCreator && workflow.status === 'DRAFT'
-  const canResubmit = isCreator && workflow.status === 'RETURNED_TO_CREATOR'
   const canDelete = canWrite && isCreator && (workflow.status === 'DRAFT' || workflow.status === 'CANCELLED')
   const canStartReviewCycle = canApprove && isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE'
   const canCompleteStep = canApprove && isFinalUser && workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && workflow.currentAssignedUserId === user?.id
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
       {/* Title + description */}
       <div className="min-w-0">
         <button
@@ -187,6 +275,21 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
         <WorkflowStatusBadge status={workflow.status} />
       </div>
 
+      {/* Correlation ID */}
+      <div className="w-28 flex items-center gap-1 min-w-0">
+        <span className="font-mono text-[11px] text-muted-foreground truncate" title={workflow.id}>
+          {workflow.id.slice(0, 8)}…
+        </span>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center size-5 rounded text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0"
+          title={t('audit.detail.copy')}
+          onClick={() => navigator.clipboard.writeText(workflow.id)}
+        >
+          <Copy className="size-3" />
+        </button>
+      </div>
+
       {/* Actions */}
       <div className="w-8">
         <DropdownMenu>
@@ -208,14 +311,6 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
                   disabled={hook.startApprovalMutation.isPending}
                 >
                   <Play className="size-4" />{t('workflows.actions.startApproval')}
-                </DropdownMenuItem>
-              </>
-            )}
-            {canResubmit && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => hook.openResubmit(workflow)}>
-                  <RotateCcw className="size-4" />{t('workflows.actions.resubmit')}
                 </DropdownMenuItem>
               </>
             )}
@@ -255,23 +350,24 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
 
 // ── WorkflowStatusBadge ───────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<WorkflowStatus, { icon: ElementType; className: string; key: string }> = {
-  DRAFT:                      { icon: FileText,     className: 'bg-muted text-muted-foreground border-muted-foreground/30',             key: 'workflows.status.DRAFT' },
-  PENDING_APPROVAL:           { icon: Clock,        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',                        key: 'workflows.status.PENDING_APPROVAL' },
-  RETURNED_TO_CREATOR:        { icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200',                                 key: 'workflows.status.RETURNED_TO_CREATOR' },
-  PENDING_REVIEW_CYCLE:       { icon: Clock,        className: 'bg-purple-50 text-purple-700 border-purple-200',                        key: 'workflows.status.PENDING_REVIEW_CYCLE' },
-  AVAILABLE_FOR_FINAL_USERS:  { icon: CheckCircle,  className: 'bg-green-50 text-green-700 border-green-200',                           key: 'workflows.status.AVAILABLE_FOR_FINAL_USERS' },
-  ADMIN_CYCLE_IN_PROGRESS:    { icon: AlertCircle,  className: 'bg-blue-50 text-blue-700 border-blue-200',                              key: 'workflows.status.ADMIN_CYCLE_IN_PROGRESS' },
-  CLOSED:                     { icon: CheckCircle,  className: 'bg-slate-100 text-slate-600 border-slate-300',                          key: 'workflows.status.CLOSED' },
-  CANCELLED:                  { icon: XCircle,      className: 'bg-gray-50 text-gray-500 border-gray-200',                              key: 'workflows.status.CANCELLED' },
+const STATUS_CONFIG: Record<WorkflowStatus, { icon: ElementType; className: string; key: string; style?: CSSProperties }> = {
+  DRAFT:                      { icon: FileText,     className: 'bg-muted text-muted-foreground border-muted-foreground/30',  key: 'workflows.status.DRAFT' },
+  PENDING_APPROVAL:           { icon: Clock,        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',             key: 'workflows.status.PENDING_APPROVAL' },
+  RETURNED_TO_CREATOR:        { icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200',                     key: 'workflows.status.REJECTED' },
+  REJECTED:                   { icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200',                     key: 'workflows.status.REJECTED' },
+  PENDING_REVIEW_CYCLE:       { icon: Clock,        className: 'bg-purple-50 text-purple-700 border-purple-200',             key: 'workflows.status.PENDING_REVIEW_CYCLE' },
+  AVAILABLE_FOR_FINAL_USERS:  { icon: CheckCircle,  className: 'bg-green-50 text-green-700 border-green-200',               key: 'workflows.status.AVAILABLE_FOR_FINAL_USERS' },
+  ADMIN_CYCLE_IN_PROGRESS:    { icon: AlertCircle,  className: 'bg-blue-50 text-blue-700 border-blue-200',                  key: 'workflows.status.ADMIN_CYCLE_IN_PROGRESS' },
+  CLOSED:                     { icon: CheckCircle,  className: 'bg-slate-100 text-slate-600 border-slate-300',              key: 'workflows.status.CLOSED' },
+  CANCELLED:                  { icon: XCircle,      className: 'bg-gray-50 text-gray-500 border-gray-200',                  key: 'workflows.status.CANCELLED' },
 }
 
 export function WorkflowStatusBadge({ status }: { status: WorkflowStatus }) {
   const { t } = useTranslation()
-  const config = STATUS_CONFIG[status]
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.DRAFT
   const Icon = config.icon
   return (
-    <Badge variant="outline" className={`gap-1 text-xs ${config.className}`}>
+    <Badge variant="outline" className={`gap-1 text-xs ${config.className}`} style={config.style}>
       <Icon className="size-3" />
       {t(config.key)}
     </Badge>
