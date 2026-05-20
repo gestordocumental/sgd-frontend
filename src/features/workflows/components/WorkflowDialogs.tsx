@@ -315,7 +315,7 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                           </div>
                           <Button
                             type="button" variant="ghost" size="icon"
-                            aria-label="Eliminar aprobador"
+                            aria-label={t('workflows.dialogs.removeApprover')}
                             className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                             onClick={() => removeApprover(id)}
                           >
@@ -333,21 +333,21 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     searchPlaceholder={t('workflows.dialogs.approverSearch')}
                     emptyText={
                       approverEligibleUsers.length === 0
-                        ? 'No hay usuarios con permiso de aprobación'
+                        ? t('workflows.dialogs.approverNoPermission')
                         : t('workflows.dialogs.approverAllAdded')
                     }
                   />
                   {createError === 'Agrega al menos un aprobador' && (
-                    <p className="text-xs text-destructive">{createError}</p>
+                    <p className="text-xs text-destructive">{t('workflows.dialogs.errorMinApprover')}</p>
                   )}
                 </div>
 
                 {/* Usuarios finales */}
                 <div className="space-y-2">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Usuarios finales</label>
+                    <label className="text-sm font-medium">{t('workflows.dialogs.finalUsersLabel')}</label>
                     <p className="text-xs text-muted-foreground">
-                      Usuarios que podrán acceder al workflow una vez aprobado. Se filtran según la estructura organizacional de la tipología seleccionada.
+                      {t('workflows.dialogs.finalUsersHint')}
                     </p>
                   </div>
                   {selectedFinalUsersData.length > 0 && (
@@ -365,7 +365,7 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                           </div>
                           <Button
                             type="button" variant="ghost" size="icon"
-                            aria-label="Eliminar usuario final"
+                            aria-label={t('workflows.dialogs.removeFinalUser')}
                             className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                             onClick={() => removeFinalUser(id)}
                           >
@@ -377,15 +377,15 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                   )}
                   {!selectedTypologyId ? (
                     <p className="text-xs text-muted-foreground italic px-1">
-                      Selecciona una tipología para ver los usuarios elegibles.
+                      {t('workflows.dialogs.finalUsersSelectTypology')}
                     </p>
                   ) : finalUserEligibleUsers.length === 0 ? (
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 space-y-2">
                       <p className="text-xs text-amber-800">
-                        No hay usuarios con el cargo, área o departamento requerido por esta tipología. Notifica a los administradores para que configuren los usuarios correctamente.
+                        {t('workflows.dialogs.finalUsersNoEligible')}
                       </p>
                       {notifyNoFinalUsersMutation.isSuccess ? (
-                        <p className="text-xs text-green-700 font-medium">Notificación enviada a los administradores.</p>
+                        <p className="text-xs text-green-700 font-medium">{t('workflows.dialogs.finalUsersNotified')}</p>
                       ) : (
                         <Button
                           type="button" size="sm" variant="outline"
@@ -400,10 +400,10 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                           }
                         >
                           {notifyNoFinalUsersMutation.isPending
-                            ? 'Enviando...'
+                            ? t('workflows.dialogs.finalUsersSending')
                             : adminUserIds.length === 0
-                              ? 'No hay administradores registrados'
-                              : 'Notificar a los administradores'}
+                              ? t('workflows.dialogs.finalUsersNoAdmins')
+                              : t('workflows.dialogs.finalUsersNotify')}
                         </Button>
                       )}
                     </div>
@@ -412,13 +412,13 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       options={availableFinalUserOptions}
                       value=""
                       onChange={addFinalUser}
-                      placeholder="Seleccionar usuario final..."
-                      searchPlaceholder="Buscar usuario..."
-                      emptyText="No hay usuarios que coincidan con la estructura de esta tipología"
+                      placeholder={t('workflows.dialogs.finalUsersPlaceholder')}
+                      searchPlaceholder={t('workflows.dialogs.finalUsersSearch')}
+                      emptyText={t('workflows.dialogs.finalUsersEmpty')}
                     />
                   ) : null}
                   {createError === 'Agrega al menos un usuario final' && (
-                    <p className="text-xs text-destructive">{createError}</p>
+                    <p className="text-xs text-destructive">{t('workflows.dialogs.errorMinFinalUser')}</p>
                   )}
                 </div>
               </div>
@@ -1356,7 +1356,13 @@ function TimelineEventRow({
 
   return (
     <div className="flex gap-3 pl-1">
-      <div className={`relative z-10 flex items-center justify-center size-6 rounded-full border-2 bg-background shrink-0 ${isNegative ? 'border-green-500 text-green-600' : 'border-green-500 text-green-600'}`} style={isNegative ? { borderColor: '#0060C5', color: '#0060C5' } : undefined}>
+      <div
+        className="relative z-10 flex items-center justify-center size-6 rounded-full border-2 bg-background shrink-0"
+        style={isNegative
+          ? { borderColor: '#0060C5', color: '#0060C5' }
+          : { borderColor: '#22c55e', color: '#16a34a' }
+        }
+      >
         <Icon className="size-3" />
       </div>
       <div className="flex-1 min-w-0 pb-1">

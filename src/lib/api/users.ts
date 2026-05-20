@@ -59,9 +59,18 @@ export interface UserOrgRoleResponseDto {
 }
 
 export interface ApiUserCreated extends ApiUser {
-  /** Token de invitación de un solo uso (72 h). Mismo token enviado por email. */
+  /** Token de invitación de un solo uso (72 h). Mismo token enviado por email.
+   *  @internal Consumir sólo para construir la URL de registro; no persistir en estado de UI. */
   invitationToken: string;
   /** true cuando el usuario ya existía como PENDING y se regeneró la invitación. */
+  invitationResent?: boolean;
+}
+
+/** Datos mínimos que la UI necesita tras crear/reenviar una invitación.
+ *  El token ya fue consumido para construir la URL y no se almacena. */
+export interface InvitedUserInfo {
+  email: string;
+  invitationUrl: string;
   invitationResent?: boolean;
 }
 

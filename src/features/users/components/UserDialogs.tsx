@@ -27,9 +27,7 @@ export function UserDialogs({ hook }: UserDialogsProps) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
-  const invitationUrl = invitedUser
-    ? `${window.location.origin}/complete-registration?token=${invitedUser.invitationToken}`
-    : ''
+  const invitationUrl = invitedUser?.invitationUrl ?? ''
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(invitationUrl).then(() => {
@@ -41,7 +39,15 @@ export function UserDialogs({ hook }: UserDialogsProps) {
   return (
     <>
       {/* ── Invitación enviada / reenviada ────────────────────────── */}
-      <Dialog open={!!invitedUser} onOpenChange={(o) => { if (!o) setInvitedUser(null) }}>
+      <Dialog
+        open={!!invitedUser}
+        onOpenChange={(o) => {
+          if (!o) {
+            setInvitedUser(null)
+            setCopied(false)
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -85,7 +91,13 @@ export function UserDialogs({ hook }: UserDialogsProps) {
             </p>
           </div>
           <DialogFooter>
-            <Button className="w-full" onClick={() => setInvitedUser(null)}>
+            <Button
+              className="w-full"
+              onClick={() => {
+                setInvitedUser(null)
+                setCopied(false)
+              }}
+            >
               {t('common.close')}
             </Button>
           </DialogFooter>

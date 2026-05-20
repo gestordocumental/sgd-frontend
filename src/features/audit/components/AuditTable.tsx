@@ -102,14 +102,14 @@ function resolveActorName(actorId: string, users: SimpleUser[]): string {
   return name || u.email || actorId
 }
 
-type TFn = (key: string, opts?: object) => string
+type TFn = (key: string, opts?: Record<string, unknown>) => string
 
 function formatAction(action: string, t: TFn): string {
-  return t(`audit.actions.${action}`, { defaultValue: action.replace(/_/g, ' ') })
+  return String(t(`audit.actions.${action}`, { defaultValue: action.replace(/_/g, ' ') }))
 }
 
 function formatFieldName(field: string, t: TFn): string {
-  return t(`audit.fields.${field}`, { defaultValue: field })
+  return String(t(`audit.fields.${field}`, { defaultValue: field }))
 }
 
 const RESOURCE_TYPE_COLORS: Record<string, string> = {
@@ -126,7 +126,7 @@ function resourceTypeColor(type: string) {
 }
 
 function formatResourceType(type: string, t: TFn): string {
-  return t(`audit.resourceTypes.${type}`, { defaultValue: type })
+  return String(t(`audit.resourceTypes.${type}`, { defaultValue: type }))
 }
 
 function resolveResourceName(log: { resourceId: string; resourceName?: string | null; metadata: Record<string, unknown> | null }): string {

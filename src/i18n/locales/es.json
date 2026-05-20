@@ -68,7 +68,9 @@
     "logout": "Cerrar sesión",
     "actions": "Acciones",
     "search": "Buscar",
-    "clear": "Limpiar"
+    "clear": "Limpiar",
+    "resultsCount_one": "{{count}} resultado",
+    "resultsCount_other": "{{count}} resultados"
   },
   "profile": {
     "myProfile": "Mi perfil",
@@ -138,7 +140,16 @@
       "totalWorkflows": "Flujos totales",
       "myPendingTasks": "Mis tareas pendientes",
       "totalOrgs": "Organizaciones",
-      "totalUsers": "Usuarios totales"
+      "totalUsers": "Usuarios totales",
+      "activeOrgs": "Orgs activas",
+      "orgActiveSub": "{{active}} activas · {{inactive}} inactivas",
+      "userGlobalSub": "{{active}} activos · {{superAdmins}} super admin",
+      "registeredThisMonth": "Registradas este mes",
+      "storageWithData": "{{count}} orgs con datos",
+      "users": "Usuarios",
+      "usersActiveSub": "{{active}} activos · {{inactive}} inactivos",
+      "loadingUsers": "Cargando usuarios…",
+      "usersInOrg": "{{count}} usuarios en esta organización"
     },
     "charts": {
       "workflowStatus": "Estado de flujos",
@@ -146,7 +157,23 @@
       "weeklyTrend": "Creación semanal (8 semanas)",
       "storagePerOrg": "Espacio usado por organización",
       "workflowsPerOrg": "Flujos por organización",
-      "usersPerOrg": "Usuarios por organización"
+      "usersPerOrg": "Usuarios por organización",
+      "usersActiveTitle": "Usuarios activos / inactivos",
+      "usersCenterLabel": "usuarios",
+      "usersActive": "Activos",
+      "usersInactive": "Inactivos",
+      "orgStatus": "Estado de organizaciones",
+      "orgsCenterLabel": "orgs",
+      "orgsActive": "Activas",
+      "orgsInactive": "Inactivas",
+      "globalUsers": "Usuarios (globales)",
+      "monthlyRegistrations": "Registros por mes (6 meses)",
+      "recentOrgs": "Organizaciones recientes",
+      "usersCount": "{{count}} usuarios"
+    },
+    "orgStatus": {
+      "active": "Activa",
+      "inactive": "Inactiva"
     },
     "noData": "Sin datos aún"
   },
@@ -685,7 +712,23 @@
       "deleteTitle":                    "Eliminar flujo",
       "deleteConfirmPre":               "¿Estás seguro de que deseas eliminar el flujo",
       "deleteConfirmPost":              "? Esta acción no se puede deshacer.",
-      "deleteButton":                   "Eliminar"
+      "deleteButton":                   "Eliminar",
+      "approverNoPermission":           "No hay usuarios con permiso de aprobación",
+      "errorMinApprover":               "Agrega al menos un aprobador",
+      "finalUsersLabel":                "Usuarios finales",
+      "finalUsersHint":                 "Usuarios que podrán acceder al workflow una vez aprobado. Se filtran según la estructura organizacional de la tipología seleccionada.",
+      "removeFinalUser":                "Eliminar usuario final",
+      "finalUsersSelectTypology":       "Selecciona una tipología para ver los usuarios elegibles.",
+      "finalUsersNoEligible":           "No hay usuarios con el cargo, área o departamento requerido por esta tipología. Notifica a los administradores para que configuren los usuarios correctamente.",
+      "finalUsersNotified":             "Notificación enviada a los administradores.",
+      "finalUsersSending":              "Enviando...",
+      "finalUsersNoAdmins":             "No hay administradores registrados",
+      "finalUsersNotify":               "Notificar a los administradores",
+      "finalUsersPlaceholder":          "Seleccionar usuario final...",
+      "finalUsersSearch":               "Buscar usuario...",
+      "finalUsersEmpty":                "No hay usuarios que coincidan con la estructura de esta tipología",
+      "errorMinFinalUser":              "Agrega al menos un usuario final",
+      "removeApprover":                 "Eliminar aprobador"
     }
   },
   "permissions": {

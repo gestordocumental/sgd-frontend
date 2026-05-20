@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, UserPlus, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, UserPlus, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Pager } from '@/components/ui/pager'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -142,41 +143,13 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} />
+          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-5 py-3 border-t border-border" />
         )}
       </div>
     </main>
   )
 }
 
-// ── Pager ─────────────────────────────────────────────────────────────────────
-
-function Pager({ page, totalPages, total, onChange }: {
-  page: number; totalPages: number; total: number; onChange: (p: number) => void
-}) {
-  return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-border text-sm text-muted-foreground">
-      <span>{total} resultado{total !== 1 ? 's' : ''}</span>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost" size="icon" className="size-7"
-          disabled={page <= 1}
-          onClick={() => onChange(page - 1)}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span className="px-2 text-xs">{page} / {totalPages}</span>
-        <Button
-          variant="ghost" size="icon" className="size-7"
-          disabled={page >= totalPages}
-          onClick={() => onChange(page + 1)}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 // ── UserRow ───────────────────────────────────────────────────────────────────
 

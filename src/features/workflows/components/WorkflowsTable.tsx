@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ElementType, CSSProperties } from 'react'
-import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, Plus, Copy, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, Plus, Copy, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Pager } from '@/components/ui/pager'
 import { type ApiWorkflow, type WorkflowStatus } from '@/lib/api/workflows'
 import type { useWorkflows } from '@/features/workflows/hooks/use-workflows'
 import { useAuthStore } from '@/store/authStore'
@@ -115,7 +116,7 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
             emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.empty'}
           />
           {totalPages > 1 && (
-            <Pager page={safePage} totalPages={totalPages} total={filteredAll.length} onChange={setPage} />
+            <Pager page={safePage} totalPages={totalPages} total={filteredAll.length} onChange={setPage} className="px-1 py-2" />
           )}
         </TabsContent>
 
@@ -147,24 +148,6 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
 
 // ── Pager ─────────────────────────────────────────────────────────────────────
 
-function Pager({ page, totalPages, total, onChange }: {
-  page: number; totalPages: number; total: number; onChange: (p: number) => void
-}) {
-  return (
-    <div className="flex items-center justify-between px-1 py-2 text-sm text-muted-foreground">
-      <span>{total} resultado{total !== 1 ? 's' : ''}</span>
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span className="px-2 text-xs">{page} / {totalPages}</span>
-        <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 // ── WorkflowList ──────────────────────────────────────────────────────────────
 
@@ -284,7 +267,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
           type="button"
           className="inline-flex items-center justify-center size-5 rounded text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0"
           title={t('audit.detail.copy')}
-          onClick={() => navigator.clipboard.writeText(workflow.id)}
+          onClick={() => { navigator.clipboard.writeText(workflow.id).catch(() => undefined) }}
         >
           <Copy className="size-3" />
         </button>

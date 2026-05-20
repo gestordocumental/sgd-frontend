@@ -68,7 +68,9 @@
     "logout": "Log out",
     "actions": "Actions",
     "search": "Search",
-    "clear": "Clear"
+    "clear": "Clear",
+    "resultsCount_one": "{{count}} result",
+    "resultsCount_other": "{{count}} results"
   },
   "profile": {
     "myProfile": "My profile",
@@ -138,7 +140,16 @@
       "totalWorkflows": "Total workflows",
       "myPendingTasks": "My pending tasks",
       "totalOrgs": "Organizations",
-      "totalUsers": "Total users"
+      "totalUsers": "Total users",
+      "activeOrgs": "Active orgs",
+      "orgActiveSub": "{{active}} active · {{inactive}} inactive",
+      "userGlobalSub": "{{active}} active · {{superAdmins}} super admin",
+      "registeredThisMonth": "Registered this month",
+      "storageWithData": "{{count}} orgs with data",
+      "users": "Users",
+      "usersActiveSub": "{{active}} active · {{inactive}} inactive",
+      "loadingUsers": "Loading users…",
+      "usersInOrg": "{{count}} users in this organization"
     },
     "charts": {
       "workflowStatus": "Workflow status",
@@ -146,7 +157,23 @@
       "weeklyTrend": "Weekly creation (8 weeks)",
       "storagePerOrg": "Storage used per organization",
       "workflowsPerOrg": "Workflows per org",
-      "usersPerOrg": "Users per org"
+      "usersPerOrg": "Users per org",
+      "usersActiveTitle": "Active / inactive users",
+      "usersCenterLabel": "users",
+      "usersActive": "Active",
+      "usersInactive": "Inactive",
+      "orgStatus": "Organization status",
+      "orgsCenterLabel": "orgs",
+      "orgsActive": "Active",
+      "orgsInactive": "Inactive",
+      "globalUsers": "Users (global)",
+      "monthlyRegistrations": "Registrations by month (6 months)",
+      "recentOrgs": "Recent organizations",
+      "usersCount": "{{count}} users"
+    },
+    "orgStatus": {
+      "active": "Active",
+      "inactive": "Inactive"
     },
     "noData": "No data yet"
   },
@@ -685,7 +712,23 @@
       "deleteTitle":                    "Delete workflow",
       "deleteConfirmPre":               "Are you sure you want to delete workflow",
       "deleteConfirmPost":              "? This action cannot be undone.",
-      "deleteButton":                   "Delete"
+      "deleteButton":                   "Delete",
+      "approverNoPermission":           "No users have approval permission",
+      "errorMinApprover":               "Add at least one approver",
+      "finalUsersLabel":                "End users",
+      "finalUsersHint":                 "Users who will access the workflow once approved. Filtered by the organizational structure of the selected typology.",
+      "removeFinalUser":                "Remove end user",
+      "finalUsersSelectTypology":       "Select a typology to see eligible users.",
+      "finalUsersNoEligible":           "No users match the required position, area or department for this typology. Notify the administrators to configure users correctly.",
+      "finalUsersNotified":             "Notification sent to administrators.",
+      "finalUsersSending":              "Sending…",
+      "finalUsersNoAdmins":             "No administrators registered",
+      "finalUsersNotify":               "Notify administrators",
+      "finalUsersPlaceholder":          "Select end user…",
+      "finalUsersSearch":               "Search user…",
+      "finalUsersEmpty":                "No users match the structure of this typology",
+      "errorMinFinalUser":              "Add at least one end user",
+      "removeApprover":                 "Remove approver"
     }
   },
   "permissions": {

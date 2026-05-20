@@ -41,7 +41,7 @@ export function NotificationBell({ onWorkflowClick }: NotificationBellProps) {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger>
         <Button
           variant="ghost"
           size="icon"
@@ -87,10 +87,11 @@ export function NotificationBell({ onWorkflowClick }: NotificationBellProps) {
             </div>
           ) : (
             notifications.map((n) => (
-              <div
+              <button
                 key={n.id}
+                type="button"
                 onClick={() => handleNotificationClick(n)}
-                className={`flex gap-2.5 px-3 py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-accent transition-colors ${!n.read ? 'bg-primary/5' : ''}`}
+                className={`w-full text-left flex gap-2.5 px-3 py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${!n.read ? 'bg-primary/5' : ''}`}
               >
                 <div className="shrink-0 mt-0.5">
                   <div className={`flex items-center justify-center size-7 rounded-full ${!n.read ? 'bg-primary/10' : 'bg-muted'}`}>
@@ -116,7 +117,7 @@ export function NotificationBell({ onWorkflowClick }: NotificationBellProps) {
                 {!n.read && (
                   <div className="shrink-0 mt-1.5 size-1.5 rounded-full bg-primary" />
                 )}
-              </div>
+              </button>
             ))
           )}
         </div>

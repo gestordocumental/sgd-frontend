@@ -284,9 +284,10 @@ export function CompaniesTable({
 function Pager({ page, totalPages, total, onChange }: {
   page: number; totalPages: number; total: number; onChange: (p: number) => void
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-border text-sm text-muted-foreground">
-      <span>{total} resultado{total !== 1 ? 's' : ''}</span>
+      <span>{t('common.resultsCount', { count: total })}</span>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => onChange(page - 1)}>
           <ChevronLeft className="size-4" />
@@ -588,7 +589,7 @@ function CompanyUsersRow({
                 </Table>
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-2 border-t border-border text-xs text-muted-foreground">
-                    <span>{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
+                    <span>{t('common.resultsCount', { count: filtered.length })}</span>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="size-6" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
                         <ChevronLeft className="size-3" />

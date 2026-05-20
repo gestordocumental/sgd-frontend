@@ -170,7 +170,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
       orgStructureApi.updateCargo(
         companyId,
         editCargo!.departamentoId,
-        editCargo!.areaId,
+        editCargo!.areaId ?? '',
         editCargo!.id,
         dto,
       ),

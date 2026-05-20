@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useRef } from "react";
+import { useRef, type ChangeEvent } from "react";
 import {
   LogOut,
   ChevronsUpDown,
@@ -78,7 +78,7 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
     },
   })
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) avatarMutation.mutate(file)
     e.target.value = ''

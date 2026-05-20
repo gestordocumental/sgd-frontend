@@ -209,7 +209,8 @@ function WeeklyBarChart({
   title: string
   noDataLabel: string
 }) {
-  const maxCount = Math.max(...data.map((d) => d.count), 1)
+  const hasData = data.length > 0
+  const maxCount = hasData ? Math.max(...data.map((d) => d.count), 1) : 0
   const chartH = 100
   const chartW = 320
   const cols = data.length || 1
@@ -218,7 +219,7 @@ function WeeklyBarChart({
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <p className="text-base font-semibold mb-4">{title}</p>
-      {maxCount === 0 ? (
+      {!hasData ? (
         <p className="text-sm text-muted-foreground">{noDataLabel}</p>
       ) : (
         <svg viewBox={`0 0 ${chartW} ${chartH + 24}`} className="w-full">
@@ -318,9 +319,9 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
         />
         <KpiCard
           icon={Users}
-          label="Usuarios"
+          label={t('dashboard.kpi.users')}
           value={usersLoading ? '—' : users.length}
-          sub={usersLoading ? undefined : `${activeUsers} activos · ${inactiveUsers} inactivos`}
+          sub={usersLoading ? undefined : t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })}
           loading={usersLoading}
           colorIdx={5}
         />
@@ -353,22 +354,22 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <DonutChart
           slices={[
-            { label: 'Activos',   value: activeUsers,   color: '#6366f1' },
-            { label: 'Inactivos', value: inactiveUsers, color: '#f87171' },
+            { label: t('dashboard.charts.usersActive'),   value: activeUsers,   color: '#6366f1' },
+            { label: t('dashboard.charts.usersInactive'), value: inactiveUsers, color: '#f87171' },
           ]}
-          title="Usuarios activos / inactivos"
-          centerLabel="usuarios"
-          noDataLabel={usersLoading ? 'Cargando…' : noData}
+          title={t('dashboard.charts.usersActiveTitle')}
+          centerLabel={t('dashboard.charts.usersCenterLabel')}
+          noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
         />
         {/* placeholder card so the row doesn't feel empty when only one chart */}
         <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-center items-center text-muted-foreground gap-2">
           <Users className="size-10 opacity-20" />
           <p className="text-sm font-medium">
-            {usersLoading ? 'Cargando usuarios…' : `${users.length} usuarios en esta organización`}
+            {usersLoading ? t('dashboard.kpi.loadingUsers') : t('dashboard.kpi.usersInOrg', { count: users.length })}
           </p>
           {!usersLoading && (
             <p className="text-xs opacity-60">
-              {activeUsers} activos · {inactiveUsers} inactivos
+              {t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })}
             </p>
           )}
         </div>

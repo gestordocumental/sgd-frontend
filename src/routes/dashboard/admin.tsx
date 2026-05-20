@@ -2,7 +2,7 @@ import { useState, startTransition } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { UserProfileCard } from "@/features/profile/components/UserProfileCard";
-import { FileText, Users, Building2, UserPlus, LayoutDashboard } from "lucide-react";
+import { Users, Building2, UserPlus, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

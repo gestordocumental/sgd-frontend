@@ -152,9 +152,10 @@ export function UsersTable({ hook }: UsersTableProps) {
 function Pager({ page, totalPages, total, onChange }: {
   page: number; totalPages: number; total: number; onChange: (p: number) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-border text-sm text-muted-foreground">
-      <span>{total} resultado{total !== 1 ? 's' : ''}</span>
+      <span>{t('common.resultsCount', { count: total })}</span>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => onChange(page - 1)}>
           <ChevronLeft className="size-4" />

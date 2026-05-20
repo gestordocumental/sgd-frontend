@@ -61,9 +61,7 @@ export function CompanyUserDialogs({
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
-  const invitationUrl = invitedUser
-    ? `${window.location.origin}/complete-registration?token=${invitedUser.invitationToken}`
-    : '';
+  const invitationUrl = invitedUser?.invitationUrl ?? '';
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(invitationUrl).then(() => {

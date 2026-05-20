@@ -7,6 +7,7 @@ import {
   usersApi,
   type ApiUser,
   type ApiUserCreated,
+  type InvitedUserInfo,
   type CreateUserDto,
   type UpdateUserDto,
 } from "@/lib/api/users";
@@ -39,7 +40,7 @@ export function useAdminUsers() {
   const queryClient = useQueryClient();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [invitedUser, setInvitedUser] = useState<ApiUserCreated | null>(null);
+  const [invitedUser, setInvitedUser] = useState<InvitedUserInfo | null>(null);
   const [createUserContext, setCreateUserContext] = useState<
     "super-admin" | "company"
   >("super-admin");
@@ -149,7 +150,11 @@ export function useAdminUsers() {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
       queryClient.invalidateQueries({ queryKey: ["company-users"] });
       setCreateOpen(false);
-      if (created) setInvitedUser(created);
+      if (created) setInvitedUser({
+        email: created.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${created.invitationToken}`,
+        invitationResent: created.invitationResent,
+      });
     },
   });
 
@@ -177,7 +182,13 @@ export function useAdminUsers() {
 
   const resendInvitationMutation = useMutation({
     mutationFn: (id: string) => usersApi.resendInvitation(id),
-    onSuccess: (data) => { setInvitedUser(data); },
+    onSuccess: (data) => {
+      setInvitedUser({
+        email: data.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${data.invitationToken}`,
+        invitationResent: data.invitationResent,
+      });
+    },
   });
 
   const toggleSuperAdminMutation = useMutation({

@@ -1,6 +1,6 @@
 import { useState, startTransition, useCallback } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { FileText, Users, Building2, Shield, FolderTree, GitBranch, ClipboardList, LayoutDashboard } from 'lucide-react'
+import { Users, Building2, Shield, FolderTree, GitBranch, ClipboardList, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuthStore } from '@/store/authStore'
