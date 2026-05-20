@@ -452,6 +452,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
     editFinalUserId, setEditFinalUserId,
     approverEligibleUsers, finalUserEligibleUsers, activeOrgUsers, orgUsersMap,
   } = hook
+  const { t } = useTranslation()
 
   if (!editWorkflow) return null
 

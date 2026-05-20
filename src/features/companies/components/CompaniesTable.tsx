@@ -567,18 +567,7 @@ function CompanyUsersRow({
                   </TableBody>
                 </Table>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-2 border-t border-border text-xs text-muted-foreground">
-                    <span>{t('common.resultsCount', { count: filtered.length })}</span>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="size-6" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
-                        <ChevronLeft className="size-3" />
-                      </Button>
-                      <span className="px-1">{safePage} / {totalPages}</span>
-                      <Button variant="ghost" size="icon" className="size-6" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}>
-                        <ChevronRight className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
+                  <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-4 py-2 border-t border-border" />
                 )}
               </div>
             )}
