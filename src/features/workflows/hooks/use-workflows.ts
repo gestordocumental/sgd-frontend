@@ -451,15 +451,15 @@ export function useWorkflows(companyId: string) {
   // ── Submit handler ────────────────────────────────────────────────────────
   const submitCreate = createForm.handleSubmit((values) => {
     if (!selectedTypologyId) {
-      setCreateError('Selecciona una tipología')
+      setCreateError('ERR_NO_TYPOLOGY')
       return
     }
     if (approverIds.length === 0) {
-      setCreateError('Agrega al menos un aprobador')
+      setCreateError('ERR_NO_APPROVER')
       return
     }
     if (finalUserIds.length === 0) {
-      setCreateError('Agrega al menos un usuario final')
+      setCreateError('ERR_NO_FINAL_USER')
       return
     }
     setCreateError(null)

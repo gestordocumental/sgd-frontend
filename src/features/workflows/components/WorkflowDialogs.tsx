@@ -152,8 +152,8 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     searchPlaceholder={t('workflows.dialogs.typologySearch')}
                     emptyText={t('workflows.dialogs.typologyEmpty')}
                   />
-                  {createError === 'Selecciona una tipología' && (
-                    <p className="text-xs text-destructive">{createError}</p>
+                  {createError === 'ERR_NO_TYPOLOGY' && (
+                    <p className="text-xs text-destructive">{t('workflows.dialogs.errorNoTypology')}</p>
                   )}
                 </div>
 
@@ -337,7 +337,7 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                         : t('workflows.dialogs.approverAllAdded')
                     }
                   />
-                  {createError === 'Agrega al menos un aprobador' && (
+                  {createError === 'ERR_NO_APPROVER' && (
                     <p className="text-xs text-destructive">{t('workflows.dialogs.errorMinApprover')}</p>
                   )}
                 </div>
@@ -417,7 +417,7 @@ function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       emptyText={t('workflows.dialogs.finalUsersEmpty')}
                     />
                   ) : null}
-                  {createError === 'Agrega al menos un usuario final' && (
+                  {createError === 'ERR_NO_FINAL_USER' && (
                     <p className="text-xs text-destructive">{t('workflows.dialogs.errorMinFinalUser')}</p>
                   )}
                 </div>
@@ -556,7 +556,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
             </label>
             {existingMainDocMeta?.storageKey && !editDocumentFile && (
               <p className="text-xs text-muted-foreground">
-                Actual: <span className="font-medium text-foreground">{existingMainDocMeta.originalName ?? existingMainDocMeta.storageKey}</span>
+                {t('workflows.dialogs.editDocCurrent')} <span className="font-medium text-foreground">{existingMainDocMeta.originalName ?? existingMainDocMeta.storageKey}</span>
               </p>
             )}
             <label
@@ -849,7 +849,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                   <span className="text-muted-foreground ml-1">— {detailWorkflow.typologyName}</span>
                   <Badge variant="outline" className="text-xs ml-1">{detailWorkflow.typologyVersion}</Badge>
                 </InfoRow>
-                <InfoRow label="Creado por">{userName(detailWorkflow.createdBy)}</InfoRow>
+                <InfoRow label={t('workflows.detail.createdBy')}>{userName(detailWorkflow.createdBy)}</InfoRow>
                 <InfoRow label={t('workflows.detail.createdAt')}>
                   {new Date(detailWorkflow.createdAt).toLocaleString()}
                 </InfoRow>
@@ -866,7 +866,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                     <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5">
                       <FileText className="size-4 text-primary shrink-0" />
                       <span className="flex-1 text-sm truncate">{mainDocMeta.originalName ?? mainDocMeta.storageKey}</span>
-                      <Button type="button" variant="ghost" size="icon" aria-label="Descargar documento" className="size-7 shrink-0" onClick={() => handleOpenFile(mainDocMeta.storageKey!)}>
+                      <Button type="button" variant="ghost" size="icon" aria-label={t('workflows.detail.downloadDoc')} className="size-7 shrink-0" onClick={() => handleOpenFile(mainDocMeta.storageKey!)}>
                         <Download className="size-3.5" />
                       </Button>
                     </div>
@@ -887,7 +887,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                         <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
                           <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
                           <span className="flex-1 text-xs truncate">{att.originalName}</span>
-                          <Button type="button" variant="ghost" size="icon" aria-label="Descargar adjunto" className="size-7 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
+                          <Button type="button" variant="ghost" size="icon" aria-label={t('workflows.detail.downloadAttachment')} className="size-7 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
                             <Download className="size-3.5" />
                           </Button>
                         </div>
@@ -903,7 +903,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                   <Separator />
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Documentos adjuntos de aprobación
+                      {t('workflows.detail.approvalAttachments')}
                     </p>
                     <div className="rounded-md border border-border divide-y divide-border">
                       {approvalAttachments.map((att, i) => (
@@ -913,7 +913,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                             <p className="text-xs truncate">{att.originalName}</p>
                             <p className="text-[10px] text-muted-foreground truncate">{userName(att.userId)}</p>
                           </div>
-                          <Button type="button" variant="ghost" size="icon" aria-label="Descargar adjunto" className="size-7 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
+                          <Button type="button" variant="ghost" size="icon" aria-label={t('workflows.detail.downloadAttachment')} className="size-7 shrink-0" onClick={() => handleOpenFile(att.storageKey)}>
                             <Download className="size-3.5" />
                           </Button>
                         </div>
@@ -957,7 +957,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                                   "{lastAction.observations}"
                                 </p>
                                 <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                                  {lastAction.action === 'APPROVED' ? 'Aprobado' : 'Rechazado'} · {new Date(lastAction.createdAt).toLocaleString()}
+                                  {lastAction.action === 'APPROVED' ? t('workflows.approvalStepStatus.APPROVED') : t('workflows.approvalStepStatus.REJECTED')} · {new Date(lastAction.createdAt).toLocaleString()}
                                 </p>
                               </div>
                             )}
@@ -974,15 +974,15 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                   {detailWorkflow.approvalSteps.length > 0 && <Separator />}
                   <div className="space-y-4">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Ciclos de revisión
+                      {t('workflows.detail.reviewCycles')}
                     </p>
                     {(detailWorkflow.adminCycles ?? []).map((cycle) => (
                       <div key={cycle.id} className="space-y-3">
                         {(detailWorkflow.adminCycles ?? []).length > 1 && (
                           <p className="text-xs font-medium text-muted-foreground">
-                            Ciclo #{cycle.cycleNumber}{' '}
+                            {t('workflows.detail.cycleLabel', { number: cycle.cycleNumber })}{' '}
                             <span className={cycle.status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}>
-                              ({cycle.status === 'COMPLETED' ? 'Completado' : 'En progreso'})
+                              ({cycle.status === 'COMPLETED' ? t('workflows.detail.cycleCompleted') : t('workflows.detail.cycleInProgress')})
                             </span>
                           </p>
                         )}
@@ -1004,11 +1004,11 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                                       : step.status === 'PENDING'  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
                                       : 'bg-muted text-muted-foreground border-muted-foreground/20'
                                     }`}>
-                                      {step.status === 'COMPLETED' ? 'Completado' : step.status === 'PENDING' ? 'Pendiente' : 'En espera'}
+                                      {step.status === 'COMPLETED' ? t('workflows.detail.stepCompleted') : step.status === 'PENDING' ? t('workflows.approvalStepStatus.PENDING') : t('workflows.approvalStepStatus.WAITING')}
                                     </span>
                                   </div>
                                   {step.status === 'COMPLETED' && !hasContent && (
-                                    <p className="text-[11px] text-muted-foreground italic pl-7">Sin comentarios ni adjuntos.</p>
+                                    <p className="text-[11px] text-muted-foreground italic pl-7">{t('workflows.detail.noCommentsOrAttachments')}</p>
                                   )}
                                   {(step.notes ?? []).map((note) => (
                                     <div key={note.id} className="ml-7 rounded-md bg-muted/40 border border-border px-2.5 py-2">
@@ -1045,7 +1045,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
                   <Separator />
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Usuario final
+                      {t('workflows.detail.finalUser')}
                     </p>
                     <div className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5">
                       <User className="size-3.5 text-muted-foreground shrink-0" />
@@ -1072,7 +1072,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
               size="sm"
               onClick={() => { setDetailWorkflow(null); openEdit(detailWorkflow) }}
             >
-              Editar
+              {t('common.edit')}
             </Button>
           )}
           {canStartApproval && (
@@ -1107,7 +1107,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
               size="sm"
               onClick={() => { setDetailWorkflow(null); openReviewCycle(detailWorkflow) }}
             >
-              Iniciar revisión
+              {t('workflows.actions.startReviewCycle')}
             </Button>
           )}
           {canCompleteAdminStep && (
@@ -1115,7 +1115,7 @@ function DetailWorkflowDialog({ hook, canApprove }: { hook: WorkflowsHook; canAp
               size="sm"
               onClick={() => { setDetailWorkflow(null); openCompleteStep(detailWorkflow) }}
             >
-              Completar paso
+              {t('workflows.actions.completeStep')}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => setDetailWorkflow(null)}>
@@ -1180,7 +1180,7 @@ function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Adjuntos opcionales */}
           <div className="space-y-1.5">
             <p className="text-sm font-medium leading-none">
-              Documentos adjuntos{' '}
+              {t('workflows.dialogs.attachedDocsLabel')}{' '}
               <span className="text-muted-foreground font-normal">({t('workflows.dialogs.optional')})</span>
             </p>
 
@@ -1193,7 +1193,7 @@ function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
                     <span className="flex-1 min-w-0 truncate">{file.name}</span>
                     <button
                       type="button"
-                      aria-label="Eliminar archivo"
+                      aria-label={t('workflows.dialogs.removeFile')}
                       className="shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => removeFile(i)}
                     >
@@ -1209,8 +1209,8 @@ function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
               <Paperclip className="h-4 w-4 shrink-0" />
               <span>
                 {approveAttachmentFiles.length === 0
-                  ? 'Adjuntar documentos de soporte'
-                  : 'Agregar otro documento'}
+                  ? t('workflows.dialogs.attachFirst')
+                  : t('workflows.dialogs.attachMore')}
               </span>
               <input
                 type="file"
@@ -1422,6 +1422,7 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
     createAdminCycleMutation, skipReviewCycleMutation,
     activeOrgUsers, orgUsersMap,
   } = hook
+  const { t } = useTranslation()
 
   if (!reviewCycleWorkflow) return null
 
@@ -1449,13 +1450,13 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
     <Dialog open={!!reviewCycleWorkflow} onOpenChange={(o) => { if (!o) setReviewCycleWorkflow(null) }}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Iniciar ciclo de revisión</DialogTitle>
+          <DialogTitle>{t('workflows.dialogs.reviewCycleTitle')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <p className="text-sm text-muted-foreground">
-            Configura los revisores para el workflow{' '}
-            <span className="font-medium text-foreground">"{reviewCycleWorkflow.title}"</span>.
-            El orden de la lista determina la secuencia de revisión.
+            {t('workflows.dialogs.reviewCycleDescPre')}{' '}
+            <span className="font-medium text-foreground">"{reviewCycleWorkflow.title}"</span>
+            {t('workflows.dialogs.reviewCycleDescPost')}
           </p>
 
           {reviewCycleReviewerIds.length > 0 && (
@@ -1474,7 +1475,7 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label="Eliminar revisor"
+                    aria-label={t('workflows.dialogs.removeReviewer')}
                     className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                     onClick={() => removeReviewer(id)}
                   >
@@ -1489,9 +1490,9 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
             options={availableReviewerOptions}
             value=""
             onChange={addReviewer}
-            placeholder="Agregar revisor..."
-            searchPlaceholder="Buscar usuario..."
-            emptyText="No hay usuarios disponibles"
+            placeholder={t('workflows.dialogs.addReviewer')}
+            searchPlaceholder={t('workflows.dialogs.approverSearch')}
+            emptyText={t('workflows.dialogs.noUsersAvailable')}
           />
         </div>
 
@@ -1503,7 +1504,7 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
             disabled={isPending}
             onClick={() => setReviewCycleWorkflow(null)}
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -1512,7 +1513,7 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
             disabled={isPending}
             onClick={() => skipReviewCycleMutation.mutate(reviewCycleWorkflow.id)}
           >
-            {skipReviewCycleMutation.isPending ? 'Procesando...' : 'Ir a Disponible sin revisión'}
+            {skipReviewCycleMutation.isPending ? t('common.processing') : t('workflows.dialogs.skipReviewCycle')}
           </Button>
           <Button
             type="button"
@@ -1523,7 +1524,7 @@ function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
               reviewerIds: reviewCycleReviewerIds,
             })}
           >
-            {createAdminCycleMutation.isPending ? 'Iniciando...' : 'Iniciar revisión'}
+            {createAdminCycleMutation.isPending ? t('workflows.dialogs.startingReview') : t('workflows.actions.startReviewCycle')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1540,6 +1541,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
     completeStepNotes, setCompleteStepNotes,
     completeStepMutation,
   } = hook
+  const { t } = useTranslation()
 
   if (!completeStepWorkflow) return null
 
@@ -1560,24 +1562,24 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
     <Dialog open={!!completeStepWorkflow} onOpenChange={(o) => { if (!o) setCompleteStepWorkflow(null) }}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Completar paso de revisión</DialogTitle>
+          <DialogTitle>{t('workflows.dialogs.completeStepTitle')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-1">
           <p className="text-sm text-muted-foreground">
-            Añade comentarios y/o adjuntos para el paso{' '}
+            {t('workflows.dialogs.completeStepDescPre')}{' '}
             {currentStep ? <span className="font-medium text-foreground">#{currentStep.stepOrder}</span> : null}{' '}
-            del workflow{' '}
-            <span className="font-medium text-foreground">"{completeStepWorkflow.title}"</span>.
-            Al completar, el siguiente revisor recibirá la tarea.
+            {t('workflows.dialogs.completeStepDescMid')}{' '}
+            <span className="font-medium text-foreground">"{completeStepWorkflow.title}"</span>
+            {t('workflows.dialogs.completeStepDescPost')}
           </p>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
-              Notas <span className="font-normal text-muted-foreground">(opcional)</span>
+              {t('workflows.dialogs.notesLabel')} <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
             </label>
             <textarea
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              placeholder="Escribe tus observaciones o comentarios..."
+              placeholder={t('workflows.dialogs.notesPlaceholder')}
               maxLength={3000}
               value={completeStepNotes}
               onChange={(e) => setCompleteStepNotes(e.target.value)}
@@ -1586,7 +1588,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
 
           <div className="space-y-1.5">
             <p className="text-sm font-medium">
-              Adjuntos <span className="font-normal text-muted-foreground">(opcional)</span>
+              {t('workflows.dialogs.attachmentsShort')} <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
             </p>
 
             {completeStepFiles.length > 0 && (
@@ -1597,7 +1599,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
                     <span className="flex-1 min-w-0 truncate">{file.name}</span>
                     <button
                       type="button"
-                      aria-label="Eliminar archivo"
+                      aria-label={t('workflows.dialogs.removeFile')}
                       className="shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => removeFile(i)}
                     >
@@ -1612,8 +1614,8 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
               <Paperclip className="h-4 w-4 shrink-0" />
               <span>
                 {completeStepFiles.length === 0
-                  ? 'Adjuntar documentos'
-                  : 'Agregar otro documento'}
+                  ? t('workflows.dialogs.attachDocuments')
+                  : t('workflows.dialogs.attachMore')}
               </span>
               <input
                 type="file"
@@ -1632,7 +1634,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
             variant="outline"
             onClick={() => setCompleteStepWorkflow(null)}
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -1643,7 +1645,7 @@ function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
               files:    completeStepFiles,
             })}
           >
-            {completeStepMutation.isPending ? 'Procesando...' : 'Completar paso'}
+            {completeStepMutation.isPending ? t('common.processing') : t('workflows.actions.completeStep')}
           </Button>
         </DialogFooter>
       </DialogContent>
