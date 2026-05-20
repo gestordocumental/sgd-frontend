@@ -73,12 +73,12 @@ function CompanyDashboard() {
 
   // Updates both activeTab and mountedTabs in a single transition, avoiding
   // a separate useEffect that would call setState after render.
-  const handleTabChange = (tab: TabId) => {
+  const handleTabChange = useCallback((tab: TabId) => {
     startTransition(() => {
       setActiveTab(tab)
       setMountedTabs(prev => prev.has(tab) ? prev : new Set(prev).add(tab))
     })
-  }
+  }, [])
 
   const companyUsers = useCompanyUsers(companyId)
   const roles = useRoles(companyId)
@@ -91,7 +91,7 @@ function CompanyDashboard() {
   const handleWorkflowNotificationClick = useCallback(async (workflowId: string) => {
     handleTabChange('workflows')
     await workflows.openDetailById(workflowId)
-  }, [workflows.openDetailById])
+  }, [handleTabChange, workflows])
 
   const activeUsers = companyUsers.users.filter((u) => !isDeleted(u))
 

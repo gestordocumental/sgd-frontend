@@ -26,16 +26,16 @@ const WORKFLOW_STATUS_COLORS: Record<string, string> = {
   CANCELLED:                 '#6b7280',
 }
 
-const WORKFLOW_STATUS_LABELS: Record<string, string> = {
-  DRAFT:                     'Borrador',
-  PENDING_APPROVAL:          'Pend. aprobación',
-  RETURNED_TO_CREATOR:       'Rechazado (legacy)',
-  REJECTED:                  'Rechazado',
-  PENDING_REVIEW_CYCLE:      'Pend. revisión',
-  AVAILABLE_FOR_FINAL_USERS: 'Disponible',
-  ADMIN_CYCLE_IN_PROGRESS:   'En ciclo admin',
-  CLOSED:                    'Cerrado',
-  CANCELLED:                 'Cancelado',
+const WORKFLOW_STATUS_LABEL_KEYS: Record<string, string> = {
+  DRAFT:                     'workflows.status.DRAFT',
+  PENDING_APPROVAL:          'workflows.status.PENDING_APPROVAL',
+  RETURNED_TO_CREATOR:       'workflows.status.RETURNED_TO_CREATOR',
+  REJECTED:                  'workflows.status.REJECTED',
+  PENDING_REVIEW_CYCLE:      'workflows.status.PENDING_REVIEW_CYCLE',
+  AVAILABLE_FOR_FINAL_USERS: 'workflows.status.AVAILABLE_FOR_FINAL_USERS',
+  ADMIN_CYCLE_IN_PROGRESS:   'workflows.status.ADMIN_CYCLE_IN_PROGRESS',
+  CLOSED:                    'workflows.status.CLOSED',
+  CANCELLED:                 'workflows.status.CANCELLED',
 }
 
 const EXTRACTION_STATUS_COLORS: Record<string, string> = {
@@ -48,14 +48,14 @@ const EXTRACTION_STATUS_COLORS: Record<string, string> = {
   FAILED:               '#dc2626',
 }
 
-const EXTRACTION_STATUS_LABELS: Record<string, string> = {
-  NOT_UPLOADED:         'Sin cargar',
-  PROCESSING:           'Procesando',
-  COMPLETED:            'Completado',
-  DISCREPANCY:          'Discrepancia',
-  PENDING_CONFIRMATION: 'Pend. confirmación',
-  CONFIRMED:            'Confirmado',
-  FAILED:               'Fallido',
+const EXTRACTION_STATUS_LABEL_KEYS: Record<string, string> = {
+  NOT_UPLOADED:         'typologies.extractionStatus.NOT_UPLOADED',
+  PROCESSING:           'typologies.extractionStatus.PROCESSING',
+  COMPLETED:            'typologies.extractionStatus.COMPLETED',
+  DISCREPANCY:          'typologies.extractionStatus.DISCREPANCY',
+  PENDING_CONFIRMATION: 'typologies.extractionStatus.PENDING_CONFIRMATION',
+  CONFIRMED:            'typologies.extractionStatus.CONFIRMED',
+  FAILED:               'typologies.extractionStatus.FAILED',
 }
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
@@ -128,19 +128,19 @@ function DonutChart({
   const cx = 64; const cy = 64; const r = 52; const innerR = 33
   const gap = 0.03
 
-  let cumAngle = -Math.PI / 2
-  const paths = visible.map((sl) => {
+  type PathEntry = { label: string; value: number; color: string; path: string; _endAngle: number }
+  const paths = visible.reduce<PathEntry[]>((acc, sl) => {
+    const prevAngle = acc.length === 0 ? -Math.PI / 2 : acc[acc.length - 1]._endAngle
     const angle = (sl.value / total) * 2 * Math.PI - gap
-    const startA = cumAngle + gap / 2
+    const startA = prevAngle + gap / 2
     const endA = startA + angle
     const large = angle > Math.PI ? 1 : 0
-    const p = `M ${cx + r * Math.cos(startA)} ${cy + r * Math.sin(startA)}
+    const path = `M ${cx + r * Math.cos(startA)} ${cy + r * Math.sin(startA)}
       A ${r} ${r} 0 ${large} 1 ${cx + r * Math.cos(endA)} ${cy + r * Math.sin(endA)}
       L ${cx + innerR * Math.cos(endA)} ${cy + innerR * Math.sin(endA)}
       A ${innerR} ${innerR} 0 ${large} 0 ${cx + innerR * Math.cos(startA)} ${cy + innerR * Math.sin(startA)} Z`
-    cumAngle += (sl.value / total) * 2 * Math.PI
-    return { ...sl, path: p }
-  })
+    return [...acc, { ...sl, path, _endAngle: prevAngle + (sl.value / total) * 2 * Math.PI }]
+  }, [])
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -179,19 +179,20 @@ function DonutChart({
 function StatusDonutChart({
   data,
   colorMap,
-  labelMap,
+  labelKeyMap,
   title,
   noDataLabel,
 }: {
   data: Record<string, number>
   colorMap: Record<string, string>
-  labelMap: Record<string, string>
+  labelKeyMap: Record<string, string>
   title: string
   noDataLabel: string
 }) {
+  const { t } = useTranslation()
   const entries = Object.entries(data).filter(([, v]) => v > 0)
   const slices = entries.map(([key, value]) => ({
-    label: labelMap[key] ?? key,
+    label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
     value,
     color: colorMap[key] ?? '#cbd5e1',
   }))
@@ -283,7 +284,7 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
           icon={FileText}
           label={t('dashboard.kpi.activeTypologies')}
           value={typologyStats?.activeTypologies ?? '—'}
-          sub={`${typologyStats?.totalTypologies ?? 0} total`}
+          sub={t('dashboard.kpi.typologiesTotal', { count: typologyStats?.totalTypologies ?? 0 })}
           loading={isLoading}
           colorIdx={0}
         />
@@ -291,7 +292,7 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
           icon={CheckCircle}
           label={t('dashboard.kpi.uploadedDocuments')}
           value={isLoading ? '—' : totalAttachments}
-          sub={`${typologyStats?.uploadedDocuments ?? 0} tipol. · ${workflowStats?.totalAttachments ?? 0} flujos`}
+          sub={t('dashboard.kpi.docsBreakdown', { typologies: typologyStats?.uploadedDocuments ?? 0, workflows: workflowStats?.totalAttachments ?? 0 })}
           loading={isLoading}
           colorIdx={1}
         />
@@ -299,7 +300,7 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
           icon={HardDrive}
           label={t('dashboard.kpi.storageUsed')}
           value={isLoading ? '—' : formatBytes(totalStorageBytes)}
-          sub={`${formatBytes(typologyStats?.storageTotalBytes ?? 0)} tipol. · ${formatBytes(workflowStats?.storageTotalBytes ?? 0)} flujos`}
+          sub={t('dashboard.kpi.storageBreakdown', { typologies: formatBytes(typologyStats?.storageTotalBytes ?? 0), workflows: formatBytes(workflowStats?.storageTotalBytes ?? 0) })}
           loading={isLoading}
           colorIdx={2}
         />
@@ -332,14 +333,14 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
         <StatusDonutChart
           data={workflowStats?.statusCounts ?? {}}
           colorMap={WORKFLOW_STATUS_COLORS}
-          labelMap={WORKFLOW_STATUS_LABELS}
+          labelKeyMap={WORKFLOW_STATUS_LABEL_KEYS}
           title={t('dashboard.charts.workflowStatus')}
           noDataLabel={noData}
         />
         <StatusDonutChart
           data={typologyStats?.extractionStatusCounts ?? {}}
           colorMap={EXTRACTION_STATUS_COLORS}
-          labelMap={EXTRACTION_STATUS_LABELS}
+          labelKeyMap={EXTRACTION_STATUS_LABEL_KEYS}
           title={t('dashboard.charts.extractionStatus')}
           noDataLabel={noData}
         />

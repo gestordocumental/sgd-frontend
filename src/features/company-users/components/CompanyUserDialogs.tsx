@@ -73,7 +73,15 @@ export function CompanyUserDialogs({
   return (
     <>
       {/* ── Invitación enviada / reenviada ────────────────────────── */}
-      <Dialog open={!!invitedUser} onOpenChange={(o) => { if (!o) setInvitedUser(null); }}>
+      <Dialog
+        open={!!invitedUser}
+        onOpenChange={(o) => {
+          if (!o) {
+            setInvitedUser(null);
+            setCopied(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -117,7 +125,7 @@ export function CompanyUserDialogs({
             </p>
           </div>
           <DialogFooter>
-            <Button className="w-full" onClick={() => setInvitedUser(null)}>
+            <Button className="w-full" onClick={() => { setInvitedUser(null); setCopied(false); }}>
               {t('common.close')}
             </Button>
           </DialogFooter>

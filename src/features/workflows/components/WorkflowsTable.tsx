@@ -146,9 +146,6 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
   )
 }
 
-// ── Pager ─────────────────────────────────────────────────────────────────────
-
-
 // ── WorkflowList ──────────────────────────────────────────────────────────────
 
 interface WorkflowListProps {

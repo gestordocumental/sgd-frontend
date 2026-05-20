@@ -141,9 +141,7 @@ export const usersApi = {
     const form = new FormData()
     form.append('avatar', file)
     return apiClient
-      .patch<ApiUser>('/users/me/avatar', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      .patch<ApiUser>('/users/me/avatar', form)
       .then((r) => r.data)
   },
 

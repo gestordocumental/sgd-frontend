@@ -525,14 +525,14 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
     <Dialog open={!!editWorkflow} onOpenChange={(o) => { if (!o) setEditWorkflow(null) }}>
       <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar workflow</DialogTitle>
+          <DialogTitle>{t('workflows.dialogs.editTitle')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
 
           {/* Título */}
           <FormField
             id="edit-wf-title"
-            label="Título"
+            label={t('workflows.dialogs.editTitleLabel')}
             error={editForm.formState.errors.title?.message}
           >
             <Input id="edit-wf-title" {...editForm.register('title')} />
@@ -541,7 +541,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Descripción */}
           <FormField
             id="edit-wf-desc"
-            label="Descripción (opcional)"
+            label={t('workflows.dialogs.editDescLabel')}
             error={editForm.formState.errors.description?.message}
           >
             <Input id="edit-wf-desc" {...editForm.register('description')} />
@@ -550,8 +550,8 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Documento principal */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
-              Formato{' '}
-              <span className="font-normal text-muted-foreground">(opcional — reemplaza el actual)</span>
+              {t('workflows.dialogs.editDocLabel')}{' '}
+              <span className="font-normal text-muted-foreground">{t('workflows.dialogs.editDocOptional')}</span>
             </label>
             {existingMainDocMeta?.storageKey && !editDocumentFile && (
               <p className="text-xs text-muted-foreground">
@@ -570,7 +570,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
               ) : (
                 <>
                   <Upload className="size-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Arrastra o selecciona un archivo</span>
+                  <span className="text-xs text-muted-foreground">{t('workflows.dialogs.editDocDrop')}</span>
                 </>
               )}
               <input
@@ -593,14 +593,14 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 className="text-xs text-muted-foreground h-6 px-2"
                 onClick={() => setEditDocumentFile(null)}
               >
-                Quitar archivo seleccionado
+                {t('workflows.dialogs.editDocRemove')}
               </Button>
             )}
           </div>
 
           {/* Adjuntos de soporte */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Adjuntos</label>
+            <label className="text-sm font-medium">{t('workflows.dialogs.editAttachmentsLabel')}</label>
 
             {/* Adjuntos existentes guardados */}
             {editExistingAttachments.length > 0 && (
@@ -613,7 +613,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      aria-label="Eliminar adjunto"
+                      aria-label={t('workflows.dialogs.editRemoveAttachment')}
                       className="size-6 text-muted-foreground hover:text-destructive shrink-0"
                       onClick={() =>
                         setEditExistingAttachments((prev) => prev.filter((a) => a.id !== att.id))
@@ -637,7 +637,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      aria-label="Quitar archivo"
+                      aria-label={t('workflows.dialogs.editRemoveFile')}
                       className="size-6 text-muted-foreground hover:text-destructive shrink-0"
                       onClick={() => setEditSupportingFiles((prev) => prev.filter((_, i) => i !== idx))}
                     >
@@ -649,7 +649,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
             )}
 
             {editExistingAttachments.length === 0 && editSupportingFiles.length === 0 && (
-              <p className="text-xs text-muted-foreground italic">Sin adjuntos de soporte.</p>
+              <p className="text-xs text-muted-foreground italic">{t('workflows.dialogs.editAttachmentsEmpty')}</p>
             )}
 
             <label
@@ -657,7 +657,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
               className="flex items-center justify-center gap-1.5 w-full h-9 rounded-md border border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors text-xs text-muted-foreground hover:text-foreground bg-muted/20"
             >
               <Upload className="size-3.5" />
-              Agregar adjunto
+              {t('workflows.dialogs.editAttachmentsAdd')}
               <input
                 id="edit-wf-att"
                 type="file"
@@ -675,8 +675,8 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Aprobadores */}
           <div className="space-y-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Aprobadores</label>
-              <p className="text-xs text-muted-foreground">El orden determina la secuencia de aprobación.</p>
+              <label className="text-sm font-medium">{t('workflows.dialogs.editApproversLabel')}</label>
+              <p className="text-xs text-muted-foreground">{t('workflows.dialogs.editApproversHint')}</p>
             </div>
             {selectedApproversData.length > 0 && (
               <div className="rounded-md border border-border divide-y divide-border">
@@ -698,7 +698,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      aria-label="Eliminar aprobador"
+                      aria-label={t('workflows.dialogs.editApproverRemove')}
                       className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                       onClick={() => removeEditApprover(id)}
                     >
@@ -712,12 +712,12 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
               options={availableApproverOptions}
               value=""
               onChange={addEditApprover}
-              placeholder="Agregar aprobador..."
-              searchPlaceholder="Buscar usuario..."
+              placeholder={t('workflows.dialogs.editAddApproverPlaceholder')}
+              searchPlaceholder={t('workflows.dialogs.editApproverSearch')}
               emptyText={
                 approverEligibleUsers.length === 0
-                  ? 'No hay usuarios con permiso de aprobación'
-                  : 'Todos los aprobadores elegibles ya fueron agregados'
+                  ? t('workflows.dialogs.editApproverNoPermission')
+                  : t('workflows.dialogs.editApproverAllAdded')
               }
             />
           </div>
@@ -725,10 +725,10 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Usuario final */}
           <div className="space-y-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Usuario final</label>
+              <label className="text-sm font-medium">{t('workflows.dialogs.editFinalUserLabel')}</label>
               {finalUserAlreadySaved && (
                 <p className="text-xs text-muted-foreground">
-                  Asignado: <span className="font-medium text-foreground">{orgUsersMap.get(editWorkflow.finalUserIds![0]) ?? editWorkflow.finalUserIds![0]}</span>
+                  {t('workflows.dialogs.editFinalUserAssigned')} <span className="font-medium text-foreground">{orgUsersMap.get(editWorkflow.finalUserIds![0]) ?? editWorkflow.finalUserIds![0]}</span>
                 </p>
               )}
             </div>
@@ -747,7 +747,7 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label="Eliminar usuario final"
+                  aria-label={t('workflows.dialogs.editFinalUserRemove')}
                   className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                   onClick={() => setEditFinalUserId(null)}
                 >
@@ -759,19 +759,19 @@ function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 options={availableFinalUserOptions}
                 value=""
                 onChange={(id) => setEditFinalUserId(id)}
-                placeholder="Seleccionar usuario final..."
-                searchPlaceholder="Buscar usuario..."
-                emptyText="No hay usuarios que coincidan con la estructura de esta tipología"
+                placeholder={t('workflows.dialogs.editFinalUserPlaceholder')}
+                searchPlaceholder={t('workflows.dialogs.editFinalUserSearch')}
+                emptyText={t('workflows.dialogs.editFinalUserEmpty')}
               />
             )}
           </div>
 
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={() => setEditWorkflow(null)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
+              {updateMutation.isPending ? t('workflows.dialogs.editSaving') : t('workflows.dialogs.editSaveChanges')}
             </Button>
           </DialogFooter>
         </form>

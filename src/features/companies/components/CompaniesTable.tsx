@@ -1,13 +1,13 @@
 import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Pager } from "@/components/ui/pager";
 import {
   Building2,
   CheckCircle,
   XCircle,
   ChevronRight,
   ChevronDown,
-  ChevronLeft,
   MoreHorizontal,
   Trash2,
   UserPlus,
@@ -272,34 +272,13 @@ export function CompaniesTable({
         )}
 
         {totalPages > 1 && (
-          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} />
+          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-5 py-3 border-t border-border" />
         )}
       </div>
     </main>
   );
 }
 
-// ── Pager ─────────────────────────────────────────────────────────────────────
-
-function Pager({ page, totalPages, total, onChange }: {
-  page: number; totalPages: number; total: number; onChange: (p: number) => void
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-border text-sm text-muted-foreground">
-      <span>{t('common.resultsCount', { count: total })}</span>
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span className="px-2 text-xs">{page} / {totalPages}</span>
-        <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 // ── CompanyActions ────────────────────────────────────────────────────────────
 

@@ -265,6 +265,7 @@ function UsersPerOrgChart({ counts, companies, loading }: {
 function StoragePerOrgChart({ stats, companies, title, noDataLabel }: {
   stats: MergedOrgStorage[]; companies: ApiCompany[]; title: string; noDataLabel: string
 }) {
+  const { t } = useTranslation()
   const companyMap = new Map(companies.map((c) => [c.id, c.name]))
   const rows = stats.slice(0, 10).map((s) => ({
     name: companyMap.get(s.orgId) ?? s.orgId.slice(0, 8),
@@ -295,7 +296,7 @@ function StoragePerOrgChart({ stats, companies, title, noDataLabel }: {
                   <span className="text-sm font-semibold truncate max-w-[200px]">{r.name}</span>
                   <span className="text-sm text-muted-foreground shrink-0">
                     <span className="font-semibold text-foreground">{formatBytes(r.bytes)}</span>
-                    <span className="ml-2 opacity-50 text-xs">· {r.docs} tipol. · {r.attachments} flujos</span>
+                    <span className="ml-2 opacity-50 text-xs">{t('dashboard.kpi.storageDetailBreakdown', { docs: r.docs, attachments: r.attachments })}</span>
                   </span>
                 </div>
                 <div className="h-3 rounded-full bg-muted/40 overflow-hidden">
