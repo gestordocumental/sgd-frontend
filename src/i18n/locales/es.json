@@ -71,6 +71,7 @@
     "clear": "Limpiar",
     "resultsCount_one": "{{count}} resultado",
     "resultsCount_other": "{{count}} resultados",
+    "refresh": "Actualizar",
     "prevPage": "Página anterior",
     "nextPage": "Página siguiente"
   },

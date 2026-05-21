@@ -1,3 +1,4 @@
+import { memo, useMemo, type ElementType } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileText, GitBranch, HardDrive, CheckCircle, ClipboardList, Users } from 'lucide-react'
 import type { TypologyStats } from '@/lib/api/typologies'
@@ -49,13 +50,13 @@ const EXTRACTION_STATUS_COLORS: Record<string, string> = {
 }
 
 const EXTRACTION_STATUS_LABEL_KEYS: Record<string, string> = {
-  NOT_UPLOADED:         'typologies.extractionStatus.NOT_UPLOADED',
-  PROCESSING:           'typologies.extractionStatus.PROCESSING',
-  COMPLETED:            'typologies.extractionStatus.COMPLETED',
-  DISCREPANCY:          'typologies.extractionStatus.DISCREPANCY',
-  PENDING_CONFIRMATION: 'typologies.extractionStatus.PENDING_CONFIRMATION',
-  CONFIRMED:            'typologies.extractionStatus.CONFIRMED',
-  FAILED:               'typologies.extractionStatus.FAILED',
+  NOT_UPLOADED:         'docGovernance.extractionStatus.NOT_UPLOADED',
+  PROCESSING:           'docGovernance.extractionStatus.PROCESSING',
+  COMPLETED:            'docGovernance.extractionStatus.COMPLETED',
+  DISCREPANCY:          'docGovernance.extractionStatus.DISCREPANCY',
+  PENDING_CONFIRMATION: 'docGovernance.extractionStatus.PENDING_CONFIRMATION',
+  CONFIRMED:            'docGovernance.extractionStatus.CONFIRMED',
+  FAILED:               'docGovernance.extractionStatus.FAILED',
 }
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
@@ -76,7 +77,7 @@ const KPI_COLORS: KpiColor[] = [
   { bg: 'bg-indigo-50 dark:bg-indigo-950/40',    iconBg: 'bg-indigo-100 dark:bg-indigo-900/60',   icon: 'text-indigo-600 dark:text-indigo-400',   accent: 'text-indigo-700 dark:text-indigo-300'   },
 ]
 
-function KpiCard({
+const KpiCard = memo(function KpiCard({
   icon: Icon,
   label,
   value,
@@ -84,7 +85,7 @@ function KpiCard({
   loading,
   colorIdx = 0,
 }: {
-  icon: React.ElementType
+  icon: ElementType
   label: string
   value: string | number
   sub?: string
@@ -108,7 +109,7 @@ function KpiCard({
       </div>
     </div>
   )
-}
+})
 
 // ── Donut Chart (SVG) ─────────────────────────────────────────────────────────
 
@@ -190,12 +191,16 @@ function StatusDonutChart({
   noDataLabel: string
 }) {
   const { t } = useTranslation()
-  const entries = Object.entries(data).filter(([, v]) => v > 0)
-  const slices = entries.map(([key, value]) => ({
-    label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
-    value,
-    color: colorMap[key] ?? '#cbd5e1',
-  }))
+  const slices = useMemo(() =>
+    Object.entries(data)
+      .filter(([, v]) => v > 0)
+      .map(([key, value]) => ({
+        label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
+        value,
+        color: colorMap[key] ?? '#cbd5e1',
+      })),
+    [data, colorMap, labelKeyMap, t],
+  )
   return <DonutChart slices={slices} title={title} noDataLabel={noDataLabel} />
 }
 
@@ -273,8 +278,10 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
   const totalAttachments =
     (typologyStats?.uploadedDocuments ?? 0) + (workflowStats?.totalAttachments ?? 0)
 
-  const activeUsers   = users.filter((u) => u.isActive && !u.deletedAt).length
-  const inactiveUsers = users.filter((u) => !u.isActive || !!u.deletedAt).length
+  const { activeUsers, inactiveUsers } = useMemo(() => ({
+    activeUsers:   users.filter((u) => u.isActive && !u.deletedAt).length,
+    inactiveUsers: users.filter((u) => !u.isActive || !!u.deletedAt).length,
+  }), [users])
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">

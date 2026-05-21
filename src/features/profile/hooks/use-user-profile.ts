@@ -89,9 +89,9 @@ export function useUserProfile() {
     companyIds.length > 1
 
   async function switchToCompany(companyId: string) {
-    const { accessToken: companyToken } = await authApi.switchCompany(companyId)
+    const { accessToken: companyToken, refreshToken: companyRefresh } = await authApi.switchCompany(companyId)
     const company = companies.find((c) => c.id === companyId)
-    enterCompany(companyId, company?.name ?? companyId, companyToken)
+    enterCompany(companyId, company?.name ?? companyId, companyToken, companyRefresh)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
       queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),

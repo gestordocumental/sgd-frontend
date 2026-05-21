@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, UserPlus, Search } from 'lucide-react'
+import { Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, UserPlus, Search, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pager } from '@/components/ui/pager'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -23,7 +24,7 @@ interface CompanyUsersTableProps {
 }
 
 export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableProps) {
-  const { users, usersLoading, openEdit, setDeleteUser, restoreMutation, resendInvitationMutation, cargoMap } = hook
+  const { users, usersLoading, usersIsFetching, usersDataUpdatedAt, refreshUsers, openEdit, setDeleteUser, restoreMutation, resendInvitationMutation, cargoMap } = hook
   const { t } = useTranslation()
 
   const [search, setSearch] = useState('')
@@ -67,7 +68,22 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold shrink-0">{t('users.companyUsers')}</h2>
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="text-sm font-semibold">{t('users.companyUsers')}</h2>
+            <div className="flex flex-col items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={refreshUsers}
+                disabled={usersIsFetching}
+                title={t('common.refresh')}
+              >
+                <RefreshCw className={`size-3.5 text-muted-foreground ${usersIsFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <RefreshCountdown duration={60_000} isFetching={usersIsFetching} updatedAt={usersDataUpdatedAt} />
+            </div>
+          </div>
           <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
             <span className="text-xs text-muted-foreground shrink-0">
               {t('users.activeCount', { active: activeCount, total: users.length })}

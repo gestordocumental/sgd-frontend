@@ -10,7 +10,7 @@ export const authApi = {
 
   refreshToken: (refreshToken: string) =>
     apiClient
-      .post<Pick<LoginResponse, 'accessToken'>>('/auth/refresh', { refreshToken })
+      .post<Pick<LoginResponse, 'accessToken' | 'refreshToken'>>('/auth/refresh', { refreshToken })
       .then((r) => r.data),
 
   getMyCompanies: () =>
@@ -18,6 +18,6 @@ export const authApi = {
 
   switchCompany: (companyId: string) =>
     apiClient
-      .post<Pick<LoginResponse, 'accessToken'>>('/auth/switch-company', { companyId })
+      .post<Pick<LoginResponse, 'accessToken' | 'refreshToken'>>('/auth/switch-company', { companyId })
       .then((r) => r.data),
 }

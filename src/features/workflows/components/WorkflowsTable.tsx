@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { ElementType, CSSProperties } from 'react'
-import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, Plus, Copy, Search } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, Plus, Copy, Search, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Pager } from '@/components/ui/pager'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
 import { type ApiWorkflow, type WorkflowStatus } from '@/lib/api/workflows'
 import type { useWorkflows } from '@/features/workflows/hooks/use-workflows'
 import { useAuthStore } from '@/store/authStore'
@@ -36,17 +37,17 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
     setPage(1)
   }
 
-  const STATUS_OPTIONS: { value: string; label: string }[] = [
-    { value: 'all',                      label: t('common.all') },
-    { value: 'DRAFT',                    label: t('workflows.status.DRAFT') },
-    { value: 'PENDING_APPROVAL',         label: t('workflows.status.PENDING_APPROVAL') },
-    { value: 'REJECTED',                 label: t('workflows.status.REJECTED') },
-    { value: 'PENDING_REVIEW_CYCLE',     label: t('workflows.status.PENDING_REVIEW_CYCLE') },
-    { value: 'AVAILABLE_FOR_FINAL_USERS',label: t('workflows.status.AVAILABLE_FOR_FINAL_USERS') },
-    { value: 'ADMIN_CYCLE_IN_PROGRESS',  label: t('workflows.status.ADMIN_CYCLE_IN_PROGRESS') },
-    { value: 'CLOSED',                   label: t('workflows.status.CLOSED') },
-    { value: 'CANCELLED',                label: t('workflows.status.CANCELLED') },
-  ]
+  const STATUS_OPTIONS = useMemo(() => [
+    { value: 'all',                       label: t('common.all') },
+    { value: 'DRAFT',                     label: t('workflows.status.DRAFT') },
+    { value: 'PENDING_APPROVAL',          label: t('workflows.status.PENDING_APPROVAL') },
+    { value: 'REJECTED',                  label: t('workflows.status.REJECTED') },
+    { value: 'PENDING_REVIEW_CYCLE',      label: t('workflows.status.PENDING_REVIEW_CYCLE') },
+    { value: 'AVAILABLE_FOR_FINAL_USERS', label: t('workflows.status.AVAILABLE_FOR_FINAL_USERS') },
+    { value: 'ADMIN_CYCLE_IN_PROGRESS',   label: t('workflows.status.ADMIN_CYCLE_IN_PROGRESS') },
+    { value: 'CLOSED',                    label: t('workflows.status.CLOSED') },
+    { value: 'CANCELLED',                 label: t('workflows.status.CANCELLED') },
+  ], [t])
 
   const filteredAll = (hook.workflows ?? []).filter((wf) => {
     const q = search.toLowerCase()
@@ -59,7 +60,22 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
   return (
     <main className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">{t('dashboard.workflows')}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold">{t('dashboard.workflows')}</h2>
+          <div className="flex flex-col items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={hook.invalidateAll}
+              disabled={hook.isRefreshing}
+              title={t('common.refresh')}
+            >
+              <RefreshCw className={`size-3.5 text-muted-foreground ${hook.isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <RefreshCountdown duration={30_000} isFetching={hook.isRefreshing} updatedAt={hook.workflowsDataUpdatedAt} />
+          </div>
+        </div>
         {canWrite && (
           <Button size="sm" onClick={hook.openCreate}>
             <Plus className="size-4" />{t('dashboard.newWorkflow')}

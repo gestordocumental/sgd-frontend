@@ -71,6 +71,7 @@
     "clear": "Clear",
     "resultsCount_one": "{{count}} result",
     "resultsCount_other": "{{count}} results",
+    "refresh": "Refresh",
     "prevPage": "Previous page",
     "nextPage": "Next page"
   },

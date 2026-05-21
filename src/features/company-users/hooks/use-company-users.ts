@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -107,15 +107,26 @@ export function useCompanyUsers(companyId: string) {
     enabled: !!editUser && !!editSelectedAreaId,
   })
 
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    isFetching: usersIsFetching,
+    dataUpdatedAt: usersDataUpdatedAt,
+  } = useQuery({
     queryKey: ['company-users', companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
     enabled: !!companyId,
   })
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['company-users', companyId] })
+
+  const refreshUsers = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['company-users', companyId] })
+  }, [queryClient, companyId])
 
   const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
 
@@ -196,6 +207,9 @@ export function useCompanyUsers(companyId: string) {
     company,
     users,
     usersLoading,
+    usersIsFetching,
+    usersDataUpdatedAt,
+    refreshUsers,
     roles,
     cargoMap,
     departamentos,

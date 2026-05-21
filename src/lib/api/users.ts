@@ -90,7 +90,8 @@ export interface OrgUserCount {
 }
 
 export const usersApi = {
-  list: () => apiClient.get<ApiUser[]>("/users").then((r) => r.data),
+  list: () =>
+    apiClient.get<{ data: ApiUser[]; total: number }>("/users").then((r) => r.data.data),
 
   countsByOrg: () =>
     apiClient.get<OrgUserCount[]>("/users/admin/counts-by-org").then((r) => r.data),
@@ -99,7 +100,7 @@ export const usersApi = {
     apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
 
   listSuperAdmin: () =>
-    apiClient.get<ApiUser[]>("/users/super-admins").then((r) => r.data),
+    apiClient.get<{ data: ApiUser[]; total: number }>("/users/super-admins").then((r) => r.data.data),
 
   listUsersByOrg: (orgId: string): Promise<ApiUserWithRoles[]> =>
     apiClient.get<ApiUserWithRoles[]>(`/users/by-org/${orgId}`).then((r) => r.data),
@@ -141,7 +142,11 @@ export const usersApi = {
     const form = new FormData()
     form.append('avatar', file)
     return apiClient
-      .patch<ApiUser>('/users/me/avatar', form)
+      .patch<ApiUser>('/users/me/avatar', form, {
+        // Remove the default 'application/json' so axios sets
+        // 'multipart/form-data; boundary=...' automatically for FormData.
+        headers: { 'Content-Type': undefined },
+      })
       .then((r) => r.data)
   },
 
