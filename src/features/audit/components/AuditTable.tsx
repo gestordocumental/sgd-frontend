@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, X, ChevronLeft, ChevronRight, Eye, Download, Copy, Filter } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, Eye, Download, Copy, Filter, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
 import { AuditExportModal } from './AuditExportModal'
 import { AuditDetailModal } from './AuditDetailModal'
 import {
@@ -31,7 +32,7 @@ interface AuditTableProps {
 
 export function AuditTable({ hook, users = [] }: AuditTableProps) {
   const { t } = useTranslation()
-  const { logs, total, page, limit, isLoading, filters, applyFilters, clearFilters, setPage } = hook
+  const { logs, total, page, limit, isLoading, isFetching, dataUpdatedAt, filters, applyFilters, clearFilters, setPage, refresh } = hook
 
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
   const [exportOpen,  setExportOpen]  = useState(false)
@@ -76,7 +77,22 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
   return (
     <main className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">{t('audit.title')}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold">{t('audit.title')}</h2>
+          <div className="flex flex-col items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={refresh}
+              disabled={isFetching}
+              title={t('common.refresh')}
+            >
+              <RefreshCw className={`size-3.5 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`} />
+            </Button>
+            <RefreshCountdown duration={60_000} isFetching={isFetching} updatedAt={dataUpdatedAt} />
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{total} {t('audit.events')}</span>
           <Button variant="outline" size="sm" className="h-8" onClick={() => setExportOpen(true)}>
@@ -88,8 +104,9 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
       {/* Filters */}
       <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-end">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">{t('audit.filters.action')}</label>
+          <label htmlFor="audit-filter-action" className="text-xs text-muted-foreground">{t('audit.filters.action')}</label>
           <select
+            id="audit-filter-action"
             className="h-8 w-52 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
             value={draft.action}
             onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value }))}
@@ -101,8 +118,9 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">{t('audit.filters.resourceType')}</label>
+          <label htmlFor="audit-filter-resource-type" className="text-xs text-muted-foreground">{t('audit.filters.resourceType')}</label>
           <select
+            id="audit-filter-resource-type"
             className="h-8 w-36 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
             value={draft.resourceType}
             onChange={(e) => setDraft((d) => ({ ...d, resourceType: e.target.value }))}
@@ -110,6 +128,22 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
             <option value="">{t('audit.filters.all')}</option>
             {RESOURCE_TYPES.map((r) => (
               <option key={r} value={r}>{formatResourceType(r, t)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="audit-filter-actor" className="text-xs text-muted-foreground">{t('audit.filters.actor')}</label>
+          <select
+            id="audit-filter-actor"
+            className="h-8 w-44 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+            value={draft.actorId}
+            onChange={(e) => setDraft((d) => ({ ...d, actorId: e.target.value }))}
+          >
+            <option value="">{t('audit.filters.all')}</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || u.id}
+              </option>
             ))}
           </select>
         </div>

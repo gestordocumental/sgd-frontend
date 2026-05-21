@@ -370,6 +370,7 @@
       "deactivateCompany": "Deactivate company",
       "activateCompany": "Activate company",
       "deleteCompany": "Delete company",
+      "restoreCompany": "Restore company",
       "editUser": "Edit user",
       "activateUser": "Activate user",
       "deactivateUser": "Deactivate user",

@@ -242,9 +242,6 @@ export function CompanyUserDialogs({
                 className={selectCls}
                 {...createForm.register("roleId")}
               >
-                <option value="">
-                  {t("users.dialogs.roleSelectPlaceholder")}
-                </option>
                 {roles.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}

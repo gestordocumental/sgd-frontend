@@ -12,6 +12,7 @@ export interface SimpleUser {
 
 export const RESOURCE_TYPES = [
   'user',
+  'company',
   'cargo',
   'area',
   'departamento',
@@ -33,6 +34,10 @@ export const ACTIONS_BY_SERVICE: Record<string, string[]> = {
     'USER_SUPER_ADMIN_CHANGED',
   ],
   'org-service': [
+    'COMPANY_CREATED',
+    'COMPANY_UPDATED',
+    'COMPANY_DELETED',
+    'COMPANY_RESTORED',
     'DEPARTAMENTO_CREATED',
     'DEPARTAMENTO_UPDATED',
     'DEPARTAMENTO_DELETED',
@@ -79,6 +84,7 @@ export const ALL_ACTIONS = Array.from(new Set(Object.values(ACTIONS_BY_SERVICE).
 
 export const RESOURCE_TYPE_COLORS: Record<string, string> = {
   user:         'bg-blue-100 text-blue-800',
+  company:      'bg-sky-100 text-sky-800',
   cargo:        'bg-purple-100 text-purple-800',
   area:         'bg-violet-100 text-violet-800',
   departamento: 'bg-indigo-100 text-indigo-800',

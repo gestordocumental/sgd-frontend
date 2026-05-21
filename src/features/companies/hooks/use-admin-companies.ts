@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,14 +24,24 @@ export function useAdminCompanies() {
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set())
   const [selectedCompany, setSelectedCompany] = useState<ApiCompany | null>(null)
 
-  const { data: companies = [], isLoading: companiesLoading } = useQuery({
+  const {
+    data: companies = [],
+    isLoading: companiesLoading,
+    isFetching: companiesIsFetching,
+    dataUpdatedAt: companiesDataUpdatedAt,
+  } = useQuery({
     queryKey: ['companies'],
     queryFn: companiesApi.list,
     staleTime: 60_000,
+    refetchInterval: 60_000,
   })
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['companies'] })
+
+  const refreshCompanies = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['companies'] })
+  }, [queryClient])
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateCompanyDto) => companiesApi.create(dto),
@@ -64,6 +74,11 @@ export function useAdminCompanies() {
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'active' | 'inactive' }) =>
       companiesApi.update(id, { status }),
+    onSuccess: invalidate,
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) => companiesApi.restore(id),
     onSuccess: invalidate,
   })
 
@@ -102,6 +117,9 @@ export function useAdminCompanies() {
   return {
     companies,
     companiesLoading,
+    companiesIsFetching,
+    companiesDataUpdatedAt,
+    refreshCompanies,
     createOpen, setCreateOpen,
     editCompany, setEditCompany,
     deleteCompany, setDeleteCompany,
@@ -118,5 +136,6 @@ export function useAdminCompanies() {
     editMutation,
     deleteMutation,
     toggleStatusMutation,
+    restoreMutation,
   }
 }

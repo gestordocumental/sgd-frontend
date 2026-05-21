@@ -9,10 +9,13 @@ import {
   Pencil as PencilIcon,
   CheckCircle as CheckIcon,
   XCircle as XIcon,
+  RefreshCw,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Pager } from '@/components/ui/pager'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
 import {
   Table,
   TableBody,
@@ -28,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { usersApi, type ApiUser } from '@/lib/api/users'
+import { usersApi, type ApiUserWithRoles } from '@/lib/api/users'
 import { initials, isDeleted } from '@/lib/formatters'
 
 type UserStatusFilter = 'all' | 'active' | 'inactive' | 'pending'
@@ -37,9 +40,9 @@ const USER_PAGE_SIZE = 10
 interface CompanyUsersRowProps {
   id: string
   companyId: string
-  onEditUser: (u: ApiUser) => void
-  onDeleteUser: (u: ApiUser) => void
-  onToggleUserStatus: (u: ApiUser) => void
+  onEditUser: (u: ApiUserWithRoles) => void
+  onDeleteUser: (u: ApiUserWithRoles) => void
+  onToggleUserStatus: (u: ApiUserWithRoles) => void
 }
 
 export function CompanyUsersRow({
@@ -50,11 +53,11 @@ export function CompanyUsersRow({
   onToggleUserStatus,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation()
-  const { data: users = [], isLoading, isError, refetch } = useQuery({
+  const { data: users = [], isLoading, isError, isFetching, dataUpdatedAt, refetch } = useQuery<ApiUserWithRoles[]>({
     queryKey: ['company-users', companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   })
 
@@ -69,11 +72,12 @@ export function CompanyUsersRow({
       (u.lastName ?? '').toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q)
 
+    const isRemoved = !!u.deletedAt || !!u.orgRemovedAt
     const matchesStatus =
       statusFilter === 'all'      ? true :
-      statusFilter === 'inactive' ? !!u.deletedAt :
-      statusFilter === 'pending'  ? u.registrationStatus === 'pending_credentials' && !u.deletedAt :
-      /* active */                  !u.deletedAt && u.registrationStatus !== 'pending_credentials'
+      statusFilter === 'inactive' ? isRemoved :
+      statusFilter === 'pending'  ? u.registrationStatus === 'pending_credentials' && !isRemoved :
+      /* active */                  !isRemoved && u.roles.length > 0 && u.registrationStatus !== 'pending_credentials'
 
     return matchesSearch && matchesStatus
   })
@@ -99,9 +103,24 @@ export function CompanyUsersRow({
           <div className="pl-14 pr-6 py-4">
             {/* Sub-header */}
             <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                {t('companies.companyUsers')}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('companies.companyUsers')}
+                </p>
+                <div className="flex flex-col items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    title={t('common.refresh')}
+                  >
+                    <RefreshCw className={`size-3 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <RefreshCountdown duration={60_000} isFetching={isFetching} updatedAt={dataUpdatedAt} />
+                </div>
+              </div>
               {!isLoading && !isError && users.length > 0 && (
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -165,7 +184,7 @@ export function CompanyUsersRow({
                     {paginated.map((u) => (
                       <TableRow
                         key={u.id}
-                        className={isDeleted(u) ? 'opacity-50' : ''}
+                        className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -185,9 +204,13 @@ export function CompanyUsersRow({
                           </div>
                         </TableCell>
                         <TableCell className="py-2.5">
-                          {isDeleted(u) ? (
+                          {isDeleted(u) || u.orgRemovedAt ? (
                             <Badge variant="destructive" className="text-xs">
-                              {t('common.inactive')}
+                              {t('common.deleted')}
+                            </Badge>
+                          ) : u.roles.length === 0 ? (
+                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+                              {t('common.noRole')}
                             </Badge>
                           ) : (
                             <Badge

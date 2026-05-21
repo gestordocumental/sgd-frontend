@@ -38,11 +38,12 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
       (u.firstName ?? '').toLowerCase().includes(q) ||
       (u.lastName ?? '').toLowerCase().includes(q)
 
+    const isRemoved = !!u.deletedAt || !!u.orgRemovedAt
     const matchesStatus =
       statusFilter === 'all'      ? true :
-      statusFilter === 'deleted'  ? !!u.deletedAt :
-      statusFilter === 'active'   ? u.isActive && !u.deletedAt :
-      /* inactive */                !u.isActive && !u.deletedAt
+      statusFilter === 'deleted'  ? isRemoved :
+      statusFilter === 'active'   ? u.isActive && !isRemoved && u.roles.length > 0 :
+      /* inactive */                (!u.isActive || u.roles.length === 0) && !isRemoved
 
     return matchesSearch && matchesStatus
   })
@@ -54,7 +55,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
   const handleSearch = (v: string) => { setSearch(v); setPage(1) }
   const handleStatus = (v: StatusFilter) => { setStatusFilter(v); setPage(1) }
 
-  const activeCount = users.filter((u) => u.isActive && !u.deletedAt).length
+  const activeCount = users.filter((u) => u.isActive && !u.deletedAt && !u.orgRemovedAt && u.roles.length > 0).length
 
   const STATUS_LABELS: Record<StatusFilter, string> = {
     all:      t('common.all'),
@@ -149,7 +150,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
                   canWrite={canWrite}
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
-                  onRestore={() => restoreMutation.mutate(u.id)}
+                  onRestore={(user) => restoreMutation.mutate(user)}
                   onResendInvitation={() => resendInvitationMutation.mutate(u.id)}
                 />
               ))}
@@ -175,14 +176,14 @@ interface UserRowProps {
   canWrite: boolean
   onEdit: () => void
   onDelete: () => void
-  onRestore: () => void
+  onRestore: (u: ApiUserWithRoles) => void
   onResendInvitation: () => void
 }
 
-function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore, onResendInvitation }: UserRowProps) {
+function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore: onRestoreUser, onResendInvitation }: UserRowProps) {
   const { t } = useTranslation()
   return (
-    <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
+    <TableRow className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}>
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="size-8">
@@ -218,8 +219,12 @@ function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore, on
         )}
       </TableCell>
       <TableCell>
-        {isDeleted(u) ? (
+        {isDeleted(u) || u.orgRemovedAt ? (
           <Badge variant="destructive" className="text-xs">{t('common.deleted')}</Badge>
+        ) : u.roles.length === 0 ? (
+          <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+            {t('common.noRole')}
+          </Badge>
         ) : u.isActive ? (
           <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
             {t('common.active')}
@@ -237,7 +242,7 @@ function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore, on
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {!isDeleted(u) && (
+              {!isDeleted(u) && !u.orgRemovedAt && u.roles.length > 0 && (
                 <>
                   <DropdownMenuItem onClick={onEdit}>
                     <Pencil className="size-4" /> {t('users.actions.edit')}
@@ -253,8 +258,8 @@ function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore, on
                   </DropdownMenuItem>
                 </>
               )}
-              {isDeleted(u) && (
-                <DropdownMenuItem onClick={onRestore}>
+              {(isDeleted(u) || !!u.orgRemovedAt) && (
+                <DropdownMenuItem onClick={() => onRestoreUser(u)}>
                   <RotateCcw className="size-4" /> {t('users.actions.restore')}
                 </DropdownMenuItem>
               )}

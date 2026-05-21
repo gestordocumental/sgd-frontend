@@ -1,9 +1,11 @@
 import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Building2, CheckCircle, ChevronRight, ChevronDown, Search } from 'lucide-react'
+import { Building2, CheckCircle, ChevronRight, ChevronDown, Search, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Pager } from '@/components/ui/pager'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
 import {
   Table,
   TableBody,
@@ -13,22 +15,22 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatCard } from '@/components/ui/stat-card'
-import { type ApiUser } from '@/lib/api/users'
+import { type ApiUserWithRoles } from '@/lib/api/users'
 import { formatDate } from '@/lib/formatters'
 import type { useAdminCompanies } from '@/features/companies/hooks/use-admin-companies'
 import { CompanyActions } from './CompanyActions'
 import { CompanyUsersRow } from './CompanyUsersRow'
 
 type CompaniesHook = ReturnType<typeof useAdminCompanies>
-type StatusFilter = 'all' | 'active' | 'inactive'
+type StatusFilter = 'all' | 'active' | 'inactive' | 'deleted'
 const PAGE_SIZE = 20
 
 interface CompaniesTableProps {
   hook: CompaniesHook
   onCreateUser: (companyId: string) => void
-  onEditUser: (u: ApiUser) => void
-  onDeleteUser: (u: ApiUser) => void
-  onToggleUserStatus: (u: ApiUser) => void
+  onEditUser: (u: ApiUserWithRoles) => void
+  onDeleteUser: (u: ApiUserWithRoles) => void
+  onToggleUserStatus: (u: ApiUserWithRoles) => void
 }
 
 export function CompaniesTable({
@@ -41,12 +43,16 @@ export function CompaniesTable({
   const {
     companies,
     companiesLoading,
+    companiesIsFetching,
+    companiesDataUpdatedAt,
+    refreshCompanies,
     expandedCompanies,
     selectedCompany,
     openEdit,
     setDeleteCompany,
     toggleExpand,
     toggleStatusMutation,
+    restoreMutation,
   } = hook
   const { t } = useTranslation()
 
@@ -60,9 +66,10 @@ export function CompaniesTable({
       c.name.toLowerCase().includes(q) ||
       (c.nit ?? '').toLowerCase().includes(q)
     const matchesStatus =
-      statusFilter === 'all'    ? true :
-      statusFilter === 'active' ? c.status === 'active' :
-      /* inactive */              c.status !== 'active'
+      statusFilter === 'all'     ? true :
+      statusFilter === 'deleted' ? !!c.deletedAt :
+      statusFilter === 'active'  ? !c.deletedAt && c.status === 'active' :
+      /* inactive */               !c.deletedAt && c.status !== 'active'
     return matchesSearch && matchesStatus
   })
 
@@ -73,12 +80,13 @@ export function CompaniesTable({
   const handleSearch = (v: string) => { setSearch(v); setPage(1) }
   const handleStatus = (v: StatusFilter) => { setStatus(v); setPage(1) }
 
-  const totalActiveCompanies = companies.filter((c) => c.status === 'active').length
+  const totalActiveCompanies = companies.filter((c) => !c.deletedAt && c.status === 'active').length
 
   const STATUS_LABELS: Record<StatusFilter, string> = {
     all:      t('common.all'),
     active:   t('common.active'),
     inactive: t('common.inactive'),
+    deleted:  t('common.deleted'),
   }
 
   return (
@@ -98,7 +106,22 @@ export function CompaniesTable({
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-sm font-semibold shrink-0">{t('companies.title')}</h2>
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="text-sm font-semibold">{t('companies.title')}</h2>
+            <div className="flex flex-col items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={refreshCompanies}
+                disabled={companiesIsFetching}
+                title={t('common.refresh')}
+              >
+                <RefreshCw className={`size-3.5 text-muted-foreground ${companiesIsFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <RefreshCountdown duration={60_000} isFetching={companiesIsFetching} updatedAt={companiesDataUpdatedAt} />
+            </div>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
@@ -112,9 +135,10 @@ export function CompaniesTable({
             <select
               value={statusFilter}
               onChange={(e) => handleStatus(e.target.value as StatusFilter)}
+              aria-label={t('common.status')}
               className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
             >
-              {(['all', 'active', 'inactive'] as StatusFilter[]).map((s) => (
+              {(['all', 'active', 'inactive', 'deleted'] as StatusFilter[]).map((s) => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
               ))}
             </select>
@@ -126,9 +150,7 @@ export function CompaniesTable({
             {t('companies.loading')}
           </div>
         ) : filtered.length === 0 ? (
-        ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            {search || statusFilter !== 'all' ? t('common.noResults') : t('companies.empty')}
             {search || statusFilter !== 'all' ? t('common.noResults') : t('companies.empty')}
           </div>
         ) : (
@@ -146,9 +168,8 @@ export function CompaniesTable({
             </TableHeader>
             <TableBody>
               {paginated.map((company) => (
-              {paginated.map((company) => (
                 <Fragment key={company.id}>
-                  <TableRow className={selectedCompany?.id === company.id ? 'bg-primary/5' : ''}>
+                  <TableRow className={`${selectedCompany?.id === company.id ? 'bg-primary/5' : ''} ${company.deletedAt ? 'opacity-50' : ''}`}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <button
@@ -179,7 +200,11 @@ export function CompaniesTable({
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground font-mono">{company.nit ?? '—'}</TableCell>
                     <TableCell>
-                      {company.status === 'active' ? (
+                      {company.deletedAt ? (
+                        <Badge variant="destructive" className="text-xs">
+                          {t('common.deleted')}
+                        </Badge>
+                      ) : company.status === 'active' ? (
                         <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
                           {t('common.active')}
                         </Badge>
@@ -204,6 +229,7 @@ export function CompaniesTable({
                           })
                         }
                         onDelete={() => setDeleteCompany(company)}
+                        onRestore={() => restoreMutation.mutate(company.id)}
                       />
                     </TableCell>
                   </TableRow>
@@ -221,10 +247,6 @@ export function CompaniesTable({
               ))}
             </TableBody>
           </Table>
-        )}
-
-        {totalPages > 1 && (
-          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-5 py-3 border-t border-border" />
         )}
 
         {totalPages > 1 && (
