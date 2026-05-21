@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface RefreshCountdownProps {
   /** How long (ms) before the bar empties — should match refetchInterval or staleTime */
@@ -23,22 +23,12 @@ interface RefreshCountdownProps {
  * While `isFetching` is true it shows a pulsing fill instead of the countdown.
  */
 export function RefreshCountdown({ duration, isFetching, updatedAt }: RefreshCountdownProps) {
-  const [barKey, setBarKey] = useState(0)
-  const prevUpdatedAt = useRef(updatedAt)
-
-  useEffect(() => {
-    if (updatedAt !== prevUpdatedAt.current) {
-      setBarKey((k) => k + 1)
-      prevUpdatedAt.current = updatedAt
-    }
-  }, [updatedAt])
-
   return (
     <div className="w-6 h-[2px] rounded-full overflow-hidden bg-border">
       {isFetching ? (
         <div className="h-full w-full bg-primary/50 animate-pulse" />
       ) : (
-        <CountdownBar key={barKey} duration={duration} />
+        <CountdownBar key={updatedAt} duration={duration} />
       )}
     </div>
   )
