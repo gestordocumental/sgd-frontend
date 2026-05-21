@@ -126,7 +126,9 @@ export function CompaniesTable({
             {t('companies.loading')}
           </div>
         ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+            {search || statusFilter !== 'all' ? t('common.noResults') : t('companies.empty')}
             {search || statusFilter !== 'all' ? t('common.noResults') : t('companies.empty')}
           </div>
         ) : (
@@ -143,6 +145,7 @@ export function CompaniesTable({
               </TableRow>
             </TableHeader>
             <TableBody>
+              {paginated.map((company) => (
               {paginated.map((company) => (
                 <Fragment key={company.id}>
                   <TableRow className={selectedCompany?.id === company.id ? 'bg-primary/5' : ''}>
@@ -218,6 +221,10 @@ export function CompaniesTable({
               ))}
             </TableBody>
           </Table>
+        )}
+
+        {totalPages > 1 && (
+          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-5 py-3 border-t border-border" />
         )}
 
         {totalPages > 1 && (
