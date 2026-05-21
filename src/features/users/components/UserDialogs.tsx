@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CheckCircle2, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -14,6 +16,7 @@ interface UserDialogsProps {
 export function UserDialogs({ hook }: UserDialogsProps) {
   const {
     createOpen, setCreateOpen,
+    invitedUser, setInvitedUser,
     createUserContext, companyRoles,
     editUser, setEditUser,
     deleteUser, setDeleteUser,
@@ -22,9 +25,85 @@ export function UserDialogs({ hook }: UserDialogsProps) {
     createMutation, editMutation, deleteMutation,
   } = hook
   const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+
+  const invitationUrl = invitedUser?.invitationUrl ?? ''
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(invitationUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   return (
     <>
+      {/* ── Invitación enviada / reenviada ────────────────────────── */}
+      <Dialog
+        open={!!invitedUser}
+        onOpenChange={(o) => {
+          if (!o) {
+            setInvitedUser(null)
+            setCopied(false)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
+              {invitedUser?.invitationResent
+                ? t('users.dialogs.invitationResent.title')
+                : t('users.dialogs.invitationSent.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <p className="text-sm text-muted-foreground">
+              {invitedUser?.invitationResent
+                ? t('users.dialogs.invitationResent.description', { email: invitedUser?.email })
+                : t('users.dialogs.invitationSent.description', { email: invitedUser?.email })}
+            </p>
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t('users.dialogs.invitationSent.linkLabel')}
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={invitationUrl}
+                  className="text-xs font-mono bg-muted/50 truncate"
+                  onFocus={(e) => e.target.select()}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={handleCopy}
+                  title={t('users.dialogs.invitationSent.copyTitle')}
+                >
+                  {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground/60">
+              {t('users.dialogs.invitationSent.expiry')}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              className="w-full"
+              onClick={() => {
+                setInvitedUser(null)
+                setCopied(false)
+              }}
+            >
+              {t('common.close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Crear usuario ─────────────────────────────────────────── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">

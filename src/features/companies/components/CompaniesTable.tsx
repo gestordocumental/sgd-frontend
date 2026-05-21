@@ -1,6 +1,7 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Pager } from "@/components/ui/pager";
 import {
   Building2,
   CheckCircle,
@@ -14,8 +15,10 @@ import {
   CheckCircle as CheckIcon,
   XCircle as XIcon,
   ShieldCheck,
+  Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Table,
@@ -39,6 +42,10 @@ import { initials, isDeleted, formatDate } from "@/lib/formatters";
 import type { useAdminCompanies } from "@/features/companies/hooks/use-admin-companies";
 
 type CompaniesHook = ReturnType<typeof useAdminCompanies>;
+type StatusFilter = 'all' | 'active' | 'inactive'
+type UserStatusFilter = 'all' | 'active' | 'inactive' | 'pending'
+const PAGE_SIZE = 20
+const USER_PAGE_SIZE = 10
 
 interface CompaniesTableProps {
   hook: CompaniesHook;
@@ -67,9 +74,38 @@ export function CompaniesTable({
   } = hook;
   const { t } = useTranslation();
 
-  const totalActiveCompanies = companies.filter(
-    (c) => c.status === "active",
-  ).length;
+  const [search, setSearch]       = useState('')
+  const [statusFilter, setStatus] = useState<StatusFilter>('all')
+  const [page, setPage]           = useState(1)
+
+  const filtered = companies.filter((c) => {
+    const q = search.toLowerCase()
+    const matchesSearch = !q ||
+      c.name.toLowerCase().includes(q) ||
+      (c.nit ?? '').toLowerCase().includes(q)
+
+    const matchesStatus =
+      statusFilter === 'all'      ? true :
+      statusFilter === 'active'   ? c.status === 'active' :
+      /* inactive */                c.status !== 'active'
+
+    return matchesSearch && matchesStatus
+  })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleStatus = (v: StatusFilter) => { setStatus(v); setPage(1) }
+
+  const totalActiveCompanies = companies.filter((c) => c.status === "active").length;
+
+  const STATUS_LABELS: Record<StatusFilter, string> = {
+    all:      t('common.all'),
+    active:   t('common.active'),
+    inactive: t('common.inactive'),
+  }
 
   return (
     <main className="p-6 space-y-6">
@@ -87,17 +123,38 @@ export function CompaniesTable({
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold">{t('companies.title')}</h2>
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-sm font-semibold shrink-0">{t('companies.title')}</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder={t('common.search')}
+                className="h-8 pl-8 w-48 text-sm"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatus(e.target.value as StatusFilter)}
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+            >
+              {(['all', 'active', 'inactive'] as StatusFilter[]).map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {companiesLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
             {t('companies.loading')}
           </div>
-        ) : companies.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            {t('companies.empty')}
+            {search || statusFilter !== 'all' ? t('common.noResults') : t('companies.empty')}
           </div>
         ) : (
           <Table>
@@ -113,7 +170,7 @@ export function CompaniesTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {companies.map((company) => (
+              {paginated.map((company) => (
                 <Fragment key={company.id}>
                   <TableRow
                     className={
@@ -212,10 +269,15 @@ export function CompaniesTable({
             </TableBody>
           </Table>
         )}
+
+        {totalPages > 1 && (
+          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-5 py-3 border-t border-border" />
+        )}
       </div>
     </main>
   );
 }
+
 
 // ── CompanyActions ────────────────────────────────────────────────────────────
 
@@ -291,7 +353,7 @@ function CompanyUsersRow({
   onToggleUserStatus,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation();
-  const { data: users, isLoading, isError, refetch } = useQuery({
+  const { data: users = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["company-users", companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
@@ -299,14 +361,73 @@ function CompanyUsersRow({
     refetchIntervalInBackground: false,
   });
 
+  const [search, setSearch]       = useState('')
+  const [statusFilter, setStatus] = useState<UserStatusFilter>('all')
+  const [page, setPage]           = useState(1)
+
+  const filtered = users.filter((u) => {
+    const q = search.toLowerCase()
+    const matchesSearch = !q ||
+      (u.firstName ?? '').toLowerCase().includes(q) ||
+      (u.lastName ?? '').toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
+
+    const matchesStatus =
+      statusFilter === 'all'      ? true :
+      statusFilter === 'inactive' ? !!u.deletedAt :
+      statusFilter === 'pending'  ? u.registrationStatus === 'pending_credentials' && !u.deletedAt :
+      /* active */                  !u.deletedAt && u.registrationStatus !== 'pending_credentials'
+
+    return matchesSearch && matchesStatus
+  })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * USER_PAGE_SIZE, safePage * USER_PAGE_SIZE)
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleStatus = (v: UserStatusFilter) => { setStatus(v); setPage(1) }
+
+  const USER_STATUS_LABELS: Record<UserStatusFilter, string> = {
+    all:      t('common.all'),
+    active:   t('common.active'),
+    inactive: t('common.deleted'),
+    pending:  t('common.pending'),
+  }
+
   return (
     <TableRow id={id} className="hover:bg-transparent">
       <TableCell colSpan={7} className="p-0">
         <div className="bg-muted/40 border-b border-border">
           <div className="pl-14 pr-6 py-4">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              {t('companies.companyUsers')}
-            </p>
+            {/* Sub-header */}
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {t('companies.companyUsers')}
+              </p>
+              {!isLoading && !isError && users.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
+                    <input
+                      value={search}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      placeholder={t('common.search')}
+                      className="h-7 pl-6 pr-2 w-36 text-xs rounded-md border border-input bg-background outline-none focus-visible:border-ring"
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => handleStatus(e.target.value as UserStatusFilter)}
+                    className="h-7 rounded-md border border-input bg-transparent px-2 py-0.5 text-xs outline-none focus-visible:border-ring"
+                  >
+                    {(['all', 'active', 'inactive', 'pending'] as UserStatusFilter[]).map((s) => (
+                      <option key={s} value={s}>{USER_STATUS_LABELS[s]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
 
             {isLoading ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
@@ -325,9 +446,9 @@ function CompanyUsersRow({
                   {t('companies.retryUsers')}
                 </button>
               </div>
-            ) : !users || users.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
-                {t('companies.noUsers')}
+                {search || statusFilter !== 'all' ? t('common.noResults') : t('companies.noUsers')}
               </p>
             ) : (
               <div className="rounded-md border border-border bg-card overflow-hidden">
@@ -344,7 +465,7 @@ function CompanyUsersRow({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((u) => (
+                    {paginated.map((u) => (
                       <TableRow
                         key={u.id}
                         className={isDeleted(u) ? "opacity-50" : ""}
@@ -444,6 +565,9 @@ function CompanyUsersRow({
                     ))}
                   </TableBody>
                 </Table>
+                {totalPages > 1 && (
+                  <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-4 py-2 border-t border-border" />
+                )}
               </div>
             )}
           </div>

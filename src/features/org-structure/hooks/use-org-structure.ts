@@ -38,10 +38,15 @@ export function useOrgStructure(companyId: string, enabled = true) {
   const [editCargo, setEditCargo] = useState<ApiCargo | null>(null)
   const [deleteCargo, setDeleteCargo] = useState<ApiCargo | null>(null)
 
+  const [createDeptCargoOpen, setCreateDeptCargoOpen] = useState(false)
+  const [editDeptCargo, setEditDeptCargo] = useState<ApiCargo | null>(null)
+  const [deleteDeptCargo, setDeleteDeptCargo] = useState<ApiCargo | null>(null)
+
   // ── Forms ──────────────────────────────────────────────────────
   const deptForm = useForm<StructureForm>({ resolver: zodResolver(structureSchema), mode: 'onChange' })
   const areaForm = useForm<StructureForm>({ resolver: zodResolver(structureSchema), mode: 'onChange' })
   const cargoForm = useForm<StructureForm>({ resolver: zodResolver(structureSchema), mode: 'onChange' })
+  const deptCargoForm = useForm<StructureForm>({ resolver: zodResolver(structureSchema), mode: 'onChange' })
 
   // ── Queries ────────────────────────────────────────────────────
   const { data: departamentos = [], isLoading: deptLoading } = useQuery({
@@ -65,6 +70,13 @@ export function useOrgStructure(companyId: string, enabled = true) {
     enabled: !!companyId && !!selectedDeptId && !!selectedAreaId,
   })
 
+  const { data: deptCargos = [], isLoading: deptCargosLoading } = useQuery({
+    queryKey: ['dept-cargos', companyId, selectedDeptId],
+    queryFn: () => orgStructureApi.listDeptCargos(companyId, selectedDeptId),
+    staleTime: 60_000,
+    enabled: !!companyId && !!selectedDeptId,
+  })
+
   // ── Invalidation helpers ───────────────────────────────────────
   // Partial-key invalidation: covers all cached variants (including user modals)
   const invalidateDepts = () =>
@@ -75,6 +87,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
 
   const invalidateCargos = () => {
     queryClient.invalidateQueries({ queryKey: ['cargos', companyId] })
+    queryClient.invalidateQueries({ queryKey: ['dept-cargos', companyId] })
     queryClient.invalidateQueries({ queryKey: ['all-cargos', companyId] })
   }
 
@@ -157,7 +170,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
       orgStructureApi.updateCargo(
         companyId,
         editCargo!.departamentoId,
-        editCargo!.areaId,
+        editCargo!.areaId ?? '',
         editCargo!.id,
         dto,
       ),
@@ -170,8 +183,35 @@ export function useOrgStructure(companyId: string, enabled = true) {
 
   const deleteCargoMutation = useMutation({
     mutationFn: (c: ApiCargo) =>
-      orgStructureApi.deleteCargo(companyId, c.departamentoId, c.areaId, c.id),
+      orgStructureApi.deleteCargo(companyId, c.departamentoId, c.areaId!, c.id),
     onSuccess: () => { invalidateCargos(); setDeleteCargo(null) },
+  })
+
+  // ── Dept-level cargo mutations ─────────────────────────────────
+  const createDeptCargoMutation = useMutation({
+    mutationFn: (dto: StructureForm) =>
+      orgStructureApi.createDeptCargo(companyId, selectedDeptId, dto),
+    onSuccess: () => { invalidateCargos(); setCreateDeptCargoOpen(false); deptCargoForm.reset() },
+    onError: (e: { response?: { data?: { message?: string } } }) => {
+      const msg = e.response?.data?.message
+      if (msg) deptCargoForm.setError('name', { message: msg })
+    },
+  })
+
+  const editDeptCargoMutation = useMutation({
+    mutationFn: (dto: StructureForm) =>
+      orgStructureApi.updateDeptCargo(companyId, editDeptCargo!.departamentoId, editDeptCargo!.id, dto),
+    onSuccess: () => { invalidateCargos(); setEditDeptCargo(null) },
+    onError: (e: { response?: { data?: { message?: string } } }) => {
+      const msg = e.response?.data?.message
+      if (msg) deptCargoForm.setError('name', { message: msg })
+    },
+  })
+
+  const deleteDeptCargoMutation = useMutation({
+    mutationFn: (c: ApiCargo) =>
+      orgStructureApi.deleteDeptCargo(companyId, c.departamentoId, c.id),
+    onSuccess: () => { invalidateCargos(); setDeleteDeptCargo(null) },
   })
 
   // ── Bulk import mutation ────────────────────────────────────────
@@ -203,6 +243,12 @@ export function useOrgStructure(companyId: string, enabled = true) {
     cargoForm.trigger()
   }
 
+  const openEditDeptCargo = (c: ApiCargo) => {
+    setEditDeptCargo(c)
+    deptCargoForm.reset({ name: c.name, description: c.description ?? undefined })
+    deptCargoForm.trigger()
+  }
+
   const handleSelectDept = (id: string) => {
     setSelectedDeptId(id)
     setSelectedAreaId('') // reset area when dept changes
@@ -217,6 +263,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     departamentos, deptLoading,
     areas, areasLoading,
     cargos, cargosLoading,
+    deptCargos, deptCargosLoading,
 
     // Departamento dialog state
     createDeptOpen, setCreateDeptOpen,
@@ -234,13 +281,21 @@ export function useOrgStructure(companyId: string, enabled = true) {
     openEditArea,
     createAreaMutation, editAreaMutation, deleteAreaMutation,
 
-    // Cargo dialog state
+    // Cargo dialog state (area-level)
     createCargoOpen, setCreateCargoOpen,
     editCargo, setEditCargo,
     deleteCargo, setDeleteCargo,
     cargoForm,
     openEditCargo,
     createCargoMutation, editCargoMutation, deleteCargoMutation,
+
+    // Cargo dialog state (dept-level)
+    createDeptCargoOpen, setCreateDeptCargoOpen,
+    editDeptCargo, setEditDeptCargo,
+    deleteDeptCargo, setDeleteDeptCargo,
+    deptCargoForm,
+    openEditDeptCargo,
+    createDeptCargoMutation, editDeptCargoMutation, deleteDeptCargoMutation,
 
     // Bulk import
     bulkImportMutation,

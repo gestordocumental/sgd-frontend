@@ -72,7 +72,27 @@ export interface UpdateTypologyDto {
 
 const base = (orgId: string) => `/documents/${orgId}/typologies`
 
+export interface TypologyStats {
+  totalTypologies: number
+  activeTypologies: number
+  uploadedDocuments: number
+  storageTotalBytes: number
+  extractionStatusCounts: Record<string, number>
+}
+
+export interface OrgStorageStat {
+  orgId: string
+  storageTotalBytes: number
+  uploadedDocuments: number
+}
+
 export const typologiesApi = {
+  stats: (orgId: string) =>
+    apiClient.get<TypologyStats>(`${base(orgId)}/stats`).then((r) => r.data),
+
+  storagePerOrg: () =>
+    apiClient.get<OrgStorageStat[]>('/documents/admin/storage-per-org').then((r) => r.data),
+
   list: (orgId: string, params?: { page?: number; limit?: number }) =>
     apiClient.get<ApiTypology[]>(base(orgId), { params }).then((r) => r.data),
 

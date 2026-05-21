@@ -1,6 +1,11 @@
-import { Pencil, Trash2, RotateCcw, MoreHorizontal } from 'lucide-react'
+import { useState } from 'react'
+import { Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, UserPlus, Search, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Pager } from '@/components/ui/pager'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
+import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -9,6 +14,9 @@ import type { ApiUserWithRoles } from '@/lib/api/users'
 import type { useCompanyUsers } from '@/features/company-users/hooks/use-company-users'
 
 type CompanyUsersHook = ReturnType<typeof useCompanyUsers>
+type StatusFilter = 'all' | 'active' | 'inactive' | 'deleted'
+
+const PAGE_SIZE = 20
 
 interface CompanyUsersTableProps {
   hook: CompanyUsersHook
@@ -16,27 +24,109 @@ interface CompanyUsersTableProps {
 }
 
 export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableProps) {
-  const { users, usersLoading, openEdit, setDeleteUser, restoreMutation, cargoMap } = hook
+  const { users, usersLoading, usersIsFetching, usersDataUpdatedAt, refreshUsers, openEdit, setDeleteUser, restoreMutation, resendInvitationMutation, cargoMap } = hook
   const { t } = useTranslation()
-  const activeUsers = users.filter((u) => !isDeleted(u))
+
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [page, setPage] = useState(1)
+
+  const filtered = users.filter((u) => {
+    const q = search.toLowerCase()
+    const matchesSearch = !q ||
+      u.email.toLowerCase().includes(q) ||
+      (u.firstName ?? '').toLowerCase().includes(q) ||
+      (u.lastName ?? '').toLowerCase().includes(q)
+
+    const matchesStatus =
+      statusFilter === 'all'      ? true :
+      statusFilter === 'deleted'  ? !!u.deletedAt :
+      statusFilter === 'active'   ? u.isActive && !u.deletedAt :
+      /* inactive */                !u.isActive && !u.deletedAt
+
+    return matchesSearch && matchesStatus
+  })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleStatus = (v: StatusFilter) => { setStatusFilter(v); setPage(1) }
+
+  const activeCount = users.filter((u) => u.isActive && !u.deletedAt).length
+
+  const STATUS_LABELS: Record<StatusFilter, string> = {
+    all:      t('common.all'),
+    active:   t('common.active'),
+    inactive: t('common.inactive'),
+    deleted:  t('common.deleted'),
+  }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="p-6 space-y-4">
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{t('users.companyUsers')}</h2>
-          <span className="text-xs text-muted-foreground">
-            {t('users.activeCount', { active: activeUsers.length, total: users.length })}
-          </span>
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="text-sm font-semibold">{t('users.companyUsers')}</h2>
+            <div className="flex flex-col items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={refreshUsers}
+                disabled={usersIsFetching}
+                title={t('common.refresh')}
+              >
+                <RefreshCw className={`size-3.5 text-muted-foreground ${usersIsFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <RefreshCountdown duration={60_000} isFetching={usersIsFetching} updatedAt={usersDataUpdatedAt} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+            <span className="text-xs text-muted-foreground shrink-0">
+              {t('users.activeCount', { active: activeCount, total: users.length })}
+            </span>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder={t('common.search')}
+                className="h-8 pl-8 w-48 text-sm"
+              />
+            </div>
+
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatus(e.target.value as StatusFilter)}
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+            >
+              {(['all', 'active', 'inactive', 'deleted'] as StatusFilter[]).map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+
+            {canWrite && (
+              <Button size="sm" onClick={hook.openCreate}>
+                <UserPlus className="size-4" />{t('dashboard.newUser')}
+              </Button>
+            )}
+          </div>
         </div>
 
+        {/* Table */}
         {usersLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
             {t('users.loading')}
           </div>
-        ) : users.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            {t('users.empty')}
+            {search || statusFilter !== 'all' ? t('common.noResults') : t('users.empty')}
           </div>
         ) : (
           <Table>
@@ -51,7 +141,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => (
+              {paginated.map((u) => (
                 <UserRow
                   key={u.id}
                   user={u}
@@ -60,15 +150,24 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
                   onRestore={() => restoreMutation.mutate(u.id)}
+                  onResendInvitation={() => resendInvitationMutation.mutate(u.id)}
                 />
               ))}
             </TableBody>
           </Table>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-5 py-3 border-t border-border" />
+        )}
       </div>
     </main>
   )
 }
+
+
+// ── UserRow ───────────────────────────────────────────────────────────────────
 
 interface UserRowProps {
   user: ApiUserWithRoles
@@ -77,9 +176,10 @@ interface UserRowProps {
   onEdit: () => void
   onDelete: () => void
   onRestore: () => void
+  onResendInvitation: () => void
 }
 
-function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore }: UserRowProps) {
+function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore, onResendInvitation }: UserRowProps) {
   const { t } = useTranslation()
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
@@ -120,9 +220,13 @@ function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore }: 
       <TableCell>
         {isDeleted(u) ? (
           <Badge variant="destructive" className="text-xs">{t('common.deleted')}</Badge>
-        ) : (
+        ) : u.isActive ? (
           <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
             {t('common.active')}
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+            {t('common.inactive')}
           </Badge>
         )}
       </TableCell>
@@ -138,6 +242,11 @@ function UserRow({ user: u, cargoName, canWrite, onEdit, onDelete, onRestore }: 
                   <DropdownMenuItem onClick={onEdit}>
                     <Pencil className="size-4" /> {t('users.actions.edit')}
                   </DropdownMenuItem>
+                  {u.registrationStatus === 'pending_credentials' && (
+                    <DropdownMenuItem onClick={onResendInvitation}>
+                      <MailCheck className="size-4" /> {t('users.actions.resendInvitation')}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
                     <Trash2 className="size-4" /> {t('users.actions.delete')}

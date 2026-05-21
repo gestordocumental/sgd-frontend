@@ -24,12 +24,15 @@ interface AuthStore {
     isSuperAdmin: boolean,
   ) => void;
   updateAccessToken: (accessToken: string) => void;
+  /** Updates both access and refresh tokens after a silent refresh */
+  updateTokenPair: (accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
   /** Switch into a company context (saves current token as super-admin token if applicable) */
   enterCompany: (
     companyId: string,
     companyName: string,
     companyToken: string,
+    refreshToken?: string,
   ) => void;
   /** Restore the global super-admin context */
   exitCompany: () => boolean;
@@ -41,10 +44,20 @@ function hydrate(): Partial<PersistedAuth> {
   try {
     const parsed: PersistedAuth = JSON.parse(raw);
     const decoded = decodeJwt(parsed.accessToken);
-    if (!decoded || decoded.exp * 1000 < Date.now()) {
+    if (!decoded) {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem("sgd-refresh-token");
       return {};
+    }
+    // If the access token is expired, keep the session only when a refresh token
+    // exists — the silent-refresh interceptor will renew it on the first API call.
+    if (decoded.exp * 1000 < Date.now()) {
+      const storedRefresh = localStorage.getItem("sgd-refresh-token");
+      if (!storedRefresh) {
+        localStorage.removeItem(AUTH_KEY);
+        return {};
+      }
+      return { ...parsed, isSuperAdmin: decoded.isSuperAdmin === true };
     }
     return { ...parsed, isSuperAdmin: decoded.isSuperAdmin === true };
   } catch {
@@ -99,6 +112,28 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       set({ accessToken, isSuperAdmin });
     },
 
+    updateTokenPair: (accessToken, refreshToken) => {
+      const decoded = decodeJwt(accessToken);
+      const isSuperAdmin = decoded?.isSuperAdmin === true;
+      const raw = localStorage.getItem(AUTH_KEY);
+      if (raw) {
+        try {
+          localStorage.setItem(
+            AUTH_KEY,
+            JSON.stringify({ ...JSON.parse(raw), accessToken, isSuperAdmin }),
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+      localStorage.setItem("sgd-refresh-token", refreshToken);
+      const { user } = get();
+      if (isSuperAdmin && !user?.companyId) {
+        localStorage.setItem(SUPER_ADMIN_TOKEN_KEY, accessToken);
+      }
+      set({ accessToken, isSuperAdmin });
+    },
+
     clearAuth: () => {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem("sgd-refresh-token");
@@ -111,7 +146,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       });
     },
 
-    enterCompany: (companyId, companyName, companyToken) => {
+    enterCompany: (companyId, companyName, companyToken, refreshToken?) => {
       const raw = localStorage.getItem(AUTH_KEY);
       const stored: PersistedAuth | null = raw ? JSON.parse(raw) : null;
       if (!stored) return;
@@ -127,6 +162,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
           isSuperAdmin,
         } satisfies PersistedAuth),
       );
+      if (refreshToken) {
+        localStorage.setItem("sgd-refresh-token", refreshToken);
+      }
       set({ user: updatedUser, accessToken: companyToken, isSuperAdmin });
     },
 

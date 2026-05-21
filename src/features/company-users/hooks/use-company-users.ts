@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { usersApi, type ApiUserWithRoles, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
+import { usersApi, type ApiUserWithRoles, type InvitedUserInfo, type CreateUserDto, type UpdateUserDto } from '@/lib/api/users'
 import { rolesApi } from '@/lib/api/roles'
 import { companiesApi } from '@/lib/api/companies'
 import { orgStructureApi } from '@/lib/api/org-structure'
@@ -33,6 +33,7 @@ export function useCompanyUsers(companyId: string) {
   const queryClient = useQueryClient()
 
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [invitedUser, setInvitedUser] = useState<InvitedUserInfo | null>(null)
   const [editUser, setEditUser] = useState<ApiUserWithRoles | null>(null)
   const [deleteUser, setDeleteUser] = useState<ApiUserWithRoles | null>(null)
 
@@ -106,21 +107,40 @@ export function useCompanyUsers(companyId: string) {
     enabled: !!editUser && !!editSelectedAreaId,
   })
 
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    isFetching: usersIsFetching,
+    dataUpdatedAt: usersDataUpdatedAt,
+  } = useQuery({
     queryKey: ['company-users', companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
     enabled: !!companyId,
   })
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['company-users', companyId] })
 
+  const refreshUsers = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['company-users', companyId] })
+  }, [queryClient, companyId])
+
   const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
-    onSuccess: () => { invalidate(); setCreateUserOpen(false) },
+    onSuccess: (created) => {
+      invalidate()
+      setCreateUserOpen(false)
+      setInvitedUser({
+        email: created.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${created.invitationToken}`,
+        invitationResent: created.invitationResent,
+      })
+    },
     onError: (error: { response?: { data?: { message?: string } } }) => {
       const msg = error.response?.data?.message
       if (msg) createForm.setError('email', { message: msg })
@@ -144,6 +164,17 @@ export function useCompanyUsers(companyId: string) {
   const restoreMutation = useMutation({
     mutationFn: (id: string) => usersApi.restore(id),
     onSuccess: invalidate,
+  })
+
+  const resendInvitationMutation = useMutation({
+    mutationFn: (id: string) => usersApi.resendInvitation(id),
+    onSuccess: (data) => {
+      setInvitedUser({
+        email: data.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${data.invitationToken}`,
+        invitationResent: data.invitationResent,
+      })
+    },
   })
 
   const editForm = useForm<EditUserForm>({ resolver: zodResolver(editUserSchema), mode: 'onChange' })
@@ -176,6 +207,9 @@ export function useCompanyUsers(companyId: string) {
     company,
     users,
     usersLoading,
+    usersIsFetching,
+    usersDataUpdatedAt,
+    refreshUsers,
     roles,
     cargoMap,
     departamentos,
@@ -192,6 +226,7 @@ export function useCompanyUsers(companyId: string) {
     editSelectedAreaId,
     setEditSelectedAreaId,
     createUserOpen, setCreateUserOpen,
+    invitedUser, setInvitedUser,
     editUser, setEditUser,
     deleteUser, setDeleteUser,
     createForm,
@@ -202,5 +237,6 @@ export function useCompanyUsers(companyId: string) {
     editMutation,
     deleteMutation,
     restoreMutation,
+    resendInvitationMutation,
   }
 }

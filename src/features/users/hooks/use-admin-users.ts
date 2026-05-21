@@ -6,6 +6,8 @@ import { z } from "zod";
 import {
   usersApi,
   type ApiUser,
+  type ApiUserCreated,
+  type InvitedUserInfo,
   type CreateUserDto,
   type UpdateUserDto,
 } from "@/lib/api/users";
@@ -38,6 +40,7 @@ export function useAdminUsers() {
   const queryClient = useQueryClient();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [invitedUser, setInvitedUser] = useState<InvitedUserInfo | null>(null);
   const [createUserContext, setCreateUserContext] = useState<
     "super-admin" | "company"
   >("super-admin");
@@ -121,11 +124,12 @@ export function useAdminUsers() {
       dto: CreateUserDto;
       roleId?: string;
       orgId?: string;
-    }) => {
+    }): Promise<ApiUserCreated | null> => {
+      let created: ApiUserCreated | null = null;
       let userId: string;
       try {
-        const user = await usersApi.create(dto);
-        userId = user.id;
+        created = await usersApi.create(dto);
+        userId = created.id;
       } catch (err: unknown) {
         // If the email already exists and we're assigning to a company,
         // use the existing user's id instead of failing.
@@ -139,12 +143,18 @@ export function useAdminUsers() {
       if (orgId) {
         await usersApi.assignUserToOrg(userId, orgId, roleId);
       }
+      return created;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ["roles"] });
       queryClient.invalidateQueries({ queryKey: ["company-users"] });
       setCreateOpen(false);
+      if (created) setInvitedUser({
+        email: created.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${created.invitationToken}`,
+        invitationResent: created.invitationResent,
+      });
     },
   });
 
@@ -168,6 +178,17 @@ export function useAdminUsers() {
   const restoreMutation = useMutation({
     mutationFn: (id: string) => usersApi.restore(id),
     onSuccess: invalidate,
+  });
+
+  const resendInvitationMutation = useMutation({
+    mutationFn: (id: string) => usersApi.resendInvitation(id),
+    onSuccess: (data) => {
+      setInvitedUser({
+        email: data.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${data.invitationToken}`,
+        invitationResent: data.invitationResent,
+      });
+    },
   });
 
   const toggleSuperAdminMutation = useMutation({
@@ -232,6 +253,8 @@ export function useAdminUsers() {
     superAdminsLoading,
     createOpen,
     setCreateOpen,
+    invitedUser,
+    setInvitedUser,
     createUserContext,
     companyRoles,
     departamentos,
@@ -256,5 +279,6 @@ export function useAdminUsers() {
     deleteMutation,
     restoreMutation,
     toggleSuperAdminMutation,
+    resendInvitationMutation,
   };
 }

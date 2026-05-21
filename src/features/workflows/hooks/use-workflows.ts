@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,14 +24,9 @@ const rejectSchema = z.object({
   observations: z.string().min(10, 'Mínimo 10 caracteres').max(3000, 'Máximo 3000 caracteres'),
 })
 
-const resubmitSchema = z.object({
-  observations: z.string().max(2000).optional(),
-})
-
 export type CreateWorkflowForm = z.infer<typeof createWorkflowSchema>
 export type ApproveForm = z.infer<typeof approveSchema>
 export type RejectForm = z.infer<typeof rejectSchema>
-export type ResubmitForm = z.infer<typeof resubmitSchema>
 
 export type WorkflowsInnerTab = 'all' | 'my-tasks' | 'my-available'
 
@@ -76,7 +71,6 @@ export function useWorkflows(companyId: string) {
   const [detailWorkflow, setDetailWorkflow] = useState<ApiWorkflow | null>(null)
   const [approveWorkflow, setApproveWorkflow] = useState<ApiWorkflow | null>(null)
   const [rejectWorkflow, setRejectWorkflow] = useState<ApiWorkflow | null>(null)
-  const [resubmitWorkflow, setResubmitWorkflow] = useState<ApiWorkflow | null>(null)
   const [timelineWorkflowId, setTimelineWorkflowId] = useState<string | null>(null)
   const [deleteWorkflow, setDeleteWorkflow] = useState<ApiWorkflow | null>(null)
   const [editWorkflow, setEditWorkflow] = useState<ApiWorkflow | null>(null)
@@ -96,37 +90,35 @@ export function useWorkflows(companyId: string) {
   const [completeStepNotes, setCompleteStepNotes] = useState('')
 
   // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: paginatedWorkflows, isLoading: workflowsLoading } = useQuery({
+  const { data: paginatedWorkflows, isLoading: workflowsLoading, isFetching: workflowsIsFetching, dataUpdatedAt: workflowsUpdatedAt } = useQuery({
     queryKey: ['workflows', statusFilter],
     queryFn: () => workflowsApi.list({ status: statusFilter, limit: 50 }),
-    staleTime: 0,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
     enabled: innerTab === 'all',
   })
 
-  const { data: myTasks = [], isLoading: myTasksLoading } = useQuery({
+  const { data: myTasks = [], isLoading: myTasksLoading, isFetching: myTasksIsFetching, dataUpdatedAt: myTasksUpdatedAt } = useQuery({
     queryKey: ['workflows-my-tasks'],
     queryFn: () => workflowsApi.myTasks(),
-    staleTime: 0,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
-    enabled: innerTab === 'my-tasks',
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
   })
 
-  const { data: myAvailable = [], isLoading: myAvailableLoading } = useQuery({
+  const { data: myAvailable = [], isLoading: myAvailableLoading, isFetching: myAvailableIsFetching, dataUpdatedAt: myAvailableUpdatedAt } = useQuery({
     queryKey: ['workflows-my-available'],
     queryFn: () => workflowsApi.myAvailable(),
-    staleTime: 0,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
-    enabled: innerTab === 'my-available',
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
   })
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['workflow-timeline', timelineWorkflowId],
     queryFn: () => workflowsApi.getTimeline(timelineWorkflowId!),
-    staleTime: 0,
+    staleTime: 30_000,
     enabled: !!timelineWorkflowId,
   })
 
@@ -134,9 +126,8 @@ export function useWorkflows(companyId: string) {
   const { data: detailWorkflowFull } = useQuery({
     queryKey: ['workflow', detailWorkflow?.id],
     queryFn: () => workflowsApi.getById(detailWorkflow!.id),
-    staleTime: 0,
-    refetchInterval: 10_000,
-    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     enabled: !!detailWorkflow,
   })
 
@@ -165,11 +156,15 @@ export function useWorkflows(companyId: string) {
   })
 
   // ── Invalidations ─────────────────────────────────────────────────────────
-  const invalidateAll = () => {
+  const invalidateAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['workflows'] })
     queryClient.invalidateQueries({ queryKey: ['workflows-my-tasks'] })
     queryClient.invalidateQueries({ queryKey: ['workflows-my-available'] })
-  }
+  }, [queryClient])
+
+  const isRefreshing = workflowsIsFetching || myTasksIsFetching || myAvailableIsFetching
+  // Latest successful fetch across all three queries — changes once per fetch completion
+  const workflowsDataUpdatedAt = Math.max(workflowsUpdatedAt, myTasksUpdatedAt, myAvailableUpdatedAt)
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const createMutation = useMutation({
@@ -302,7 +297,6 @@ export function useWorkflows(companyId: string) {
     mutationFn: (id: string) => workflowsApi.startApproval(id),
     onSuccess: (updated) => {
       invalidateAll()
-      setDetailWorkflow(updated)
       queryClient.setQueryData(['workflow', updated.id], updated)
     },
   })
@@ -332,18 +326,6 @@ export function useWorkflows(companyId: string) {
       invalidateAll()
       setRejectWorkflow(null)
       rejectForm.reset()
-    },
-  })
-
-  const resubmitMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: ResubmitForm }) =>
-      workflowsApi.resubmit(id, dto),
-    onSuccess: (updated) => {
-      invalidateAll()
-      setResubmitWorkflow(null)
-      setDetailWorkflow(updated)
-      queryClient.setQueryData(['workflow', updated.id], updated)
-      resubmitForm.reset()
     },
   })
 
@@ -419,44 +401,37 @@ export function useWorkflows(companyId: string) {
     mode: 'onChange',
   })
 
-  const resubmitForm = useForm<ResubmitForm>({
-    resolver: zodResolver(resubmitSchema),
-    mode: 'onChange',
-  })
-
   const editForm = useForm<CreateWorkflowForm>({
     resolver: zodResolver(createWorkflowSchema),
     mode: 'onChange',
   })
 
   // ── Approvers helpers ─────────────────────────────────────────────────────
-  const addApprover = (userId: string) => {
-    if (!approverIds.includes(userId)) {
-      setApproverIds((prev) => [...prev, userId])
-    }
-  }
+  const addApprover = useCallback((userId: string) => {
+    setApproverIds((prev) => prev.includes(userId) ? prev : [...prev, userId])
+  }, [])
 
-  const removeApprover = (userId: string) => {
+  const removeApprover = useCallback((userId: string) => {
     setApproverIds((prev) => prev.filter((id) => id !== userId))
-  }
+  }, [])
 
   // ── Final user helpers ────────────────────────────────────────────────────
-  const addFinalUser = (userId: string) => {
+  const addFinalUser = useCallback((userId: string) => {
     setFinalUserIds([userId])
-  }
+  }, [])
 
-  const removeFinalUser = (userId: string) => {
+  const removeFinalUser = useCallback((userId: string) => {
     setFinalUserIds((prev) => prev.filter((id) => id !== userId))
-  }
+  }, [])
 
   // ── Supporting files helpers ──────────────────────────────────────────────
-  const addSupportingFile = (file: File) => {
+  const addSupportingFile = useCallback((file: File) => {
     setSupportingFiles((prev) => [...prev, file])
-  }
+  }, [])
 
-  const removeSupportingFile = (index: number) => {
+  const removeSupportingFile = useCallback((index: number) => {
     setSupportingFiles((prev) => prev.filter((_, i) => i !== index))
-  }
+  }, [])
 
   // ── Document extraction handler ───────────────────────────────────────────
   const handleDocumentFile = useCallback(async (file: File) => {
@@ -477,15 +452,15 @@ export function useWorkflows(companyId: string) {
   // ── Submit handler ────────────────────────────────────────────────────────
   const submitCreate = createForm.handleSubmit((values) => {
     if (!selectedTypologyId) {
-      setCreateError('Selecciona una tipología')
+      setCreateError('ERR_NO_TYPOLOGY')
       return
     }
     if (approverIds.length === 0) {
-      setCreateError('Agrega al menos un aprobador')
+      setCreateError('ERR_NO_APPROVER')
       return
     }
     if (finalUserIds.length === 0) {
-      setCreateError('Agrega al menos un usuario final')
+      setCreateError('ERR_NO_FINAL_USER')
       return
     }
     setCreateError(null)
@@ -498,6 +473,30 @@ export function useWorkflows(companyId: string) {
       selectedFinalUserIds:    finalUserIds,
     })
   })
+
+  // ── Open detail by ID (used from notification bell) ──────────────────────
+  // Use a ref to access latest cached data without adding them as deps,
+  // avoiding unnecessary recreation of the callback on every poll cycle.
+  const cachedRef = useRef({ paginatedWorkflows, myTasks, myAvailable })
+  cachedRef.current = { paginatedWorkflows, myTasks, myAvailable }
+
+  const openDetailById = useCallback(async (workflowId: string) => {
+    const { paginatedWorkflows: pw, myTasks: mt, myAvailable: ma } = cachedRef.current
+    const cached = [
+      ...(pw?.data ?? []),
+      ...mt,
+      ...ma,
+    ].find((w) => w.id === workflowId)
+
+    if (cached) {
+      setDetailWorkflow(cached)
+    } else {
+      try {
+        const workflow = await workflowsApi.getById(workflowId)
+        setDetailWorkflow(workflow)
+      } catch { /* ignore — detail simply won't open */ }
+    }
+  }, [])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const openCreate = () => {
@@ -523,11 +522,6 @@ export function useWorkflows(companyId: string) {
   const openReject = (workflow: ApiWorkflow) => {
     rejectForm.reset()
     setRejectWorkflow(workflow)
-  }
-
-  const openResubmit = (workflow: ApiWorkflow) => {
-    resubmitForm.reset()
-    setResubmitWorkflow(workflow)
   }
 
   const openTimeline = (workflowId: string) => {
@@ -560,51 +554,68 @@ export function useWorkflows(companyId: string) {
   }
 
   // ── Derived data ──────────────────────────────────────────────────────────
-  const activeTypologies = typologies.filter((t) => t.typologyStatus === 'ACTIVE')
+  const activeTypologies = useMemo(
+    () => typologies.filter((t) => t.typologyStatus === 'ACTIVE'),
+    [typologies],
+  )
 
-  const activeOrgUsers = orgUsers.filter(
-    (u) => u.isActive && !u.deletedAt && u.registrationStatus === 'active',
+  const activeOrgUsers = useMemo(
+    () => orgUsers.filter((u) => u.isActive && !u.deletedAt && u.registrationStatus === 'active'),
+    [orgUsers],
   )
 
   /** Mapa userId → nombre completo para todos los usuarios de la org */
-  const orgUsersMap = new Map(
-    orgUsers.map((u) => [
-      u.id,
-      [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
-    ]),
+  const orgUsersMap = useMemo(
+    () => new Map(
+      orgUsers.map((u) => [
+        u.id,
+        [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
+      ]),
+    ),
+    [orgUsers],
   )
 
   /** IDs de roles que tienen permiso WORKFLOWS:APPROVE */
-  const approveRoleIds = new Set(
-    allRoles
-      .filter((r) => r.permissions.some((p) => p.module === 'WORKFLOWS' && p.action === 'APPROVE'))
-      .map((r) => r.id),
+  const approveRoleIds = useMemo(
+    () => new Set(
+      allRoles
+        .filter((r) => r.permissions.some((p) => p.module === 'WORKFLOWS' && p.action === 'APPROVE'))
+        .map((r) => r.id),
+    ),
+    [allRoles],
   )
 
   /** Usuarios activos que pueden ser aprobadores (tienen al menos un rol con WORKFLOWS:APPROVE) */
-  const approverEligibleUsers = activeOrgUsers.filter(
-    (u) => u.roles.some((r) => approveRoleIds.has(r.roleId)),
+  const approverEligibleUsers = useMemo(
+    () => activeOrgUsers.filter((u) => u.roles.some((r) => approveRoleIds.has(r.roleId))),
+    [activeOrgUsers, approveRoleIds],
   )
 
-  const selectedTypology = activeTypologies.find((t) => t.id === selectedTypologyId) ?? null
+  const selectedTypology = useMemo(
+    () => activeTypologies.find((t) => t.id === selectedTypologyId) ?? null,
+    [activeTypologies, selectedTypologyId],
+  )
 
   /**
    * Usuarios elegibles como usuarios finales: activos y que coincidan con la estructura
    * organizacional de la tipología seleccionada (departamento, área, cargo).
    */
-  const finalUserEligibleUsers = selectedTypology
-    ? activeOrgUsers.filter((u) => {
-        const org = selectedTypology.estructuraOrg
-        if (u.departamentoId !== org.departamentoId) return false
-        if (org.areaId !== null && u.areaId !== org.areaId) return false
-        if (org.cargoId !== null && u.cargoId !== org.cargoId) return false
-        return true
-      })
-    : []
+  const finalUserEligibleUsers = useMemo(
+    () => selectedTypology
+      ? activeOrgUsers.filter((u) => {
+          const org = selectedTypology.estructuraOrg
+          if (u.departamentoId !== org.departamentoId) return false
+          if (org.areaId !== null && u.areaId !== org.areaId) return false
+          if (org.cargoId !== null && u.cargoId !== org.cargoId) return false
+          return true
+        })
+      : [],
+    [selectedTypology, activeOrgUsers],
+  )
 
   /** Comparación campo a campo: true=coincide, false=no coincide, null=tipología sin valor declarado */
-  const documentComparison: DocumentComparison | null =
-    documentExtraction && selectedTypology
+  const documentComparison: DocumentComparison | null = useMemo(
+    () => documentExtraction && selectedTypology
       ? {
           nombre: selectedTypology.datosDeclarados.nombre !== null
             ? documentExtraction.nombre === selectedTypology.datosDeclarados.nombre
@@ -616,16 +627,19 @@ export function useWorkflows(companyId: string) {
             ? documentExtraction.version === selectedTypology.datosDeclarados.version
             : null,
         }
-      : null
+      : null,
+    [documentExtraction, selectedTypology],
+  )
 
   /**
    * true cuando hay un documento cargado y algún campo no coincide con la tipología.
    * En ese caso el botón Crear debe estar bloqueado.
    */
-  const createBlocked =
-    documentExtractionLoading ||
-    (documentComparison !== null &&
-      Object.values(documentComparison).some((v) => v === false))
+  const createBlocked = useMemo(
+    () => documentExtractionLoading ||
+      (documentComparison !== null && Object.values(documentComparison).some((v) => v === false)),
+    [documentExtractionLoading, documentComparison],
+  )
 
   return {
     // State
@@ -638,7 +652,6 @@ export function useWorkflows(companyId: string) {
     approveWorkflow, setApproveWorkflow,
     approveAttachmentFiles, setApproveAttachmentFiles,
     rejectWorkflow, setRejectWorkflow,
-    resubmitWorkflow, setResubmitWorkflow,
     timelineWorkflowId, setTimelineWorkflowId,
     deleteWorkflow, setDeleteWorkflow,
     editWorkflow, setEditWorkflow,
@@ -679,6 +692,9 @@ export function useWorkflows(companyId: string) {
     myTasksLoading,
     myAvailable,
     myAvailableLoading,
+    isRefreshing,
+    workflowsDataUpdatedAt,
+    invalidateAll,
     timeline,
     timelineLoading,
     activeTypologies,
@@ -691,7 +707,6 @@ export function useWorkflows(companyId: string) {
     startApprovalMutation,
     approveMutation,
     rejectMutation,
-    resubmitMutation,
     createAdminCycleMutation,
     skipReviewCycleMutation,
     completeStepMutation,
@@ -702,7 +717,6 @@ export function useWorkflows(companyId: string) {
     editForm,
     approveForm,
     rejectForm,
-    resubmitForm,
 
     // Review cycle state
     reviewCycleWorkflow, setReviewCycleWorkflow,
@@ -713,13 +727,13 @@ export function useWorkflows(companyId: string) {
 
     // Helpers
     openCreate,
+    openDetailById,
     addApprover,
     removeApprover,
     addFinalUser,
     removeFinalUser,
     openApprove,
     openReject,
-    openResubmit,
     openTimeline,
     openEdit,
     openReviewCycle,
