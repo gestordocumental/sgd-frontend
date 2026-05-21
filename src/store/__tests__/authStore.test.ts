@@ -22,7 +22,7 @@ function makePayload(overrides: Partial<JwtPayload> = {}): JwtPayload {
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 // Mock decodeJwt so we control token parsing without real JWTs
-const mockDecodeJwt = vi.fn<[string], JwtPayload | null>()
+const mockDecodeJwt = vi.fn<(token: string) => JwtPayload | null>()
 
 vi.mock('@/lib/jwt', () => ({
   decodeJwt: (token: string) => mockDecodeJwt(token),
