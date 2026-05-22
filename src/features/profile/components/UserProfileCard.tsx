@@ -272,7 +272,7 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
     return (
       <div className="flex items-center gap-1">
         <LanguageSwitcher />
-        <NotificationBell onWorkflowClick={onWorkflowClick} />
+        <NotificationBell onWorkflowClick={onWorkflowClick} companies={companies} />
         <input
           ref={avatarInputRef}
           type="file"

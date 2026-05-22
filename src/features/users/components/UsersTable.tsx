@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, ShieldCheck, ShieldOff, Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, ShieldCheck, ShieldOff, Pencil, Trash2, RotateCcw, MoreHorizontal, MailCheck, Search, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { StatCard } from '@/components/ui/stat-card'
+import { RefreshCountdown } from '@/components/ui/refresh-countdown'
 import { initials, isDeleted } from '@/lib/formatters'
 import type { ApiUser } from '@/lib/api/users'
 import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users'
@@ -23,6 +24,9 @@ export function UsersTable({ hook }: UsersTableProps) {
   const {
     superAdmins,
     superAdminsLoading,
+    superAdminsIsFetching,
+    superAdminsDataUpdatedAt,
+    refreshSuperAdmins,
     openEdit,
     setDeleteUser,
     restoreMutation,
@@ -79,7 +83,23 @@ export function UsersTable({ hook }: UsersTableProps) {
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-sm font-semibold shrink-0">{t('users.title')}</h2>
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="text-sm font-semibold">{t('users.title')}</h2>
+            <div className="flex flex-col items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={refreshSuperAdmins}
+                disabled={superAdminsIsFetching}
+                title={t('common.refresh')}
+                aria-label={t('common.refresh')}
+              >
+                <RefreshCw className={`size-3.5 text-muted-foreground ${superAdminsIsFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <RefreshCountdown duration={60_000} isFetching={superAdminsIsFetching} updatedAt={superAdminsDataUpdatedAt} />
+            </div>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />

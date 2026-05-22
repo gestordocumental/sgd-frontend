@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,9 +9,11 @@ import { companiesApi } from '@/lib/api/companies'
 import { orgStructureApi } from '@/lib/api/org-structure'
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas'
 
+const DEFAULT_ROLE_NAME = 'VIEWER'
+
 const createUserSchema = z.object({
   email: emailField,
-  roleId: z.string().uuid().optional(),
+  roleId: z.string().uuid(),
   departamentoId: z.string().uuid().optional(),
   areaId: z.string().uuid().optional(),
   cargoId: z.string().uuid().optional(),
@@ -130,6 +132,17 @@ export function useCompanyUsers(companyId: string) {
 
   const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
 
+  // Pre-select VIEWER role (or first available) when roles load for the create form
+  useEffect(() => {
+    if (createUserOpen && roles.length > 0) {
+      const current = createForm.getValues('roleId')
+      if (!current) {
+        const defaultRole = roles.find((r) => r.name === DEFAULT_ROLE_NAME) ?? roles[0]
+        createForm.setValue('roleId', defaultRole.id, { shouldValidate: true })
+      }
+    }
+  }, [roles, createUserOpen, createForm])
+
   const createMutation = useMutation({
     mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
     onSuccess: (created) => {
@@ -162,7 +175,15 @@ export function useCompanyUsers(companyId: string) {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: (id: string) => usersApi.restore(id),
+    mutationFn: async (user: ApiUserWithRoles) => {
+      if (user.deletedAt) {
+        // Globally soft-deleted — restore the account
+        await usersApi.restore(user.id)
+      } else if (user.orgRemovedAt) {
+        // Explicitly removed from this org — re-assign to org (clears removedAt on backend)
+        await usersApi.assignUserToOrg(user.id, companyId)
+      }
+    },
     onSuccess: invalidate,
   })
 
@@ -183,6 +204,11 @@ export function useCompanyUsers(companyId: string) {
     createForm.reset()
     setSelectedDeptId('')
     setSelectedAreaId('')
+    // Pre-select VIEWER if roles are already loaded
+    const viewerRole = roles.find((r) => r.name === 'VIEWER')
+    if (viewerRole) {
+      createForm.setValue('roleId', viewerRole.id, { shouldValidate: true })
+    }
     setCreateUserOpen(true)
   }
 

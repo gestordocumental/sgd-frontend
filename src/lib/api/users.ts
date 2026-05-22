@@ -26,6 +26,7 @@ export interface ApiUser {
 
 export interface ApiUserWithRoles extends ApiUser {
   roles: ApiUserRole[];
+  orgRemovedAt: string | null;
 }
 
 export interface CreateUserDto {

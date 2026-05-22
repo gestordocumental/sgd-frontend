@@ -2,7 +2,7 @@ import { useState, startTransition } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { UserProfileCard } from "@/features/profile/components/UserProfileCard";
-import { Users, Building2, UserPlus, LayoutDashboard } from "lucide-react";
+import { Users, Building2, UserPlus, LayoutDashboard, ClipboardList } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +16,8 @@ import { CompaniesTable } from "@/features/companies/components/CompaniesTable";
 import { UserDialogs } from "@/features/users/components/UserDialogs";
 import { CompanyDialogs } from "@/features/companies/components/CompanyDialogs";
 import { AdminDashboard, type MergedOrgStorage } from "@/features/dashboard/components/AdminDashboard";
+import { AuditTable } from "@/features/audit/components/AuditTable";
+import { useAudit } from "@/features/audit/hooks/use-audit";
 import { typologiesApi } from "@/lib/api/typologies";
 import { workflowsApi } from "@/lib/api/workflows";
 
@@ -30,10 +32,11 @@ export const Route = createFileRoute("/dashboard/admin")({
 
 function AdminDashboardPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "companies">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "companies" | "audit">("overview");
 
   const users = useAdminUsers();
   const companies = useAdminCompanies();
+  const audit = useAudit(undefined, activeTab === "audit");
 
   const { data: typologyStorage = [], isLoading: typologyStorageLoading } = useQuery({
     queryKey: ['admin-storage-per-org'],
@@ -76,7 +79,7 @@ function AdminDashboardPage() {
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) => startTransition(() => setActiveTab(v as "overview" | "users" | "companies"))}
+      onValueChange={(v) => startTransition(() => setActiveTab(v as "overview" | "users" | "companies" | "audit"))}
       className="flex flex-col h-screen bg-background overflow-hidden gap-0"
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
@@ -99,6 +102,9 @@ function AdminDashboardPage() {
             </TabsTrigger>
             <TabsTrigger value="companies">
               <Building2 className="size-4" /><span className="hidden lg:inline">{t("companies.title")}</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit">
+              <ClipboardList className="size-4" /><span className="hidden lg:inline">{t("audit.title")}</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -147,6 +153,10 @@ function AdminDashboardPage() {
               : users.deleteMutation.mutate(u.id)
           }
         />
+      </TabsContent>
+
+      <TabsContent value="audit" className="flex-1 overflow-auto">
+        <AuditTable hook={audit} users={users.users} />
       </TabsContent>
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}

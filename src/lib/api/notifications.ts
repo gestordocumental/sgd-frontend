@@ -6,6 +6,8 @@ export interface ApiNotification {
   type: string
   title: string
   message: string
+  orgId: string | null
+  orgName: string | null
   workflowId: string | null
   workflowTitle: string | null
   read: boolean

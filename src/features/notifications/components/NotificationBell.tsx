@@ -10,6 +10,11 @@ import {
 import { useNotifications } from '../hooks/use-notifications'
 import type { ApiNotification } from '@/lib/api/notifications'
 
+interface SimpleCompany {
+  id: string
+  name: string
+}
+
 function timeAgo(dateStr: string, t: (k: string) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60_000)
@@ -23,9 +28,10 @@ function timeAgo(dateStr: string, t: (k: string) => string): string {
 
 interface NotificationBellProps {
   onWorkflowClick?: (workflowId: string) => void
+  companies?: SimpleCompany[]
 }
 
-export function NotificationBell({ onWorkflowClick }: NotificationBellProps) {
+export function NotificationBell({ onWorkflowClick, companies = [] }: NotificationBellProps) {
   const { t } = useTranslation()
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, isMarkingAll } =
     useNotifications()
@@ -110,9 +116,16 @@ export function NotificationBell({ onWorkflowClick }: NotificationBellProps) {
                       {n.workflowTitle}
                     </p>
                   )}
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">
-                    {timeAgo(n.createdAt, t)}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {n.orgId && (n.orgName || companies.find((c) => c.id === n.orgId)) && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-sky-100 text-sky-700 truncate max-w-[140px]">
+                        {n.orgName ?? companies.find((c) => c.id === n.orgId)?.name}
+                      </span>
+                    )}
+                    <p className="text-[10px] text-muted-foreground/60">
+                      {timeAgo(n.createdAt, t)}
+                    </p>
+                  </div>
                 </div>
                 {!n.read && (
                   <div className="shrink-0 mt-1.5 size-1.5 rounded-full bg-primary" />

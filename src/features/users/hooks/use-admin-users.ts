@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,10 +58,16 @@ export function useAdminUsers() {
     staleTime: 60_000,
   });
 
-  const { data: superAdmins = [], isLoading: superAdminsLoading } = useQuery({
+  const {
+    data: superAdmins = [],
+    isLoading: superAdminsLoading,
+    isFetching: superAdminsIsFetching,
+    dataUpdatedAt: superAdminsDataUpdatedAt,
+  } = useQuery({
     queryKey: ["superAdmins"],
     queryFn: usersApi.listSuperAdmin,
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 
   const { data: companyRoles = [] } = useQuery({
@@ -97,6 +103,10 @@ export function useAdminUsers() {
     queryClient.invalidateQueries({ queryKey: ["superAdmins"] });
   };
 
+  const refreshSuperAdmins = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["superAdmins"] });
+  }, [queryClient]);
+
   const createForm = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
     mode: "onChange",
@@ -131,14 +141,22 @@ export function useAdminUsers() {
         created = await usersApi.create(dto);
         userId = created.id;
       } catch (err: unknown) {
-        // If the email already exists and we're assigning to a company,
-        // use the existing user's id instead of failing.
         const apiErr = err as { response?: { status?: number; data?: { userId?: string } } };
-        if (apiErr?.response?.status === 409 && apiErr?.response?.data?.userId && orgId) {
-          userId = apiErr.response.data.userId;
-        } else {
-          throw err;
+        const existingUserId = apiErr?.response?.data?.userId;
+        if (apiErr?.response?.status === 409 && existingUserId) {
+          userId = existingUserId;
+          // If assigning to a company, link the existing user to the org
+          if (orgId) {
+            await usersApi.assignUserToOrg(userId, orgId, roleId);
+            return null;
+          }
+          // If creating a super-admin, promote the existing user
+          if (dto.isSuperAdmin) {
+            await usersApi.toggleSuperAdmin(userId, true);
+            return null;
+          }
         }
+        throw err;
       }
       if (orgId) {
         await usersApi.assignUserToOrg(userId, orgId, roleId);
@@ -251,6 +269,9 @@ export function useAdminUsers() {
     users,
     superAdmins,
     superAdminsLoading,
+    superAdminsIsFetching,
+    superAdminsDataUpdatedAt,
+    refreshSuperAdmins,
     createOpen,
     setCreateOpen,
     invitedUser,
