@@ -9,6 +9,8 @@ import { companiesApi } from '@/lib/api/companies'
 import { orgStructureApi } from '@/lib/api/org-structure'
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas'
 
+const DEFAULT_ROLE_NAME = 'VIEWER'
+
 const createUserSchema = z.object({
   email: emailField,
   roleId: z.string().uuid(),
@@ -135,7 +137,7 @@ export function useCompanyUsers(companyId: string) {
     if (createUserOpen && roles.length > 0) {
       const current = createForm.getValues('roleId')
       if (!current) {
-        const defaultRole = roles.find((r) => r.name === 'VIEWER') ?? roles[0]
+        const defaultRole = roles.find((r) => r.name === DEFAULT_ROLE_NAME) ?? roles[0]
         createForm.setValue('roleId', defaultRole.id, { shouldValidate: true })
       }
     }
