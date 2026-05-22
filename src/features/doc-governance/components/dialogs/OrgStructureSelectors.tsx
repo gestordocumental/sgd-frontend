@@ -51,6 +51,8 @@ export function OrgStructureSelectors({ hook }: { hook: TypologiesHook }) {
         </select>
       </FormField>
 
+      {/* cargoId has no dependent fields so form.register is sufficient;
+          dept/area use manual onChange because changing them cascades resets on sibling selects */}
       <FormField id="typo-cargo" label={t('docGovernance.form.positionLabel')}>
         <select
           id="typo-cargo"

@@ -33,11 +33,7 @@ export function useAdminCompanies() {
     queryKey: ['companies'],
     queryFn: companiesApi.list,
     staleTime: 60_000,
-    refetchInterval: 60_000,
   })
-
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ['companies'] })
 
   const refreshCompanies = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['companies'] })
@@ -45,13 +41,13 @@ export function useAdminCompanies() {
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateCompanyDto) => companiesApi.create(dto),
-    onSuccess: () => { invalidate(); setCreateOpen(false) },
+    onSuccess: () => { refreshCompanies(); setCreateOpen(false) },
   })
 
   const editMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateCompanyDto }) => companiesApi.update(id, dto),
     onSuccess: (updated) => {
-      invalidate()
+      refreshCompanies()
       setEditCompany(null)
       setSelectedCompany((prev) => (prev?.id === updated.id ? updated : prev))
     },
@@ -60,7 +56,7 @@ export function useAdminCompanies() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => companiesApi.remove(id),
     onSuccess: (_, deletedId) => {
-      invalidate()
+      refreshCompanies()
       setDeleteCompany(null)
       setSelectedCompany((prev) => (prev?.id === deletedId ? null : prev))
       setExpandedCompanies((prev) => {
@@ -74,12 +70,12 @@ export function useAdminCompanies() {
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'active' | 'inactive' }) =>
       companiesApi.update(id, { status }),
-    onSuccess: invalidate,
+    onSuccess: refreshCompanies,
   })
 
   const restoreMutation = useMutation({
     mutationFn: (id: string) => companiesApi.restore(id),
-    onSuccess: invalidate,
+    onSuccess: refreshCompanies,
   })
 
   const createForm = useForm<CompanyForm>({ resolver: zodResolver(companySchema), mode: 'onTouched' })

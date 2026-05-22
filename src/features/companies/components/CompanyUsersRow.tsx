@@ -261,7 +261,7 @@ export function CompanyUsersRow({
                                 <PencilIcon className="size-4" /> {t('companies.actions.editUser')}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => onToggleUserStatus(u)}>
-                                {isDeleted(u) ? (
+                                {isDeleted(u) || !!u.orgRemovedAt ? (
                                   <>
                                     <CheckIcon className="size-4" /> {t('companies.actions.activateUser')}
                                   </>

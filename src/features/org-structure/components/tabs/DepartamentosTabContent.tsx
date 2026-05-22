@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Plus, Upload, Download, ChevronDown, CheckCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react'
@@ -63,7 +63,7 @@ export function DepartamentosTabContent({ hook, canWrite = false }: Departamento
   const deptSafePage   = Math.min(deptPage, deptTotalPages)
   const paginatedDepts = filteredDepts.slice((deptSafePage - 1) * PAGE_SIZE, deptSafePage * PAGE_SIZE)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''

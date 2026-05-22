@@ -16,11 +16,11 @@ export function Pager({ page, totalPages, total, onChange }: {
     <div className="flex items-center justify-between px-5 py-3 border-t border-border text-sm text-muted-foreground">
       <span>{t('common.resultsCount', { count: total })}</span>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+        <Button variant="ghost" size="icon" className="size-7" aria-label={t('common.prevPage')} disabled={page <= 1} onClick={() => onChange(page - 1)}>
           <ChevronLeft className="size-4" />
         </Button>
         <span className="px-2 text-xs">{page} / {totalPages}</span>
-        <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
+        <Button variant="ghost" size="icon" className="size-7" aria-label={t('common.nextPage')} disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
           <ChevronRight className="size-4" />
         </Button>
       </div>
@@ -28,8 +28,8 @@ export function Pager({ page, totalPages, total, onChange }: {
   )
 }
 
-export function SearchInput({ value, onChange, placeholder }: {
-  value: string; onChange: (v: string) => void; placeholder: string
+export function SearchInput({ value, onChange, placeholder, ariaLabel }: {
+  value: string; onChange: (v: string) => void; placeholder: string; ariaLabel?: string
 }) {
   return (
     <div className="relative">
@@ -38,6 +38,7 @@ export function SearchInput({ value, onChange, placeholder }: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={ariaLabel ?? placeholder}
         className="h-8 pl-8 w-44 text-sm"
       />
     </div>

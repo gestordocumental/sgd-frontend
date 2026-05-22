@@ -87,6 +87,7 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
               onClick={refresh}
               disabled={isFetching}
               title={t('common.refresh')}
+              aria-label={t('common.refresh')}
             >
               <RefreshCw className={`size-3.5 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`} />
             </Button>

@@ -11,7 +11,7 @@ import { emailField, requiredString, optionalString } from '@/lib/validations/sc
 
 const createUserSchema = z.object({
   email: emailField,
-  roleId: z.preprocess((v) => (v === '' ? undefined : v), z.string().uuid().optional()),
+  roleId: z.string().uuid().or(z.literal('')).optional().transform((v) => v === '' ? undefined : v),
   departamentoId: z.string().uuid().optional(),
   areaId: z.string().uuid().optional(),
   cargoId: z.string().uuid().optional(),

@@ -116,6 +116,7 @@ export function CompaniesTable({
                 onClick={refreshCompanies}
                 disabled={companiesIsFetching}
                 title={t('common.refresh')}
+                aria-label={t('common.refresh')}
               >
                 <RefreshCw className={`size-3.5 text-muted-foreground ${companiesIsFetching ? 'animate-spin' : ''}`} />
               </Button>

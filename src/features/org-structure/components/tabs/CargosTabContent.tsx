@@ -37,8 +37,9 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
   return (
     <TabsContent value="cargos" className="mt-4 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm font-medium shrink-0">{t('orgStructure.departamento')}:</label>
+        <label htmlFor="cargos-departamento" className="text-sm font-medium shrink-0">{t('orgStructure.departamento')}:</label>
         <select
+          id="cargos-departamento"
           className={selectClass}
           value={selectedDeptId}
           onChange={(e) => { handleSelectDept(e.target.value); setCargoPage(1) }}
@@ -51,8 +52,9 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
 
         {selectedDeptId && (
           <>
-            <label className="text-sm font-medium shrink-0">{t('orgStructure.area')}:</label>
+            <label htmlFor="cargos-area" className="text-sm font-medium shrink-0">{t('orgStructure.area')}:</label>
             <select
+              id="cargos-area"
               className={selectClass}
               value={selectedAreaId}
               onChange={(e) => { setSelectedAreaId(e.target.value); setCargoPage(1) }}

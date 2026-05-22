@@ -93,6 +93,7 @@ export function UsersTable({ hook }: UsersTableProps) {
                 onClick={refreshSuperAdmins}
                 disabled={superAdminsIsFetching}
                 title={t('common.refresh')}
+                aria-label={t('common.refresh')}
               >
                 <RefreshCw className={`size-3.5 text-muted-foreground ${superAdminsIsFetching ? 'animate-spin' : ''}`} />
               </Button>
