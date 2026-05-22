@@ -144,7 +144,6 @@ export function CompanyUserDialogs({
             onSubmit={createForm.handleSubmit((values) =>
               createMutation.mutate({
                 ...values,
-                roleId: values.roleId || undefined,
                 isSuperAdmin: false,
                 orgId: companyId,
               }),

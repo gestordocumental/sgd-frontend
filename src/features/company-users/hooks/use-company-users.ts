@@ -11,7 +11,7 @@ import { emailField, requiredString, optionalString } from '@/lib/validations/sc
 
 const createUserSchema = z.object({
   email: emailField,
-  roleId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  roleId: z.string().uuid(),
   departamentoId: z.string().uuid().optional(),
   areaId: z.string().uuid().optional(),
   cargoId: z.string().uuid().optional(),
@@ -130,15 +130,13 @@ export function useCompanyUsers(companyId: string) {
 
   const createForm = useForm<CreateUserForm>({ resolver: zodResolver(createUserSchema), mode: 'onChange' })
 
-  // Pre-select VIEWER role when roles load for the create form
+  // Pre-select VIEWER role (or first available) when roles load for the create form
   useEffect(() => {
     if (createUserOpen && roles.length > 0) {
       const current = createForm.getValues('roleId')
       if (!current) {
-        const viewerRole = roles.find((r) => r.name === 'VIEWER')
-        if (viewerRole) {
-          createForm.setValue('roleId', viewerRole.id, { shouldValidate: true })
-        }
+        const defaultRole = roles.find((r) => r.name === 'VIEWER') ?? roles[0]
+        createForm.setValue('roleId', defaultRole.id, { shouldValidate: true })
       }
     }
   }, [roles, createUserOpen, createForm])
