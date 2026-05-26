@@ -1,25 +1,25 @@
-import { useState } from "react";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { AxiosError } from "axios";
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { authApi } from "@/lib/api/auth";
-import { useAuthStore } from "@/store/authStore";
-import { decodeJwt } from "@/lib/jwt";
-import { loginSchema, type LoginFormValues } from "@/lib/validations/schemas";
+import { useState } from 'react';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { AxiosError } from 'axios';
+import { Eye, EyeOff, Loader2, AlertCircle, TriangleAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { authApi } from '@/lib/api/auth';
+import { useAuthStore } from '@/store/authStore';
+import { decodeJwt } from '@/lib/jwt';
+import { loginSchema, type LoginFormValues } from '@/lib/validations/schemas';
 
-export const Route = createFileRoute("/login")({
+export const Route = createFileRoute('/login')({
   beforeLoad: () => {
     const { isAuthenticated } = useAuthStore.getState();
     if (isAuthenticated) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: '/dashboard' });
     }
   },
   component: LoginPage,
@@ -33,6 +33,17 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSwitchingCompany, setIsSwitchingCompany] = useState(false);
+  const [revokedCompany] = useState<string | null>(() => {
+    const name = localStorage.getItem('sgd-revoked-company');
+    if (name) localStorage.removeItem('sgd-revoked-company');
+    return name;
+  });
+
+  const [superAdminRevoked] = useState(() => {
+    const flag = localStorage.getItem('sgd-super-admin-revoked');
+    if (flag) localStorage.removeItem('sgd-super-admin-revoked');
+    return !!flag;
+  });
 
   const {
     register,
@@ -40,7 +51,7 @@ function LoginPage() {
     formState: { errors, isValid },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    mode: "onTouched",
+    mode: 'onTouched',
   });
 
   const { mutate: login, isPending } = useMutation({
@@ -57,15 +68,15 @@ function LoginPage() {
 
       // Build user from JWT payload — auth-service returns only tokens, no user object
       const baseUser = data.user ?? {
-        id: payload?.sub ?? "",
-        email: payload?.email ?? "",
-        name: payload?.email ?? "",
-        role: isSuperAdmin ? "super-admin" : "user",
+        id: payload?.sub ?? '',
+        email: payload?.email ?? '',
+        name: payload?.email ?? '',
+        role: isSuperAdmin ? 'super-admin' : 'user',
       };
 
       if (isSuperAdmin) {
         setAuth(baseUser, token, data.refreshToken, true);
-        navigate({ to: "/dashboard/admin" });
+        navigate({ to: '/dashboard/admin' });
         return;
       }
 
@@ -78,12 +89,7 @@ function LoginPage() {
           const companyId = companies[0];
           const { accessToken: companyToken, refreshToken: companyRefresh } =
             await authApi.switchCompany(companyId);
-          setAuth(
-            { ...baseUser, companyId },
-            companyToken,
-            companyRefresh,
-            false,
-          );
+          setAuth({ ...baseUser, companyId }, companyToken, companyRefresh, false);
         }
       } catch {
         setServerError(t('auth.serverErrorFallback'));
@@ -92,13 +98,11 @@ function LoginPage() {
         setIsSwitchingCompany(false);
       }
 
-      navigate({ to: "/dashboard" });
+      navigate({ to: '/dashboard' });
     },
     onError: (error: AxiosError<{ message: string | string[] }>) => {
       const raw = error.response?.data?.message;
-      const msg = Array.isArray(raw)
-        ? raw[0]
-        : (raw ?? t("auth.serverErrorFallback"));
+      const msg = Array.isArray(raw) ? raw[0] : (raw ?? t('auth.serverErrorFallback'));
       setServerError(msg);
     },
   });
@@ -122,8 +126,6 @@ function LoginPage() {
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-contain"
         />
-
-
       </div>
 
       {/* ══════════════════════════════════════════
@@ -147,20 +149,33 @@ function LoginPage() {
 
           {/* Encabezado */}
           <div className="mb-7">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {t("auth.welcomeTitle")}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t("auth.welcomeSubtitle")}
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">{t('auth.welcomeTitle')}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t('auth.welcomeSubtitle')}</p>
           </div>
 
           {/* Formulario */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-5"
-            noValidate
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
+            {/* Aviso de acceso revocado */}
+            {revokedCompany && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                <span>
+                  Tu acceso a <strong>{revokedCompany}</strong> fue revocado por un administrador.
+                </span>
+              </div>
+            )}
+
+            {/* Aviso de privilegios de super admin revocados */}
+            {superAdminRevoked && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                <span>
+                  Tus privilegios de <strong>super administrador</strong> fueron revocados. Inicia
+                  sesión nuevamente.
+                </span>
+              </div>
+            )}
+
             {/* Error del servidor */}
             {serverError && (
               <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
@@ -171,60 +186,48 @@ function LoginPage() {
 
             {/* Correo electrónico */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">{t("auth.emailLabel")}</Label>
+              <Label htmlFor="email">{t('auth.emailLabel')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder={t("auth.emailPlaceholder")}
+                placeholder={t('auth.emailPlaceholder')}
                 autoComplete="email"
                 autoFocus
                 disabled={isPending}
                 aria-invalid={!!errors.email}
-                {...register("email")}
+                {...register('email')}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">
-                  {t(errors.email.message!)}
-                </p>
+                <p className="text-xs text-destructive">{t(errors.email.message!)}</p>
               )}
             </div>
 
             {/* Contraseña */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">{t("auth.passwordLabel")}</Label>
+              <Label htmlFor="password">{t('auth.passwordLabel')}</Label>
               <div className="relative">
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   disabled={isPending}
                   aria-invalid={!!errors.password}
                   className="pr-9"
-                  {...register("password")}
+                  {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
-                  aria-label={
-                    showPassword
-                      ? t("auth.hidePassword")
-                      : t("auth.showPassword")
-                  }
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
-                  {showPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive">
-                  {t(errors.password.message!)}
-                </p>
+                <p className="text-xs text-destructive">{t(errors.password.message!)}</p>
               )}
             </div>
 
@@ -233,8 +236,9 @@ function LoginPage() {
               <button
                 type="button"
                 className="text-sm text-primary hover:underline underline-offset-4"
+                onClick={() => navigate({ to: '/forgot-password' })}
               >
-                {t("auth.forgotPassword")}
+                {t('auth.forgotPassword')}
               </button>
             </div>
 
@@ -248,34 +252,28 @@ function LoginPage() {
               {isSwitchingCompany ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  {t("auth.loadingWorkspace")}
+                  {t('auth.loadingWorkspace')}
                 </>
               ) : isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  {t("auth.verifyingCredentials")}
+                  {t('auth.verifyingCredentials')}
                 </>
               ) : (
-                t("auth.signIn")
+                t('auth.signIn')
               )}
             </Button>
           </form>
 
           {/* Credenciales de prueba — solo visible cuando VITE_USE_MOCKS=true */}
-          {import.meta.env.VITE_USE_MOCKS === "true" && (
+          {import.meta.env.VITE_USE_MOCKS === 'true' && (
             <div className="mt-6 rounded-lg bg-muted border border-border px-4 py-3 text-center">
-              <p className="text-xs font-medium text-muted-foreground">
-                {t("auth.devMode")}
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-0.5">
-                {t("auth.devCredentials")}
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">{t('auth.devMode')}</p>
+              <p className="text-xs text-muted-foreground/60 mt-0.5">{t('auth.devCredentials')}</p>
             </div>
           )}
 
-          <p className="text-center text-xs text-muted-foreground/40 mt-8">
-            {t("auth.footer")}
-          </p>
+          <p className="text-center text-xs text-muted-foreground/40 mt-8">{t('auth.footer')}</p>
         </div>
       </div>
     </div>

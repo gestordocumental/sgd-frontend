@@ -1,21 +1,20 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   MoreHorizontal,
-  Trash2,
   Search,
   ShieldCheck,
   Pencil as PencilIcon,
   CheckCircle as CheckIcon,
   XCircle as XIcon,
   RefreshCw,
-} from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Pager } from '@/components/ui/pager'
-import { RefreshCountdown } from '@/components/ui/refresh-countdown'
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Pager } from '@/components/ui/pager';
+import { RefreshCountdown } from '@/components/ui/refresh-countdown';
 import {
   Table,
   TableBody,
@@ -23,78 +22,93 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { usersApi, type ApiUserWithRoles } from '@/lib/api/users'
-import { initials, isDeleted } from '@/lib/formatters'
+} from '@/components/ui/dropdown-menu';
+import { usersApi, type ApiUserWithRoles } from '@/lib/api/users';
+import { initials, isDeleted } from '@/lib/formatters';
 
-type UserStatusFilter = 'all' | 'active' | 'inactive' | 'pending'
-const USER_PAGE_SIZE = 10
+type UserStatusFilter = 'all' | 'active' | 'inactive' | 'pending';
+const USER_PAGE_SIZE = 10;
 
 interface CompanyUsersRowProps {
-  id: string
-  companyId: string
-  onEditUser: (u: ApiUserWithRoles) => void
-  onDeleteUser: (u: ApiUserWithRoles) => void
-  onToggleUserStatus: (u: ApiUserWithRoles) => void
+  id: string;
+  companyId: string;
+  onEditUser: (u: ApiUserWithRoles, companyId: string) => void;
+  onToggleUserStatus: (u: ApiUserWithRoles, companyId: string) => void;
 }
 
 export function CompanyUsersRow({
   id,
   companyId,
   onEditUser,
-  onDeleteUser,
   onToggleUserStatus,
 }: CompanyUsersRowProps) {
-  const { t } = useTranslation()
-  const { data: users = [], isLoading, isError, isFetching, dataUpdatedAt, refetch } = useQuery<ApiUserWithRoles[]>({
+  const { t } = useTranslation();
+  const {
+    data: usersPage,
+    isLoading,
+    isError,
+    isFetching,
+    dataUpdatedAt,
+    refetch,
+  } = useQuery({
     queryKey: ['company-users', companyId],
     queryFn: () => usersApi.listUsersByOrg(companyId),
     staleTime: 60_000,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
-  })
+  });
+  const users: ApiUserWithRoles[] = usersPage?.data ?? [];
 
-  const [search, setSearch]       = useState('')
-  const [statusFilter, setStatus] = useState<UserStatusFilter>('all')
-  const [page, setPage]           = useState(1)
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatus] = useState<UserStatusFilter>('all');
+  const [page, setPage] = useState(1);
 
   const filtered = users.filter((u) => {
-    const q = search.toLowerCase()
-    const matchesSearch = !q ||
+    const q = search.toLowerCase();
+    const matchesSearch =
+      !q ||
       (u.firstName ?? '').toLowerCase().includes(q) ||
       (u.lastName ?? '').toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q)
+      u.email.toLowerCase().includes(q);
 
-    const isRemoved = !!u.deletedAt || !!u.orgRemovedAt
+    const isRemoved = !!u.deletedAt || !!u.orgRemovedAt;
     const matchesStatus =
-      statusFilter === 'all'      ? true :
-      statusFilter === 'inactive' ? isRemoved :
-      statusFilter === 'pending'  ? u.registrationStatus === 'pending_credentials' && !isRemoved :
-      /* active */                  !isRemoved && u.roles.length > 0 && u.registrationStatus !== 'pending_credentials'
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'inactive'
+          ? isRemoved
+          : statusFilter === 'pending'
+            ? u.registrationStatus === 'pending_credentials' && !isRemoved
+            : /* active */ !isRemoved &&
+              u.roles.length > 0 &&
+              u.registrationStatus !== 'pending_credentials';
 
-    return matchesSearch && matchesStatus
-  })
+    return matchesSearch && matchesStatus;
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE))
-  const safePage   = Math.min(page, totalPages)
-  const paginated  = filtered.slice((safePage - 1) * USER_PAGE_SIZE, safePage * USER_PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / USER_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * USER_PAGE_SIZE, safePage * USER_PAGE_SIZE);
 
-  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
-  const handleStatus = (v: UserStatusFilter) => { setStatus(v); setPage(1) }
+  const handleSearch = (v: string) => {
+    setSearch(v);
+    setPage(1);
+  };
+  const handleStatus = (v: UserStatusFilter) => {
+    setStatus(v);
+    setPage(1);
+  };
 
   const USER_STATUS_LABELS: Record<UserStatusFilter, string> = {
-    all:      t('common.all'),
-    active:   t('common.active'),
+    all: t('common.all'),
+    active: t('common.active'),
     inactive: t('common.deleted'),
-    pending:  t('common.pending'),
-  }
+    pending: t('common.pending'),
+  };
 
   return (
     <TableRow id={id} className="hover:bg-transparent">
@@ -116,9 +130,15 @@ export function CompanyUsersRow({
                     disabled={isFetching}
                     title={t('common.refresh')}
                   >
-                    <RefreshCw className={`size-3 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`size-3 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`}
+                    />
                   </Button>
-                  <RefreshCountdown duration={60_000} isFetching={isFetching} updatedAt={dataUpdatedAt} />
+                  <RefreshCountdown
+                    duration={60_000}
+                    isFetching={isFetching}
+                    updatedAt={dataUpdatedAt}
+                  />
                 </div>
               </div>
               {!isLoading && !isError && users.length > 0 && (
@@ -138,7 +158,9 @@ export function CompanyUsersRow({
                     className="h-7 rounded-md border border-input bg-transparent px-2 py-0.5 text-xs outline-none focus-visible:border-ring"
                   >
                     {(['all', 'active', 'inactive', 'pending'] as UserStatusFilter[]).map((s) => (
-                      <option key={s} value={s}>{USER_STATUS_LABELS[s]}</option>
+                      <option key={s} value={s}>
+                        {USER_STATUS_LABELS[s]}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -151,9 +173,7 @@ export function CompanyUsersRow({
               </p>
             ) : isError ? (
               <div className="flex flex-col items-center gap-2 py-4">
-                <p className="text-xs text-destructive text-center">
-                  {t('companies.errorUsers')}
-                </p>
+                <p className="text-xs text-destructive text-center">{t('companies.errorUsers')}</p>
                 <button
                   type="button"
                   onClick={() => refetch()}
@@ -197,9 +217,7 @@ export function CompanyUsersRow({
                               <p className="text-sm font-medium">
                                 {u.firstName} {u.lastName}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {u.email}
-                              </p>
+                              <p className="text-xs text-muted-foreground">{u.email}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -209,7 +227,10 @@ export function CompanyUsersRow({
                               {t('common.deleted')}
                             </Badge>
                           ) : u.roles.length === 0 ? (
-                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+                            <Badge
+                              variant="outline"
+                              className="text-xs text-amber-600 border-amber-200 bg-amber-50"
+                            >
                               {t('common.noRole')}
                             </Badge>
                           ) : (
@@ -245,38 +266,37 @@ export function CompanyUsersRow({
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">{t('common.noRole')}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {t('common.noRole')}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="py-2.5">
                           <DropdownMenu>
                             <DropdownMenuTrigger
-                              aria-label={t('companies.actions.openUserMenu', { name: `${u.firstName} ${u.lastName}` })}
+                              aria-label={t('companies.actions.openUserMenu', {
+                                name: `${u.firstName} ${u.lastName}`,
+                              })}
                               className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                             >
                               <MoreHorizontal className="size-3.5" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEditUser(u)}>
+                              <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
                                 <PencilIcon className="size-4" /> {t('companies.actions.editUser')}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onToggleUserStatus(u)}>
+                              <DropdownMenuItem onClick={() => onToggleUserStatus(u, companyId)}>
                                 {isDeleted(u) || !!u.orgRemovedAt ? (
                                   <>
-                                    <CheckIcon className="size-4" /> {t('companies.actions.activateUser')}
+                                    <CheckIcon className="size-4" />{' '}
+                                    {t('companies.actions.activateUser')}
                                   </>
                                 ) : (
                                   <>
-                                    <XIcon className="size-4" /> {t('companies.actions.deactivateUser')}
+                                    <XIcon className="size-4" />{' '}
+                                    {t('companies.actions.deactivateUser')}
                                   </>
                                 )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => onDeleteUser(u)}
-                              >
-                                <Trash2 className="size-4" /> {t('companies.actions.deleteUser')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -286,7 +306,13 @@ export function CompanyUsersRow({
                   </TableBody>
                 </Table>
                 {totalPages > 1 && (
-                  <Pager page={safePage} totalPages={totalPages} total={filtered.length} onChange={setPage} className="px-4 py-2 border-t border-border" />
+                  <Pager
+                    page={safePage}
+                    totalPages={totalPages}
+                    total={filtered.length}
+                    onChange={setPage}
+                    className="px-4 py-2 border-t border-border"
+                  />
                 )}
               </div>
             )}
@@ -294,5 +320,5 @@ export function CompanyUsersRow({
         </div>
       </TableCell>
     </TableRow>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { useRef, type ChangeEvent } from "react";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { useRef, type ChangeEvent } from 'react';
 import {
   LogOut,
   ChevronsUpDown,
@@ -14,10 +14,10 @@ import {
   CreditCard,
   User,
   Camera,
-} from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,21 +26,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
-import { authApi } from "@/lib/api/auth";
-import { usersApi } from "@/lib/api/users";
-import { useAuthStore } from "@/store/authStore";
-import { initials } from "@/lib/formatters";
-import { useUserProfile } from "../hooks/use-user-profile";
+} from '@/components/ui/dropdown-menu';
+import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { authApi } from '@/lib/api/auth';
+import { usersApi } from '@/lib/api/users';
+import { useAuthStore } from '@/store/authStore';
+import { initials } from '@/lib/formatters';
+import { useUserProfile } from '../hooks/use-user-profile';
 
 interface UserProfileCardProps {
-  variant?: "sidebar" | "header";
+  variant?: 'sidebar' | 'header';
   onWorkflowClick?: (workflowId: string) => void;
 }
 
-export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserProfileCardProps) {
+export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserProfileCardProps) {
   const navigate = useNavigate();
   const { clearAuth } = useAuthStore();
   const queryClient = useQueryClient();
@@ -65,48 +65,47 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
     onSettled: () => {
       queryClient.clear();
       clearAuth();
-      navigate({ to: "/login" });
+      navigate({ to: '/login' });
     },
   });
 
-  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const avatarMutation = useMutation({
     mutationFn: (file: File) => usersApi.uploadAvatar(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] })
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
     },
-  })
+  });
 
   function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) avatarMutation.mutate(file)
-    e.target.value = ''
+    const file = e.target.files?.[0];
+    if (file) avatarMutation.mutate(file);
+    e.target.value = '';
   }
 
-  const avatarUrl = userDetails?.avatarUrl ?? null
+  const avatarUrl = userDetails?.avatarUrl ?? null;
 
   const fullName = userDetails
-    ? [userDetails.firstName, userDetails.lastName].filter(Boolean).join(" ") ||
-      email
+    ? [userDetails.firstName, userDetails.lastName].filter(Boolean).join(' ') || email
     : user?.name || email;
 
   const contextLabel = currentCompanyId
     ? (companies.find((c) => c.id === currentCompanyId)?.name ??
       user?.companyName ??
       currentCompanyId)
-    : t("dashboard.superAdmin");
+    : t('dashboard.superAdmin');
 
   const dropdownContent = (
     <DropdownMenuContent
-      side={variant === "header" ? "bottom" : "top"}
-      align={variant === "header" ? "end" : "start"}
+      side={variant === 'header' ? 'bottom' : 'top'}
+      align={variant === 'header' ? 'end' : 'start'}
       className="w-64"
     >
       {/* ── Mi perfil + switch de contexto ─────────────────────── */}
       <DropdownMenuGroup>
         <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider py-1">
-          {t("profile.myProfile")}
+          {t('profile.myProfile')}
         </DropdownMenuLabel>
 
         {/* Avatar con botón de cambio */}
@@ -135,34 +134,28 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
           <div className="flex items-center gap-1.5">
             <User className="size-3 text-muted-foreground shrink-0" />
             <span className="text-xs font-medium truncate flex-1">
-              {fullName ?? t("common.user")}
+              {fullName ?? t('common.user')}
             </span>
             {isSuperAdmin && !currentCompanyId && (
               <span className="shrink-0 text-[10px] px-1 rounded-sm font-medium bg-primary/10 text-primary">
-                {t("dashboard.superAdmin")}
+                {t('dashboard.superAdmin')}
               </span>
             )}
           </div>
           <div className="flex items-center gap-1.5">
             <Hash className="size-3 text-muted-foreground shrink-0" />
-            <span className="text-xs text-muted-foreground truncate">
-              {email}
-            </span>
+            <span className="text-xs text-muted-foreground truncate">{email}</span>
           </div>
           {userDetails?.position && (
             <div className="flex items-center gap-1.5">
               <Briefcase className="size-3 text-muted-foreground shrink-0" />
-              <span className="text-xs text-muted-foreground truncate">
-                {userDetails.position}
-              </span>
+              <span className="text-xs text-muted-foreground truncate">{userDetails.position}</span>
             </div>
           )}
           {userDetails?.idNumber && (
             <div className="flex items-center gap-1.5">
               <CreditCard className="size-3 text-muted-foreground shrink-0" />
-              <span className="text-xs text-muted-foreground">
-                {userDetails.idNumber}
-              </span>
+              <span className="text-xs text-muted-foreground">{userDetails.idNumber}</span>
             </div>
           )}
         </div>
@@ -172,42 +165,26 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
           <>
             <div className="mx-1.5 my-1 h-px bg-border" />
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1.5 py-0.5">
-              {t("profile.switchContext")}
+              {t('profile.switchContext')}
             </p>
 
             {hasSuperAdminToken && (
-              <DropdownMenuItem
-                onClick={switchToSuperAdmin}
-                className="gap-2"
-              >
+              <DropdownMenuItem onClick={switchToSuperAdmin} className="gap-2">
                 <ShieldCheck className="size-3.5 text-muted-foreground shrink-0" />
-                <span className="flex-1 text-xs">
-                  {t("dashboard.superAdmin")}
-                </span>
-                {!currentCompanyId && (
-                  <Check className="size-3.5 text-primary" />
-                )}
+                <span className="flex-1 text-xs">{t('dashboard.superAdmin')}</span>
+                {!currentCompanyId && <Check className="size-3.5 text-primary" />}
               </DropdownMenuItem>
             )}
 
             {companyIds.map((id) => {
               const company = companies.find((c) => c.id === id);
               return (
-                <DropdownMenuItem
-                  key={id}
-                  onClick={() => switchToCompany(id)}
-                  className="gap-2"
-                >
+                <DropdownMenuItem key={id} onClick={() => switchToCompany(id)} className="gap-2">
                   <Building2 className="size-3.5 text-muted-foreground shrink-0" />
                   <span className="flex-1 text-xs truncate">
-                    {company?.name ??
-                      (currentCompanyId === id
-                        ? (user?.companyName ?? id)
-                        : id)}
+                    {company?.name ?? (currentCompanyId === id ? (user?.companyName ?? id) : id)}
                   </span>
-                  {currentCompanyId === id && (
-                    <Check className="size-3.5 text-primary" />
-                  )}
+                  {currentCompanyId === id && <Check className="size-3.5 text-primary" />}
                 </DropdownMenuItem>
               );
             })}
@@ -221,28 +198,22 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider py-1">
-              {t("companyInfo.title")}
+              {t('companyInfo.title')}
             </DropdownMenuLabel>
             <div className="px-1.5 py-1 space-y-1">
               <div className="flex items-center gap-1.5">
                 <Building2 className="size-3 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium truncate flex-1">
-                  {currentCompany.name}
-                </span>
+                <span className="text-xs font-medium truncate flex-1">{currentCompany.name}</span>
                 <span
-                  className={`shrink-0 text-[10px] px-1 rounded-sm font-medium ${currentCompany.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-muted text-muted-foreground"}`}
+                  className={`shrink-0 text-[10px] px-1 rounded-sm font-medium ${currentCompany.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}
                 >
-                  {currentCompany.status === "active"
-                    ? t("common.active")
-                    : t("common.inactive")}
+                  {currentCompany.status === 'active' ? t('common.active') : t('common.inactive')}
                 </span>
               </div>
               {currentCompany.nit && (
                 <div className="flex items-center gap-1.5">
                   <Hash className="size-3 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground">
-                    {currentCompany.nit}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{currentCompany.nit}</span>
                 </div>
               )}
               {currentCompany.address && (
@@ -256,9 +227,7 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
               {currentCompany.phone && (
                 <div className="flex items-center gap-1.5">
                   <Phone className="size-3 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground">
-                    {currentCompany.phone}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{currentCompany.phone}</span>
                 </div>
               )}
             </div>
@@ -268,10 +237,18 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
     </DropdownMenuContent>
   );
 
-  if (variant === "header") {
+  if (variant === 'header') {
     return (
       <div className="flex items-center gap-1">
         <LanguageSwitcher />
+        <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 max-w-[180px]">
+          {currentCompanyId ? (
+            <Building2 className="size-3 shrink-0 text-muted-foreground" />
+          ) : (
+            <ShieldCheck className="size-3 shrink-0 text-amber-500" />
+          )}
+          <span className="text-xs font-medium truncate text-foreground/80">{contextLabel}</span>
+        </div>
         <NotificationBell onWorkflowClick={onWorkflowClick} companies={companies} />
         <input
           ref={avatarInputRef}
@@ -285,9 +262,7 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
             <Avatar className="size-7 shrink-0">
               {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}
               <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                {fullName
-                  ? initials(fullName)
-                  : (email?.[0]?.toUpperCase() ?? "?")}
+                {fullName ? initials(fullName) : (email?.[0]?.toUpperCase() ?? '?')}
               </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium truncate max-w-28 hidden sm:block">
@@ -304,8 +279,8 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
           size="icon"
           className="size-8 text-muted-foreground hover:text-destructive"
           onClick={() => logoutMutation.mutate()}
-          title={t("common.logout")}
-          aria-label={t("common.logout")}
+          title={t('common.logout')}
+          aria-label={t('common.logout')}
         >
           <LogOut className="size-3.5" />
         </Button>
@@ -328,15 +303,11 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
           <Avatar className="size-8 shrink-0">
             {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
-              {fullName
-                ? initials(fullName)
-                : (email?.[0]?.toUpperCase() ?? "?")}
+              {fullName ? initials(fullName) : (email?.[0]?.toUpperCase() ?? '?')}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate leading-tight">
-              {fullName}
-            </p>
+            <p className="text-sm font-medium truncate leading-tight">{fullName}</p>
             <p className="text-[10px] text-muted-foreground truncate leading-tight">
               {contextLabel}
             </p>
@@ -350,14 +321,26 @@ export function UserProfileCard({ variant = "sidebar", onWorkflowClick }: UserPr
 
       {/* ── Bottom actions ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between mt-1.5 px-1">
-        <LanguageSwitcher />
+        <div className="flex items-center gap-1">
+          <LanguageSwitcher />
+          <div className="flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5 max-w-[110px]">
+            {currentCompanyId ? (
+              <Building2 className="size-3 shrink-0 text-muted-foreground" />
+            ) : (
+              <ShieldCheck className="size-3 shrink-0 text-amber-500" />
+            )}
+            <span className="text-[10px] font-medium truncate text-foreground/70">
+              {contextLabel}
+            </span>
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="icon"
           className="size-7 text-muted-foreground hover:text-destructive"
           onClick={() => logoutMutation.mutate()}
-          title={t("common.logout")}
-          aria-label={t("common.logout")}
+          title={t('common.logout')}
+          aria-label={t('common.logout')}
         >
           <LogOut className="size-3.5" />
         </Button>

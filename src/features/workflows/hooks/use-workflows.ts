@@ -1,742 +1,322 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { workflowsApi, type ApiWorkflow, type ApiWorkflowAttachment, type WorkflowStatus } from '@/lib/api/workflows'
-import { typologiesApi } from '@/lib/api/typologies'
-import { usersApi } from '@/lib/api/users'
-import { rolesApi } from '@/lib/api/roles'
-import { workflowFilesApi, type WorkflowFileUploadResponse } from '@/lib/api/workflow-files'
+import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { workflowsApi, type ApiWorkflow } from '@/lib/api/workflows';
+import { useWorkflowDialogs } from './use-workflow-dialogs';
+import { useDocumentExtraction } from './use-document-extraction';
+import { useWorkflowForms } from './use-workflow-forms';
+import { useWorkflowQueries } from './use-workflow-queries';
+import { useWorkflowMutations } from './use-workflow-mutations';
+import type { DocumentComparison } from './workflow-schemas';
 
-// ── Schemas ───────────────────────────────────────────────────────────────────
-
-const createWorkflowSchema = z.object({
-  title: z.string().min(3, 'Mínimo 3 caracteres').max(500, 'Máximo 500 caracteres'),
-  description: z.string().max(2000, 'Máximo 2000 caracteres').optional(),
-})
-
-const approveSchema = z.object({
-  observations: z.string().max(2000).optional(),
-})
-
-const rejectSchema = z.object({
-  observations: z.string().min(10, 'Mínimo 10 caracteres').max(3000, 'Máximo 3000 caracteres'),
-})
-
-export type CreateWorkflowForm = z.infer<typeof createWorkflowSchema>
-export type ApproveForm = z.infer<typeof approveSchema>
-export type RejectForm = z.infer<typeof rejectSchema>
-
-export type WorkflowsInnerTab = 'all' | 'my-tasks' | 'my-available'
-
-export interface ExtractionResult {
-  nombre: string | null
-  codigo: string | null
-  version: string | null
-}
-
-/** null = la tipología no tiene valor declarado para ese campo */
-export interface DocumentComparison {
-  nombre: boolean | null
-  codigo: boolean | null
-  version: boolean | null
-}
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
+// Re-export shared types so consumers keep a single import point
+export type {
+  CreateWorkflowForm,
+  ApproveForm,
+  RejectForm,
+  WorkflowsInnerTab,
+  ExtractionResult,
+  DocumentComparison,
+} from './workflow-schemas';
 
 export function useWorkflows(companyId: string) {
-  const queryClient = useQueryClient()
+  const dialogs = useWorkflowDialogs();
+  const extraction = useDocumentExtraction(companyId);
+  const forms = useWorkflowForms();
 
-  // ── Dialog / UI state ────────────────────────────────────────────────────
-  const [createOpen, setCreateOpen] = useState(false)
-  const [selectedTypologyId, setSelectedTypologyId] = useState('')
-  const [approverIds, setApproverIds] = useState<string[]>([])
-  const [createError, setCreateError] = useState<string | null>(null)
+  const queries = useWorkflowQueries(companyId, {
+    statusFilter: dialogs.statusFilter,
+    innerTab: dialogs.innerTab,
+    detailWorkflowId: dialogs.detailWorkflow?.id,
+    timelineWorkflowId: dialogs.timelineWorkflowId,
+    createOpen: dialogs.createOpen,
+    editWorkflowOpen: !!dialogs.editWorkflow,
+    reviewCycleOpen: !!dialogs.reviewCycleWorkflow,
+  });
 
-  // ── Document extraction state ─────────────────────────────────────────────
-  const [documentFile, setDocumentFile] = useState<File | null>(null)
-  const [documentExtraction, setDocumentExtraction] = useState<ExtractionResult | null>(null)
-  const [documentExtractionLoading, setDocumentExtractionLoading] = useState(false)
-  const [documentExtractionError, setDocumentExtractionError] = useState<string | null>(null)
-
-  // ── Supporting attachments state ──────────────────────────────────────────
-  const [supportingFiles, setSupportingFiles] = useState<File[]>([])
-
-  const [approveAttachmentFiles, setApproveAttachmentFiles] = useState<File[]>([])
-
-  // ── Final users state ─────────────────────────────────────────────────────
-  const [finalUserIds, setFinalUserIds] = useState<string[]>([])
-
-  const [detailWorkflow, setDetailWorkflow] = useState<ApiWorkflow | null>(null)
-  const [approveWorkflow, setApproveWorkflow] = useState<ApiWorkflow | null>(null)
-  const [rejectWorkflow, setRejectWorkflow] = useState<ApiWorkflow | null>(null)
-  const [timelineWorkflowId, setTimelineWorkflowId] = useState<string | null>(null)
-  const [deleteWorkflow, setDeleteWorkflow] = useState<ApiWorkflow | null>(null)
-  const [editWorkflow, setEditWorkflow] = useState<ApiWorkflow | null>(null)
-  const [editApproverIds, setEditApproverIds] = useState<string[]>([])
-  const [editDocumentFile, setEditDocumentFile] = useState<File | null>(null)
-  const [editSupportingFiles, setEditSupportingFiles] = useState<File[]>([])
-  const [editExistingAttachments, setEditExistingAttachments] = useState<ApiWorkflowAttachment[]>([])
-  const [editFinalUserId, setEditFinalUserId] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<WorkflowStatus | undefined>(undefined)
-  const [innerTab, setInnerTab] = useState<WorkflowsInnerTab>('all')
-
-  // ── Review cycle state ────────────────────────────────────────────────────
-  const [reviewCycleWorkflow, setReviewCycleWorkflow] = useState<ApiWorkflow | null>(null)
-  const [reviewCycleReviewerIds, setReviewCycleReviewerIds] = useState<string[]>([])
-  const [completeStepWorkflow, setCompleteStepWorkflow] = useState<ApiWorkflow | null>(null)
-  const [completeStepFiles, setCompleteStepFiles] = useState<File[]>([])
-  const [completeStepNotes, setCompleteStepNotes] = useState('')
-
-  // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: paginatedWorkflows, isLoading: workflowsLoading, isFetching: workflowsIsFetching, dataUpdatedAt: workflowsUpdatedAt } = useQuery({
-    queryKey: ['workflows', statusFilter],
-    queryFn: () => workflowsApi.list({ status: statusFilter, limit: 50 }),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: false,
-    enabled: innerTab === 'all',
-  })
-
-  const { data: myTasks = [], isLoading: myTasksLoading, isFetching: myTasksIsFetching, dataUpdatedAt: myTasksUpdatedAt } = useQuery({
-    queryKey: ['workflows-my-tasks'],
-    queryFn: () => workflowsApi.myTasks(),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: false,
-  })
-
-  const { data: myAvailable = [], isLoading: myAvailableLoading, isFetching: myAvailableIsFetching, dataUpdatedAt: myAvailableUpdatedAt } = useQuery({
-    queryKey: ['workflows-my-available'],
-    queryFn: () => workflowsApi.myAvailable(),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: false,
-  })
-
-  const { data: timeline = [], isLoading: timelineLoading } = useQuery({
-    queryKey: ['workflow-timeline', timelineWorkflowId],
-    queryFn: () => workflowsApi.getTimeline(timelineWorkflowId!),
-    staleTime: 30_000,
-    enabled: !!timelineWorkflowId,
-  })
-
-  // Detalle completo (con adjuntos) cuando se abre el dialog de detalle
-  const { data: detailWorkflowFull } = useQuery({
-    queryKey: ['workflow', detailWorkflow?.id],
-    queryFn: () => workflowsApi.getById(detailWorkflow!.id),
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
-    enabled: !!detailWorkflow,
-  })
-
-  // Tipologías activas de la organización — para el selector del formulario
-  const { data: typologies = [] } = useQuery({
-    queryKey: ['typologies', companyId],
-    queryFn: () => typologiesApi.list(companyId),
-    staleTime: 60_000,
-    enabled: !!companyId && createOpen,
-  })
-
-  // Usuarios de la organización — para el selector de aprobadores y resolución de nombres en detalle
-  const { data: orgUsers = [] } = useQuery({
-    queryKey: ['company-users', companyId],
-    queryFn: () => usersApi.listUsersByOrg(companyId),
-    staleTime: 60_000,
-    enabled: !!companyId && (createOpen || !!detailWorkflow || !!timelineWorkflowId || !!editWorkflow),
-  })
-
-  // Roles con sus permisos — para filtrar aprobadores elegibles
-  const { data: allRoles = [] } = useQuery({
-    queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(companyId),
-    staleTime: 60_000,
-    enabled: !!companyId && (createOpen || !!editWorkflow),
-  })
-
-  // ── Invalidations ─────────────────────────────────────────────────────────
-  const invalidateAll = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['workflows'] })
-    queryClient.invalidateQueries({ queryKey: ['workflows-my-tasks'] })
-    queryClient.invalidateQueries({ queryKey: ['workflows-my-available'] })
-  }, [queryClient])
-
-  const isRefreshing = workflowsIsFetching || myTasksIsFetching || myAvailableIsFetching
-  // Latest successful fetch across all three queries — changes once per fetch completion
-  const workflowsDataUpdatedAt = Math.max(workflowsUpdatedAt, myTasksUpdatedAt, myAvailableUpdatedAt)
-
-  // ── Mutations ─────────────────────────────────────────────────────────────
-  const createMutation = useMutation({
-    mutationFn: async ({
-      form,
-      typologyId,
-      approvers,
-      mainFile,
-      supportingFilesToUpload,
-      selectedFinalUserIds,
-    }: {
-      form: CreateWorkflowForm
-      typologyId: string
-      approvers: string[]
-      mainFile: File | null
-      supportingFilesToUpload: File[]
-      selectedFinalUserIds: string[]
-    }) => {
-      // 1. Subir documento principal si existe
-      let mainDocument: WorkflowFileUploadResponse | undefined
-      if (mainFile) {
-        mainDocument = await workflowFilesApi.upload(companyId, mainFile)
-      }
-
-      // 2. Subir adjuntos de soporte
-      const attachments: WorkflowFileUploadResponse[] = await Promise.all(
-        supportingFilesToUpload.map((f) => workflowFilesApi.upload(companyId, f)),
-      )
-
-      // 3. Crear el workflow
-      return workflowsApi.create({
-        title:        form.title,
-        description:  form.description,
-        typologyId,
-        approvers:    approvers.map((userId, i) => ({ userId, stepOrder: i + 1 })),
-        mainDocument,
-        attachments:  attachments.length > 0 ? attachments : undefined,
-        finalUserIds: selectedFinalUserIds,
-      })
+  const mutations = useWorkflowMutations(companyId, {
+    invalidateAll: queries.invalidateAll,
+    approveAttachmentFiles: dialogs.approveAttachmentFiles,
+    onCreateSuccess: () => {
+      dialogs.setCreateOpen(false);
+      forms.createForm.reset();
+      dialogs.setSelectedTypologyId('');
+      dialogs.setApproverIds([]);
+      dialogs.setFinalUserIds([]);
+      dialogs.setCreateError(null);
+      extraction.reset();
+      dialogs.setSupportingFiles([]);
     },
-    onSuccess: () => {
-      invalidateAll()
-      setCreateOpen(false)
-      createForm.reset()
-      setSelectedTypologyId('')
-      setApproverIds([])
-      setFinalUserIds([])
-      setCreateError(null)
-      setDocumentFile(null)
-      setDocumentExtraction(null)
-      setDocumentExtractionError(null)
-      setSupportingFiles([])
+    onUpdateSuccess: (updated) => {
+      dialogs.setDetailWorkflow(updated);
+      dialogs.setEditWorkflow(null);
+      dialogs.setEditApproverIds([]);
+      dialogs.setEditDocumentFile(null);
+      dialogs.setEditSupportingFiles([]);
+      dialogs.setEditExistingAttachments([]);
+      dialogs.setEditFinalUserId(null);
     },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: async ({
-      id, dto, mainFile, supportingFilesToUpload, newFinalUserId,
-      existingAttachments, originalAttachmentCount,
-    }: {
-      id: string
-      dto: { title?: string; description?: string; approvers?: { userId: string; stepOrder: number }[] }
-      mainFile: File | null
-      supportingFilesToUpload: File[]
-      newFinalUserId: string | null
-      existingAttachments: ApiWorkflowAttachment[]
-      originalAttachmentCount: number
-    }) => {
-      let mainDocument: WorkflowFileUploadResponse | undefined
-      if (mainFile) {
-        mainDocument = await workflowFilesApi.upload(companyId, mainFile)
-      }
-
-      const newlyUploaded: WorkflowFileUploadResponse[] = await Promise.all(
-        supportingFilesToUpload.map((f) => workflowFilesApi.upload(companyId, f)),
-      )
-
-      // Solo enviar attachments si hubo cambios (se eliminó alguno o se añadió uno nuevo)
-      const attachmentsChanged =
-        existingAttachments.length !== originalAttachmentCount || newlyUploaded.length > 0
-
-      const toFileRef = (a: { storageKey: string; originalName: string; mimeType: string; fileSizeBytes?: number | null }) => ({
-        storageKey:    a.storageKey,
-        originalName:  a.originalName,
-        mimeType:      a.mimeType,
-        ...(typeof a.fileSizeBytes === 'number' && { fileSizeBytes: a.fileSizeBytes }),
-      })
-
-      const attachmentsToSend = attachmentsChanged
-        ? [
-            ...existingAttachments.map(toFileRef),
-            ...newlyUploaded.map(toFileRef),
-          ]
-        : undefined
-
-      return workflowsApi.update(id, {
-        ...dto,
-        mainDocument,
-        attachments: attachmentsToSend,
-        finalUserIds: newFinalUserId ? [newFinalUserId] : undefined,
-      })
+    onDeleteSuccess: () => {
+      dialogs.setDeleteWorkflow(null);
     },
-    onSuccess: (updated) => {
-      invalidateAll()
-      queryClient.setQueryData(['workflow', updated.id], updated)
-      setDetailWorkflow(updated)
-      setEditWorkflow(null)
-      setEditApproverIds([])
-      setEditDocumentFile(null)
-      setEditSupportingFiles([])
-      setEditExistingAttachments([])
-      setEditFinalUserId(null)
+    onApproveSuccess: () => {
+      dialogs.setApproveWorkflow(null);
+      dialogs.setApproveAttachmentFiles([]);
+      forms.approveForm.reset();
     },
-  })
-
-  const notifyNoFinalUsersMutation = useMutation({
-    mutationFn: (dto: { typologyId: string; typologyName: string; recipientIds: string[] }) =>
-      workflowsApi.notifyNoFinalUsers(dto),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => workflowsApi.remove(id),
-    onSuccess: () => {
-      invalidateAll()
-      setDeleteWorkflow(null)
+    onRejectSuccess: () => {
+      dialogs.setRejectWorkflow(null);
+      forms.rejectForm.reset();
     },
-  })
-
-  const startApprovalMutation = useMutation({
-    mutationFn: (id: string) => workflowsApi.startApproval(id),
-    onSuccess: (updated) => {
-      invalidateAll()
-      queryClient.setQueryData(['workflow', updated.id], updated)
+    onAdminCycleSuccess: () => {
+      dialogs.setReviewCycleWorkflow(null);
+      dialogs.setReviewCycleReviewerIds([]);
+      dialogs.setReviewCycleOptionalIds(new Set());
     },
-  })
-
-  const approveMutation = useMutation({
-    mutationFn: async ({ id, dto }: { id: string; dto: ApproveForm }) => {
-      const attachments = await Promise.all(
-        approveAttachmentFiles.map((file) => workflowFilesApi.upload(companyId, file)),
-      )
-      return workflowsApi.approve(id, {
-        ...dto,
-        attachments: attachments.length > 0 ? attachments : undefined,
-      })
+    onSkipCycleSuccess: () => {
+      dialogs.setReviewCycleWorkflow(null);
     },
-    onSuccess: () => {
-      invalidateAll()
-      setApproveWorkflow(null)
-      setApproveAttachmentFiles([])
-      approveForm.reset()
+    onCompleteStepSuccess: () => {
+      dialogs.setCompleteStepWorkflow(null);
+      dialogs.setCompleteStepFiles([]);
+      dialogs.setCompleteStepNotes('');
     },
-  })
-
-  const rejectMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: RejectForm }) =>
-      workflowsApi.reject(id, dto),
-    onSuccess: () => {
-      invalidateAll()
-      setRejectWorkflow(null)
-      rejectForm.reset()
+    onForwardStepSuccess: () => {
+      dialogs.setForwardStepWorkflow(null);
+      dialogs.setForwardStepOptionalId('');
+      dialogs.setForwardStepNotes('');
+      dialogs.setForwardStepFiles([]);
     },
-  })
+  });
 
-  const createAdminCycleMutation = useMutation({
-    mutationFn: ({ id, reviewerIds }: { id: string; reviewerIds: string[] }) =>
-      workflowsApi.createAdminCycle(id, {
-        steps: reviewerIds.map((userId, i) => ({ userId, stepOrder: i + 1 })),
-      }),
-    onSuccess: (_, { id }) => {
-      invalidateAll()
-      queryClient.invalidateQueries({ queryKey: ['workflow', id] })
-      setReviewCycleWorkflow(null)
-      setReviewCycleReviewerIds([])
-    },
-  })
-
-  const skipReviewCycleMutation = useMutation({
-    mutationFn: (id: string) => workflowsApi.skipReviewCycle(id),
-    onSuccess: () => {
-      invalidateAll()
-      setReviewCycleWorkflow(null)
-    },
-  })
-
-  const completeStepMutation = useMutation({
-    mutationFn: async ({
-      workflow, notes, files,
-    }: { workflow: ApiWorkflow; notes: string; files: File[] }) => {
-      const cycle = workflow.activeAdminCycle
-      if (!cycle) throw new Error('No hay ciclo de revisión activo')
-      const currentStep = cycle.steps.find((s) => s.status === 'PENDING')
-      if (!currentStep) throw new Error('No hay paso pendiente en el ciclo')
-      const uploadedAttachments = await Promise.all(
-        files.map((f) => workflowFilesApi.upload(workflow.orgId, f)),
-      )
-      return workflowsApi.completeAdminStep(
-        workflow.id,
-        cycle.id,
-        currentStep.id,
-        {
-          notes: notes.trim() || undefined,
-          attachments: uploadedAttachments.length > 0 ? uploadedAttachments.map((a) => ({
-            storageKey:   a.storageKey,
-            originalName: a.originalName,
-            mimeType:     a.mimeType,
-            ...(typeof a.fileSizeBytes === 'number' && { fileSizeBytes: a.fileSizeBytes }),
-          })) : undefined,
-        },
-      )
-    },
-    onSuccess: () => {
-      invalidateAll()
-      setCompleteStepWorkflow(null)
-      setCompleteStepFiles([])
-      setCompleteStepNotes('')
-    },
-  })
-
-  // ── Forms ─────────────────────────────────────────────────────────────────
-  const createForm = useForm<CreateWorkflowForm>({
-    resolver: zodResolver(createWorkflowSchema),
-    mode: 'onChange',
-    defaultValues: { title: '', description: '' },
-  })
-
-  const approveForm = useForm<ApproveForm>({
-    resolver: zodResolver(approveSchema),
-    mode: 'onChange',
-  })
-
-  const rejectForm = useForm<RejectForm>({
-    resolver: zodResolver(rejectSchema),
-    mode: 'onChange',
-  })
-
-  const editForm = useForm<CreateWorkflowForm>({
-    resolver: zodResolver(createWorkflowSchema),
-    mode: 'onChange',
-  })
-
-  // ── Approvers helpers ─────────────────────────────────────────────────────
-  const addApprover = useCallback((userId: string) => {
-    setApproverIds((prev) => prev.includes(userId) ? prev : [...prev, userId])
-  }, [])
-
-  const removeApprover = useCallback((userId: string) => {
-    setApproverIds((prev) => prev.filter((id) => id !== userId))
-  }, [])
-
-  // ── Final user helpers ────────────────────────────────────────────────────
-  const addFinalUser = useCallback((userId: string) => {
-    setFinalUserIds([userId])
-  }, [])
-
-  const removeFinalUser = useCallback((userId: string) => {
-    setFinalUserIds((prev) => prev.filter((id) => id !== userId))
-  }, [])
-
-  // ── Supporting files helpers ──────────────────────────────────────────────
-  const addSupportingFile = useCallback((file: File) => {
-    setSupportingFiles((prev) => [...prev, file])
-  }, [])
-
-  const removeSupportingFile = useCallback((index: number) => {
-    setSupportingFiles((prev) => prev.filter((_, i) => i !== index))
-  }, [])
-
-  // ── Document extraction handler ───────────────────────────────────────────
-  const handleDocumentFile = useCallback(async (file: File) => {
-    setDocumentFile(file)
-    setDocumentExtraction(null)
-    setDocumentExtractionError(null)
-    setDocumentExtractionLoading(true)
-    try {
-      const result = await typologiesApi.previewExtract(companyId, file)
-      setDocumentExtraction(result)
-    } catch {
-      setDocumentExtractionError('No se pudo extraer la información del documento')
-    } finally {
-      setDocumentExtractionLoading(false)
+  // ── Submit handler ─────────────────────────────────────────────────────────
+  const submitCreate = forms.createForm.handleSubmit((values) => {
+    if (!dialogs.selectedTypologyId) {
+      dialogs.setCreateError('ERR_NO_TYPOLOGY');
+      return;
     }
-  }, [companyId])
-
-  // ── Submit handler ────────────────────────────────────────────────────────
-  const submitCreate = createForm.handleSubmit((values) => {
-    if (!selectedTypologyId) {
-      setCreateError('ERR_NO_TYPOLOGY')
-      return
+    if (dialogs.approverIds.length === 0) {
+      dialogs.setCreateError('ERR_NO_APPROVER');
+      return;
     }
-    if (approverIds.length === 0) {
-      setCreateError('ERR_NO_APPROVER')
-      return
+    if (dialogs.finalUserIds.length === 0) {
+      dialogs.setCreateError('ERR_NO_FINAL_USER');
+      return;
     }
-    if (finalUserIds.length === 0) {
-      setCreateError('ERR_NO_FINAL_USER')
-      return
-    }
-    setCreateError(null)
-    createMutation.mutate({
-      form:                    values,
-      typologyId:              selectedTypologyId,
-      approvers:               approverIds,
-      mainFile:                documentFile,
-      supportingFilesToUpload: supportingFiles,
-      selectedFinalUserIds:    finalUserIds,
-    })
-  })
+    dialogs.setCreateError(null);
+    mutations.createMutation.mutate({
+      form: values,
+      typologyId: dialogs.selectedTypologyId,
+      approvers: dialogs.approverIds,
+      mainFile: extraction.documentFile,
+      supportingFilesToUpload: dialogs.supportingFiles,
+      selectedFinalUserIds: dialogs.finalUserIds,
+    });
+  });
 
-  // ── Open detail by ID (used from notification bell) ──────────────────────
-  // Use a ref to access latest cached data without adding them as deps,
-  // avoiding unnecessary recreation of the callback on every poll cycle.
-  const cachedRef = useRef({ paginatedWorkflows, myTasks, myAvailable })
-  cachedRef.current = { paginatedWorkflows, myTasks, myAvailable }
-
-  const openDetailById = useCallback(async (workflowId: string) => {
-    const { paginatedWorkflows: pw, myTasks: mt, myAvailable: ma } = cachedRef.current
-    const cached = [
-      ...(pw?.data ?? []),
-      ...mt,
-      ...ma,
-    ].find((w) => w.id === workflowId)
-
-    if (cached) {
-      setDetailWorkflow(cached)
-    } else {
-      try {
-        const workflow = await workflowsApi.getById(workflowId)
-        setDetailWorkflow(workflow)
-      } catch { /* ignore — detail simply won't open */ }
-    }
-  }, [])
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Open helpers ───────────────────────────────────────────────────────────
   const openCreate = () => {
-    createForm.reset({ title: '', description: '' })
-    setSelectedTypologyId('')
-    setApproverIds([])
-    setFinalUserIds([])
-    setCreateError(null)
-    setDocumentFile(null)
-    setDocumentExtraction(null)
-    setDocumentExtractionError(null)
-    setDocumentExtractionLoading(false)
-    setSupportingFiles([])
-    setCreateOpen(true)
-  }
+    forms.createForm.reset({ title: '', description: '' });
+    dialogs.setSelectedTypologyId('');
+    dialogs.setApproverIds([]);
+    dialogs.setFinalUserIds([]);
+    dialogs.setCreateError(null);
+    extraction.reset();
+    dialogs.setSupportingFiles([]);
+    dialogs.setCreateOpen(true);
+  };
 
   const openApprove = (workflow: ApiWorkflow) => {
-    approveForm.reset()
-    setApproveAttachmentFiles([])
-    setApproveWorkflow(workflow)
-  }
+    forms.approveForm.reset();
+    dialogs.setApproveAttachmentFiles([]);
+    dialogs.setApproveWorkflow(workflow);
+  };
 
   const openReject = (workflow: ApiWorkflow) => {
-    rejectForm.reset()
-    setRejectWorkflow(workflow)
-  }
+    forms.rejectForm.reset();
+    dialogs.setRejectWorkflow(workflow);
+  };
 
   const openTimeline = (workflowId: string) => {
-    setTimelineWorkflowId(workflowId)
-  }
+    dialogs.setTimelineWorkflowId(workflowId);
+  };
 
   const openReviewCycle = (workflow: ApiWorkflow) => {
-    setReviewCycleReviewerIds([])
-    setReviewCycleWorkflow(workflow)
-  }
+    dialogs.setReviewCycleReviewerIds([]);
+    dialogs.setReviewCycleOptionalIds(new Set());
+    dialogs.setReviewCycleWorkflow(workflow);
+  };
+
+  const openForwardStep = (workflow: ApiWorkflow) => {
+    dialogs.setForwardStepOptionalId('');
+    dialogs.setForwardStepNotes('');
+    dialogs.setForwardStepFiles([]);
+    dialogs.setForwardStepWorkflow(workflow);
+  };
 
   const openCompleteStep = (workflow: ApiWorkflow) => {
-    setCompleteStepFiles([])
-    setCompleteStepNotes('')
-    setCompleteStepWorkflow(workflow)
-  }
+    dialogs.setCompleteStepFiles([]);
+    dialogs.setCompleteStepNotes('');
+    dialogs.setCompleteStepWorkflow(workflow);
+  };
 
   const openEdit = (workflow: ApiWorkflow) => {
-    editForm.reset({ title: workflow.title, description: workflow.description ?? '' })
-    setEditApproverIds(
+    forms.editForm.reset({ title: workflow.title, description: workflow.description ?? '' });
+    dialogs.setEditApproverIds(
       [...workflow.approvalSteps].sort((a, b) => a.stepOrder - b.stepOrder).map((s) => s.userId),
-    )
-    setEditDocumentFile(null)
-    setEditSupportingFiles([])
-    setEditExistingAttachments(
+    );
+    dialogs.setEditDocumentFile(null);
+    dialogs.setEditSupportingFiles([]);
+    dialogs.setEditExistingAttachments(
       (workflow.attachments ?? []).filter((a) => a.attachmentType === 'SUPPORTING'),
-    )
-    setEditFinalUserId(workflow.finalUserIds?.[0] ?? null)
-    setEditWorkflow(workflow)
-  }
+    );
+    dialogs.setEditFinalUserId(workflow.finalUserIds?.[0] ?? null);
+    dialogs.setEditWorkflow(workflow);
+  };
 
-  // ── Derived data ──────────────────────────────────────────────────────────
-  const activeTypologies = useMemo(
-    () => typologies.filter((t) => t.typologyStatus === 'ACTIVE'),
-    [typologies],
-  )
+  // ── Open detail by ID (used from notification bell) ────────────────────────
+  // Use a ref to access latest cached data without adding them as deps,
+  // avoiding unnecessary recreation of the callback on every poll cycle.
+  const cachedRef = useRef({
+    paginatedWorkflows: queries.paginatedWorkflows,
+    myTasks: queries.myTasks,
+    myAvailable: queries.myAvailable,
+  });
 
-  const activeOrgUsers = useMemo(
-    () => orgUsers.filter((u) => u.isActive && !u.deletedAt && u.registrationStatus === 'active'),
-    [orgUsers],
-  )
+  useEffect(() => {
+    cachedRef.current = {
+      paginatedWorkflows: queries.paginatedWorkflows,
+      myTasks: queries.myTasks,
+      myAvailable: queries.myAvailable,
+    };
+  }, [queries.paginatedWorkflows, queries.myTasks, queries.myAvailable]);
 
-  /** Mapa userId → nombre completo para todos los usuarios de la org */
-  const orgUsersMap = useMemo(
-    () => new Map(
-      orgUsers.map((u) => [
-        u.id,
-        [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
-      ]),
-    ),
-    [orgUsers],
-  )
+  const openDetailById = useCallback(async (workflowId: string) => {
+    const { paginatedWorkflows: pw, myTasks: mt, myAvailable: ma } = cachedRef.current;
+    const cached = [...(pw?.data ?? []), ...mt, ...ma].find((w) => w.id === workflowId);
 
-  /** IDs de roles que tienen permiso WORKFLOWS:APPROVE */
-  const approveRoleIds = useMemo(
-    () => new Set(
-      allRoles
-        .filter((r) => r.permissions.some((p) => p.module === 'WORKFLOWS' && p.action === 'APPROVE'))
-        .map((r) => r.id),
-    ),
-    [allRoles],
-  )
+    if (cached) {
+      dialogs.setDetailWorkflow(cached);
+    } else {
+      try {
+        const workflow = await workflowsApi.getById(workflowId);
+        dialogs.setDetailWorkflow(workflow);
+      } catch {
+        /* ignore — detail simply won't open */
+      }
+    }
+    // dialogs.setDetailWorkflow is stable (dispatch from useState)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  /** Usuarios activos que pueden ser aprobadores (tienen al menos un rol con WORKFLOWS:APPROVE) */
-  const approverEligibleUsers = useMemo(
-    () => activeOrgUsers.filter((u) => u.roles.some((r) => approveRoleIds.has(r.roleId))),
-    [activeOrgUsers, approveRoleIds],
-  )
-
+  // ── Derived data ───────────────────────────────────────────────────────────
   const selectedTypology = useMemo(
-    () => activeTypologies.find((t) => t.id === selectedTypologyId) ?? null,
-    [activeTypologies, selectedTypologyId],
-  )
+    () => queries.activeTypologies.find((t) => t.id === dialogs.selectedTypologyId) ?? null,
+    [queries.activeTypologies, dialogs.selectedTypologyId],
+  );
 
   /**
    * Usuarios elegibles como usuarios finales: activos y que coincidan con la estructura
    * organizacional de la tipología seleccionada (departamento, área, cargo).
    */
   const finalUserEligibleUsers = useMemo(
-    () => selectedTypology
-      ? activeOrgUsers.filter((u) => {
-          const org = selectedTypology.estructuraOrg
-          if (u.departamentoId !== org.departamentoId) return false
-          if (org.areaId !== null && u.areaId !== org.areaId) return false
-          if (org.cargoId !== null && u.cargoId !== org.cargoId) return false
-          return true
-        })
-      : [],
-    [selectedTypology, activeOrgUsers],
-  )
+    () =>
+      selectedTypology
+        ? queries.activeOrgUsers.filter((u) => {
+            const org = selectedTypology.estructuraOrg;
+            if (u.departamentoId !== org.departamentoId) return false;
+            if (org.areaId !== null && u.areaId !== org.areaId) return false;
+            if (org.cargoId !== null && u.cargoId !== org.cargoId) return false;
+            return true;
+          })
+        : [],
+    [selectedTypology, queries.activeOrgUsers],
+  );
 
   /** Comparación campo a campo: true=coincide, false=no coincide, null=tipología sin valor declarado */
   const documentComparison: DocumentComparison | null = useMemo(
-    () => documentExtraction && selectedTypology
-      ? {
-          nombre: selectedTypology.datosDeclarados.nombre !== null
-            ? documentExtraction.nombre === selectedTypology.datosDeclarados.nombre
-            : null,
-          codigo: selectedTypology.datosDeclarados.codigo !== null
-            ? documentExtraction.codigo === selectedTypology.datosDeclarados.codigo
-            : null,
-          version: selectedTypology.datosDeclarados.version !== null
-            ? documentExtraction.version === selectedTypology.datosDeclarados.version
-            : null,
-        }
-      : null,
-    [documentExtraction, selectedTypology],
-  )
+    () =>
+      extraction.documentExtraction && selectedTypology
+        ? {
+            nombre:
+              selectedTypology.datosDeclarados.nombre !== null
+                ? extraction.documentExtraction.nombre === selectedTypology.datosDeclarados.nombre
+                : null,
+            codigo:
+              selectedTypology.datosDeclarados.codigo !== null
+                ? extraction.documentExtraction.codigo === selectedTypology.datosDeclarados.codigo
+                : null,
+            version:
+              selectedTypology.datosDeclarados.version !== null
+                ? extraction.documentExtraction.version === selectedTypology.datosDeclarados.version
+                : null,
+          }
+        : null,
+    [extraction.documentExtraction, selectedTypology],
+  );
 
   /**
    * true cuando hay un documento cargado y algún campo no coincide con la tipología.
    * En ese caso el botón Crear debe estar bloqueado.
    */
   const createBlocked = useMemo(
-    () => documentExtractionLoading ||
+    () =>
+      extraction.documentExtractionLoading ||
       (documentComparison !== null && Object.values(documentComparison).some((v) => v === false)),
-    [documentExtractionLoading, documentComparison],
-  )
+    [extraction.documentExtractionLoading, documentComparison],
+  );
 
   return {
-    // State
-    createOpen, setCreateOpen,
-    selectedTypologyId, setSelectedTypologyId,
-    approverIds, setApproverIds,
-    createError,
-    detailWorkflow: detailWorkflowFull ?? detailWorkflow,
-    setDetailWorkflow,
-    approveWorkflow, setApproveWorkflow,
-    approveAttachmentFiles, setApproveAttachmentFiles,
-    rejectWorkflow, setRejectWorkflow,
-    timelineWorkflowId, setTimelineWorkflowId,
-    deleteWorkflow, setDeleteWorkflow,
-    editWorkflow, setEditWorkflow,
-    editApproverIds, setEditApproverIds,
-    editDocumentFile, setEditDocumentFile,
-    editSupportingFiles, setEditSupportingFiles,
-    editExistingAttachments, setEditExistingAttachments,
-    editFinalUserId, setEditFinalUserId,
-    statusFilter, setStatusFilter,
-    innerTab, setInnerTab,
+    // ── Dialog state ──────────────────────────────────────────────────────────
+    ...dialogs,
+    // Override: expose the enriched version (with attachments) when available
+    detailWorkflow: queries.detailWorkflowFull ?? dialogs.detailWorkflow,
 
-    // Document extraction
-    documentFile,
-    documentExtraction,
-    documentExtractionLoading,
-    documentExtractionError,
+    // ── Document extraction ───────────────────────────────────────────────────
+    documentFile: extraction.documentFile,
+    documentExtraction: extraction.documentExtraction,
+    documentExtractionLoading: extraction.documentExtractionLoading,
+    documentExtractionError: extraction.documentExtractionError,
+    handleDocumentFile: extraction.handleDocumentFile,
     documentComparison,
     createBlocked,
-    handleDocumentFile,
 
-    // Supporting attachments
-    supportingFiles,
-    addSupportingFile,
-    removeSupportingFile,
-
-    // Users
-    orgUsersMap,
-    activeOrgUsers,
-    approverEligibleUsers,
+    // ── Queries ───────────────────────────────────────────────────────────────
+    workflows: queries.paginatedWorkflows?.data ?? [],
+    workflowsTotal: queries.paginatedWorkflows?.total ?? 0,
+    workflowsLoading: queries.workflowsLoading,
+    myTasks: queries.myTasks,
+    myTasksLoading: queries.myTasksLoading,
+    myAvailable: queries.myAvailable,
+    myAvailableLoading: queries.myAvailableLoading,
+    isRefreshing: queries.isRefreshing,
+    workflowsDataUpdatedAt: queries.workflowsDataUpdatedAt,
+    invalidateAll: queries.invalidateAll,
+    timeline: queries.timeline,
+    timelineLoading: queries.timelineLoading,
+    activeTypologies: queries.activeTypologies,
+    orgUsersMap: queries.orgUsersMap,
+    activeOrgUsers: queries.activeOrgUsers,
+    approverEligibleUsers: queries.approverEligibleUsers,
     finalUserEligibleUsers,
-    finalUserIds,
 
-    // Queries
-    workflows: paginatedWorkflows?.data ?? [],
-    workflowsTotal: paginatedWorkflows?.total ?? 0,
-    workflowsLoading,
-    myTasks,
-    myTasksLoading,
-    myAvailable,
-    myAvailableLoading,
-    isRefreshing,
-    workflowsDataUpdatedAt,
-    invalidateAll,
-    timeline,
-    timelineLoading,
-    activeTypologies,
+    // ── Mutations ─────────────────────────────────────────────────────────────
+    ...mutations,
 
-    // Mutations
-    createMutation,
-    updateMutation,
-    notifyNoFinalUsersMutation,
-    deleteMutation,
-    startApprovalMutation,
-    approveMutation,
-    rejectMutation,
-    createAdminCycleMutation,
-    skipReviewCycleMutation,
-    completeStepMutation,
-
-    // Forms
-    createForm,
+    // ── Forms ─────────────────────────────────────────────────────────────────
+    createForm: forms.createForm,
     submitCreate,
-    editForm,
-    approveForm,
-    rejectForm,
+    editForm: forms.editForm,
+    approveForm: forms.approveForm,
+    rejectForm: forms.rejectForm,
 
-    // Review cycle state
-    reviewCycleWorkflow, setReviewCycleWorkflow,
-    reviewCycleReviewerIds, setReviewCycleReviewerIds,
-    completeStepWorkflow, setCompleteStepWorkflow,
-    completeStepFiles, setCompleteStepFiles,
-    completeStepNotes, setCompleteStepNotes,
-
-    // Helpers
+    // ── Helpers ───────────────────────────────────────────────────────────────
     openCreate,
     openDetailById,
-    addApprover,
-    removeApprover,
-    addFinalUser,
-    removeFinalUser,
     openApprove,
     openReject,
     openTimeline,
     openEdit,
     openReviewCycle,
     openCompleteStep,
-  }
+    openForwardStep,
+  };
 }

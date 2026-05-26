@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient } from './client';
 
 export interface ApiUserRole {
   roleId: string;
@@ -18,6 +18,7 @@ export interface ApiUser {
   registrationStatus: 'pending_credentials' | 'active';
   isActive: boolean;
   isSuperAdmin: boolean;
+  isOptionalReviewer: boolean;
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -45,18 +46,19 @@ export interface UpdateUserDto {
   idNumber?: string;
   position?: string;
   isActive?: boolean;
+  isOptionalReviewer?: boolean;
   departamentoId?: string | null;
   areaId?: string | null;
   cargoId?: string | null;
 }
 
 export interface UserOrgRoleResponseDto {
-  id: string
-  userId: string
-  orgId: string
-  roleId: string
-  assignedBy: string | null
-  createdAt: string
+  id: string;
+  userId: string;
+  orgId: string;
+  roleId: string;
+  assignedBy: string | null;
+  createdAt: string;
 }
 
 export interface ApiUserCreated extends ApiUser {
@@ -84,44 +86,53 @@ export interface CompleteRegistrationDto {
 }
 
 export interface OrgUserCount {
-  orgId: string
-  total: number
-  active: number
-  inactive: number
+  orgId: string;
+  total: number;
+  active: number;
+  inactive: number;
 }
 
 export const usersApi = {
-  list: () =>
-    apiClient.get<{ data: ApiUser[]; total: number }>("/users").then((r) => r.data.data),
+  list: () => apiClient.get<{ data: ApiUser[]; total: number }>('/users').then((r) => r.data.data),
 
   countsByOrg: () =>
-    apiClient.get<OrgUserCount[]>("/users/admin/counts-by-org").then((r) => r.data),
+    apiClient.get<OrgUserCount[]>('/users/admin/counts-by-org').then((r) => r.data),
 
-  getById: (id: string) =>
-    apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
+  getById: (id: string) => apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
 
-  listSuperAdmin: () =>
-    apiClient.get<{ data: ApiUser[]; total: number }>("/users/super-admins").then((r) => r.data.data),
+  listSuperAdmin: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'deleted' | 'pending';
+  }) =>
+    apiClient
+      .get<{ data: ApiUser[]; total: number }>('/users/super-admins', { params })
+      .then((r) => r.data),
 
-  listUsersByOrg: (orgId: string): Promise<ApiUserWithRoles[]> =>
-    apiClient.get<ApiUserWithRoles[]>(`/users/by-org/${orgId}`).then((r) => r.data),
+  listUsersByOrg: (
+    orgId: string,
+    page = 1,
+    limit = 500,
+  ): Promise<{ data: ApiUserWithRoles[]; total: number }> =>
+    apiClient
+      .get<{
+        data: ApiUserWithRoles[];
+        total: number;
+      }>(`/users/by-org/${orgId}`, { params: { page, limit } })
+      .then((r) => r.data),
 
-  create: (dto: CreateUserDto) =>
-    apiClient.post<ApiUserCreated>("/users", dto).then((r) => r.data),
+  create: (dto: CreateUserDto) => apiClient.post<ApiUserCreated>('/users', dto).then((r) => r.data),
 
   update: (id: string, dto: UpdateUserDto) =>
     apiClient.patch<ApiUser>(`/users/${id}`, dto).then((r) => r.data),
 
-  remove: (id: string) =>
-    apiClient.delete<void>(`/users/${id}`).then((r) => r.data),
+  remove: (id: string) => apiClient.delete<void>(`/users/${id}`).then((r) => r.data),
 
-  restore: (id: string) =>
-    apiClient.post<ApiUser>(`/users/${id}/restore`).then((r) => r.data),
+  restore: (id: string) => apiClient.post<ApiUser>(`/users/${id}/restore`).then((r) => r.data),
 
   toggleSuperAdmin: (id: string, enabled: boolean) =>
-    apiClient
-      .patch<ApiUser>(`/users/${id}/super-admin`, { enabled })
-      .then((r) => r.data),
+    apiClient.patch<ApiUser>(`/users/${id}/super-admin`, { enabled }).then((r) => r.data),
 
   assignUserToOrg: (userId: string, orgId: string, roleId?: string) =>
     apiClient
@@ -129,26 +140,22 @@ export const usersApi = {
       .then((r) => r.data),
 
   removeUserFromOrg: (userId: string, orgId: string) =>
-    apiClient
-      .delete<void>(`/users/${userId}/orgs/${orgId}`)
-      .then((r) => r.data),
+    apiClient.delete<void>(`/users/${userId}/orgs/${orgId}`).then((r) => r.data),
 
   // No USERS:READ required — a user can always read their own roles in their current company
   getMyOrgRoles: () =>
-    apiClient
-      .get<UserOrgRoleResponseDto[]>('/users/me/org-roles')
-      .then((r) => r.data),
+    apiClient.get<UserOrgRoleResponseDto[]>('/users/me/org-roles').then((r) => r.data),
 
   uploadAvatar: (file: File) => {
-    const form = new FormData()
-    form.append('avatar', file)
+    const form = new FormData();
+    form.append('avatar', file);
     return apiClient
       .patch<ApiUser>('/users/me/avatar', form, {
         // Remove the default 'application/json' so axios sets
         // 'multipart/form-data; boundary=...' automatically for FormData.
         headers: { 'Content-Type': undefined },
       })
-      .then((r) => r.data)
+      .then((r) => r.data);
   },
 
   resendInvitation: (id: string) =>
@@ -160,7 +167,5 @@ export const usersApi = {
   // completa el perfil del usuario y crea sus credenciales.
   // Backend: POST /users/complete-registration
   completeRegistration: (dto: CompleteRegistrationDto) =>
-    apiClient
-      .post<void>("/users/complete-registration", dto)
-      .then((r) => r.data),
+    apiClient.post<void>('/users/complete-registration', dto).then((r) => r.data),
 };

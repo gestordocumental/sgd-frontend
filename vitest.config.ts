@@ -1,10 +1,13 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Only pick up unit tests from src/ — Playwright E2E tests in tests/e2e/ are
+    // run separately via `npm run e2e` and must not be processed by Vitest.
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
@@ -25,15 +28,25 @@ export default defineConfig({
       thresholds: {
         perFile: true,
         // Pure utility/logic files — high bar
-        'src/lib/jwt.ts':                    { statements: 90, branches: 90, functions: 90, lines: 90 },
-        'src/lib/formatters.ts':             { statements: 90, branches: 90, functions: 90, lines: 90 },
-        'src/lib/validations/schemas.ts':    { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/lib/jwt.ts': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/lib/formatters.ts': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/lib/validations/schemas.ts': {
+          statements: 90,
+          branches: 90,
+          functions: 90,
+          lines: 90,
+        },
         // State store — slightly lower because hydrate() has OS-dependent branches
-        'src/store/authStore.ts':            { statements: 70, branches: 60, functions: 80, lines: 70 },
+        'src/store/authStore.ts': { statements: 70, branches: 60, functions: 80, lines: 70 },
         // Permissions hook — queries disabled paths + all hasPermission branches
-        'src/features/profile/hooks/use-my-permissions.ts': { statements: 80, branches: 75, functions: 80, lines: 80 },
+        'src/features/profile/hooks/use-my-permissions.ts': {
+          statements: 80,
+          branches: 75,
+          functions: 80,
+          lines: 80,
+        },
         // API client — interceptors + silent refresh + retry condition
-        'src/lib/api/client.ts':             { statements: 75, branches: 70, functions: 75, lines: 75 },
+        'src/lib/api/client.ts': { statements: 75, branches: 70, functions: 75, lines: 75 },
       },
     },
   },
@@ -42,4 +55,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+});
