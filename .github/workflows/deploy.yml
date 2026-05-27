@@ -44,8 +44,9 @@ jobs:
           RAILWAY_API_URL: ${{ vars.RAILWAY_API_URL }}
         run: |
           test -n "$RAILWAY_API_URL" || { echo "RAILWAY_API_URL is not set for this environment"; exit 1; }
+          jq -e '.routes[] | select(.src == "/api/(.*)")' vercel.json > /dev/null
           jq --arg url "$RAILWAY_API_URL" \
-            '(.rewrites[].destination) |= gsub("__RAILWAY_API_URL__"; $url)' \
+            '(.routes[] | select(.src == "/api/(.*)") | .dest) |= gsub("\\$\\{RAILWAY_API_URL\\}"; $url)' \
             vercel.json > vercel.tmp.json && mv vercel.tmp.json vercel.json
 
       - name: Pull Vercel config
