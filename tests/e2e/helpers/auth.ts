@@ -2,14 +2,15 @@ import type { Page } from '@playwright/test';
 import { companyUserJwt, globalUserJwt } from './jwt';
 
 /**
- * Glob prefix for all API routes.
+ * Base path for all API route patterns.
  *
- * The app uses VITE_API_URL=/api/v1 (same-origin), so the browser sends
- * requests to http://localhost:5173/api/v1/... through the Vite proxy.
- * Using a glob prefix lets page.route() intercept those same-origin URLs
- * without triggering CORS preflight that would occur with an absolute URL.
+ * The app uses VITE_API_URL=/api/v1 (same-origin), so browser requests go to
+ * http://localhost:5173/api/v1/... through the Vite proxy. Using a relative
+ * path here relies on Playwright's baseURL merging (set to http://localhost:5173
+ * in playwright.config.ts), which is more reliable than a leading-** glob when
+ * matching URLs that contain a scheme (http://).
  */
-export const API = '**/api/v1';
+export const API = '/api/v1';
 
 // ── Persisted session ─────────────────────────────────────────────────────────
 
