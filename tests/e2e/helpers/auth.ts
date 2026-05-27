@@ -1,8 +1,15 @@
 import type { Page } from '@playwright/test';
 import { companyUserJwt, globalUserJwt } from './jwt';
 
-/** Base URL of the backend API as seen from the browser during E2E tests. */
-export const API = 'http://localhost:8000';
+/**
+ * Glob prefix for all API routes.
+ *
+ * The app uses VITE_API_URL=/api/v1 (same-origin), so the browser sends
+ * requests to http://localhost:5173/api/v1/... through the Vite proxy.
+ * Using a glob prefix lets page.route() intercept those same-origin URLs
+ * without triggering CORS preflight that would occur with an absolute URL.
+ */
+export const API = '**/api/v1';
 
 // ── Persisted session ─────────────────────────────────────────────────────────
 

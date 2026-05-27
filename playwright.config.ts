@@ -26,11 +26,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       VITE_USE_MOCKS: 'false',
-      // Use an absolute URL so browser requests go directly to the mock target.
-      // Without this, the .env VITE_API_URL=/api/v1 makes the browser request
-      // http://localhost:5173/api/v1/... (through the Vite proxy), which doesn't
-      // match the page.route() patterns registered against http://localhost:8000/...
-      VITE_API_URL: 'http://localhost:8000',
     },
     timeout: 60_000,
   },
