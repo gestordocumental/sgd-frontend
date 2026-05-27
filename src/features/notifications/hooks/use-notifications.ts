@@ -10,38 +10,77 @@ export function useNotifications() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
 
-  // ── SSE connection — server pushes updates, no polling needed ──────────────
+  // ── SSE connection — ticket-based auth keeps the JWT out of URLs/logs ───────
   useEffect(() => {
     if (!accessToken) return;
 
-    const url = `${SSE_BASE}/notifications/stream?token=${encodeURIComponent(accessToken)}`;
-    const es = new EventSource(url);
+    let es: EventSource | null = null;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let retryDelayMs = 1_000;
+    let active = true;
 
-    es.addEventListener('notification', () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
-      void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
-    });
+    const attach = (sse: EventSource) => {
+      sse.addEventListener('notification', () => {
+        retryDelayMs = 1_000; // Reset backoff on a healthy message
+        void queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
+        void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      });
 
-    // Delegate session revocation to useUserProfile which has the full context
-    // (other companies, super-admin token, etc.) to decide the best UX action.
-    es.addEventListener('session-revoked', (e: MessageEvent<string>) => {
+      // Delegate session revocation to useUserProfile which has the full context
+      // (other companies, super-admin token, etc.) to decide the best UX action.
+      sse.addEventListener('session-revoked', (e: MessageEvent<string>) => {
+        try {
+          const payload =
+            typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
+          const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
+          if (payload.orgId && payload.orgId !== currentCompanyId) return;
+          window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: payload }));
+        } catch {
+          window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: {} }));
+        }
+      });
+
+      sse.addEventListener('super-admin-revoked', () => {
+        window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
+      });
+
+      // Tickets are one-time-use so we manage reconnection ourselves with
+      // exponential backoff (max 30s) instead of relying on EventSource auto-retry.
+      sse.onerror = () => {
+        sse.close();
+        es = null;
+        if (!active) return;
+        retryTimeoutId = setTimeout(() => {
+          retryDelayMs = Math.min(retryDelayMs * 2, 30_000);
+          void connect();
+        }, retryDelayMs);
+      };
+    };
+
+    const connect = async () => {
+      if (!active) return;
       try {
-        const payload =
-          typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
-        const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
-        if (payload.orgId && payload.orgId !== currentCompanyId) return;
-        window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: payload }));
+        const { ticket } = await notificationsApi.sseTicket();
+        if (!active) return;
+        const url = `${SSE_BASE}/notifications/stream?ticket=${encodeURIComponent(ticket)}`;
+        es = new EventSource(url);
+        attach(es);
       } catch {
-        window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: {} }));
+        if (!active) return;
+        retryTimeoutId = setTimeout(() => {
+          retryDelayMs = Math.min(retryDelayMs * 2, 30_000);
+          void connect();
+        }, retryDelayMs);
       }
-    });
+    };
 
-    es.addEventListener('super-admin-revoked', () => {
-      window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
-    });
+    void connect();
 
-    // EventSource reconnects automatically on error with exponential backoff.
-    return () => es.close();
+    return () => {
+      active = false;
+      es?.close();
+      if (retryTimeoutId !== null) clearTimeout(retryTimeoutId);
+    };
   }, [accessToken, queryClient]);
 
   // ── Queries — stale time longer since SSE handles freshness ───────────────

@@ -80,7 +80,13 @@
   "profile": {
     "myProfile": "My profile",
     "switchContext": "Switch to",
-    "changeAvatar": "Change profile photo"
+    "changeAvatar": "Change profile photo",
+    "sessionRevoked": {
+      "unknownCompany": "the company",
+      "switchToGlobal": "You were removed from {{company}}. Returning to global view.",
+      "switchingTo": "You were removed from {{company}}. Switching to {{other}}.",
+      "removedFrom": "You were removed from {{company}}."
+    }
   },
   "auth": {
     "welcomeTitle": "Welcome to SGD",
@@ -94,6 +100,8 @@
     "loadingWorkspace": "Loading workspace...",
     "hidePassword": "Hide password",
     "showPassword": "Show password",
+    "revokedCompanyMessage": "Your access to {{company}} was revoked by an administrator.",
+    "superAdminRevokedMessage": "Your super administrator privileges were revoked. Please sign in again.",
     "serverErrorFallback": "Error connecting to the server. Please try again.",
     "devMode": "Development mode — mocks active",
     "devCredentials": "admin@sgd.helisa.com · admin123",
@@ -251,6 +259,10 @@
       "USER_ORG_ROLE_UPDATED": "User org role updated",
       "USER_REMOVED_FROM_ORG": "User removed from org",
       "USER_SUPER_ADMIN_CHANGED": "Super admin status changed",
+      "COMPANY_CREATED": "Company created",
+      "COMPANY_UPDATED": "Company updated",
+      "COMPANY_DELETED": "Company deleted",
+      "COMPANY_RESTORED": "Company restored",
       "DEPARTAMENTO_CREATED": "Department created",
       "DEPARTAMENTO_UPDATED": "Department updated",
       "DEPARTAMENTO_DELETED": "Department deleted",
@@ -297,8 +309,9 @@
     "fields": {
       "firstName": "First name",
       "lastName": "Last name",
+      "email": "Email",
       "idNumber": "ID number",
-      "position": "Position (free text)",
+      "position": "Position",
       "isActive": "Status",
       "isSuperAdmin": "Super admin",
       "departamentoId": "Department",
@@ -310,7 +323,11 @@
       "address": "Address",
       "phone": "Phone",
       "status": "Status",
-      "role": "Role"
+      "role": "Role",
+      "title": "Title",
+      "approvers": "Approvers",
+      "mainDocument": "Main document",
+      "attachments": "Attachments"
     },
     "export": {
       "button": "Export Excel",
@@ -322,23 +339,15 @@
       "error": "Error generating the export. Please try again.",
       "byCorrelationId": "Export by correlation ID",
       "correlationNote": "All events with this correlation ID will be exported (up to 5000).",
-      "orByDate": "or by date range"
-    },
-    "fields": {
-      "name": "Name",
-      "description": "Description",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "email": "Email",
-      "position": "Position",
-      "isSuperAdmin": "Super admin",
-      "title": "Title",
-      "approvers": "Approvers",
-      "mainDocument": "Main document",
-      "attachments": "Attachments"
+      "orByDate": "or by date range",
+      "filePrefix": "audit",
+      "filePrefixCorrelation": "audit_correlation",
+      "startLabel": "start",
+      "endLabel": "end"
     },
     "resourceTypes": {
       "user": "User",
+      "company": "Company",
       "cargo": "Position",
       "area": "Area",
       "departamento": "Department",
@@ -618,6 +627,7 @@
       "viewDocument": "View document",
       "downloadDocument": "Download document",
       "uploadDocument": "Upload document",
+      "extractionFailed": "Could not extract information from the document",
       "retryExtraction": "Retry extraction",
       "newTypology": "New typology"
     },
@@ -690,7 +700,7 @@
     "status": {
       "DRAFT": "Draft",
       "PENDING_APPROVAL": "Pending approval",
-      "RETURNED_TO_CREATOR": "Rejected",
+      "RETURNED_TO_CREATOR": "Returned to creator",
       "REJECTED": "Rejected",
       "PENDING_REVIEW_CYCLE": "Pending review",
       "AVAILABLE_FOR_FINAL_USERS": "Available",
@@ -744,7 +754,8 @@
       "startReviewCycle": "Start review cycle",
       "completeReviewStep": "Complete review step",
       "completeStep": "Complete step",
-      "forwardStep": "Send to optional reviewer"
+      "forwardStep": "Send to optional reviewer",
+      "openMenu": "Open workflow actions"
     },
     "empty": "No workflows registered",
     "emptyMyTasks": "No pending approval tasks",

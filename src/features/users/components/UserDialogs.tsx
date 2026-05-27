@@ -47,10 +47,13 @@ export function UserDialogs({ hook }: UserDialogsProps) {
   const invitationUrl = invitedUser?.invitationUrl ?? '';
 
   const handleCopy = () => {
-    void navigator.clipboard.writeText(invitationUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    void navigator.clipboard
+      .writeText(invitationUrl)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => undefined);
   };
 
   return (

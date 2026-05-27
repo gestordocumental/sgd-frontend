@@ -12,7 +12,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { auditApi } from '@/lib/api/audit';
-import { type SimpleUser, resolveActorName } from './audit-table.utils';
+import {
+  type SimpleUser,
+  resolveActorName,
+  formatAction,
+  formatResourceType,
+} from './audit-table.utils';
 
 const MAX_LIMIT_OPTIONS = [500, 1000, 2500, 5000];
 
@@ -88,7 +93,7 @@ export function AuditExportModal({
           ? Object.entries(changes)
               .map(([field, { from: f, to: tv }]) =>
                 f === null && tv === null
-                  ? `${field}: modificado`
+                  ? `${field}: ${t('audit.detail.modified')}`
                   : `${field}: "${f === true ? t('common.active') : f === false ? t('common.inactive') : (f ?? '—')}" → "${tv === true ? t('common.active') : tv === false ? t('common.inactive') : (tv ?? '—')}"`,
               )
               .join(' | ')
@@ -96,8 +101,8 @@ export function AuditExportModal({
 
         return {
           [t('audit.columns.timestamp')]: new Date(log.timestamp).toLocaleString(),
-          [t('audit.columns.action')]: log.action.replace(/_/g, ' '),
-          [t('audit.columns.resourceType')]: log.resourceType,
+          [t('audit.columns.action')]: formatAction(log.action, t),
+          [t('audit.columns.resourceType')]: formatResourceType(log.resourceType, t),
           [t('audit.columns.resource')]: log.resourceName ?? log.resourceId,
           [t('audit.columns.actor')]: resolveActorName(log.actorId, users),
           [t('audit.columns.ip')]: log.ip ?? '',
@@ -121,11 +126,13 @@ export function AuditExportModal({
 
       let filename: string;
       if (correlationId.trim()) {
-        filename = `auditoria_correlacion_${correlationId.trim().slice(0, 12)}.xlsx`;
+        filename = `${t('audit.export.filePrefixCorrelation')}_${correlationId.trim().slice(0, 12)}.xlsx`;
       } else {
-        const fromLabel = from ? new Date(from).toISOString().slice(0, 10) : 'inicio';
-        const toLabel = to ? new Date(to).toISOString().slice(0, 10) : 'fin';
-        filename = `auditoria_${fromLabel}_${toLabel}.xlsx`;
+        const fromLabel = from
+          ? new Date(from).toISOString().slice(0, 10)
+          : t('audit.export.startLabel');
+        const toLabel = to ? new Date(to).toISOString().slice(0, 10) : t('audit.export.endLabel');
+        filename = `${t('audit.export.filePrefix')}_${fromLabel}_${toLabel}.xlsx`;
       }
       XLSX.writeFile(wb, filename);
 

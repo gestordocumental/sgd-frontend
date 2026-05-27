@@ -6,9 +6,20 @@ import { decodeJwt } from '@/lib/jwt';
 
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 // Paths checked against the end of the request URL (baseURL-independent)
-const PUBLIC_PATHS = ['/auth/login', '/users/complete-registration'];
+const PUBLIC_PATHS = [
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/users/complete-registration',
+];
 // Paths that must NOT trigger a silent refresh on 401 (would cause infinite loops)
-const SKIP_REFRESH_PATHS = ['/auth/refresh', '/auth/login', '/users/complete-registration'];
+const SKIP_REFRESH_PATHS = [
+  '/auth/refresh',
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/users/complete-registration',
+];
 
 function isPublicEndpoint(url?: string) {
   if (!url) return false;

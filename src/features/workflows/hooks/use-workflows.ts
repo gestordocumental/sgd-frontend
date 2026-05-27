@@ -87,31 +87,6 @@ export function useWorkflows(companyId: string) {
     },
   });
 
-  // ── Submit handler ─────────────────────────────────────────────────────────
-  const submitCreate = forms.createForm.handleSubmit((values) => {
-    if (!dialogs.selectedTypologyId) {
-      dialogs.setCreateError('ERR_NO_TYPOLOGY');
-      return;
-    }
-    if (dialogs.approverIds.length === 0) {
-      dialogs.setCreateError('ERR_NO_APPROVER');
-      return;
-    }
-    if (dialogs.finalUserIds.length === 0) {
-      dialogs.setCreateError('ERR_NO_FINAL_USER');
-      return;
-    }
-    dialogs.setCreateError(null);
-    mutations.createMutation.mutate({
-      form: values,
-      typologyId: dialogs.selectedTypologyId,
-      approvers: dialogs.approverIds,
-      mainFile: extraction.documentFile,
-      supportingFilesToUpload: dialogs.supportingFiles,
-      selectedFinalUserIds: dialogs.finalUserIds,
-    });
-  });
-
   // ── Open helpers ───────────────────────────────────────────────────────────
   const openCreate = () => {
     forms.createForm.reset({ title: '', description: '' });
@@ -263,6 +238,35 @@ export function useWorkflows(companyId: string) {
       (documentComparison !== null && Object.values(documentComparison).some((v) => v === false)),
     [extraction.documentExtractionLoading, documentComparison],
   );
+
+  // ── Submit handler ─────────────────────────────────────────────────────────
+  const submitCreate = forms.createForm.handleSubmit((values) => {
+    if (createBlocked) {
+      dialogs.setCreateError('ERR_DOCUMENT_MISMATCH');
+      return;
+    }
+    if (!dialogs.selectedTypologyId) {
+      dialogs.setCreateError('ERR_NO_TYPOLOGY');
+      return;
+    }
+    if (dialogs.approverIds.length === 0) {
+      dialogs.setCreateError('ERR_NO_APPROVER');
+      return;
+    }
+    if (dialogs.finalUserIds.length === 0) {
+      dialogs.setCreateError('ERR_NO_FINAL_USER');
+      return;
+    }
+    dialogs.setCreateError(null);
+    mutations.createMutation.mutate({
+      form: values,
+      typologyId: dialogs.selectedTypologyId,
+      approvers: dialogs.approverIds,
+      mainFile: extraction.documentFile,
+      supportingFilesToUpload: dialogs.supportingFiles,
+      selectedFinalUserIds: dialogs.finalUserIds,
+    });
+  });
 
   return {
     // ── Dialog state ──────────────────────────────────────────────────────────

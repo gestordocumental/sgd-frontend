@@ -1,35 +1,59 @@
-import { Trash2, Upload, Loader2, FileText, Paperclip, GripVertical, User } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { FormField } from '@/components/ui/form-field'
-import { SearchableSelect } from '@/components/ui/searchable-select'
-import type { SelectOption } from '@/components/ui/searchable-select'
-import type { WorkflowsHook } from './workflow-dialog.types'
-import { ExtractionComparisonRow } from './workflow-dialog-shared'
+import { Trash2, Upload, Loader2, FileText, Paperclip, GripVertical, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import type { SelectOption } from '@/components/ui/searchable-select';
+import type { WorkflowsHook } from './workflow-dialog.types';
+import { ExtractionComparisonRow } from './workflow-dialog-shared';
 
 export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const {
-    createOpen, setCreateOpen,
-    createForm, submitCreate, createMutation, createError,
-    selectedTypologyId, setSelectedTypologyId,
-    approverIds, addApprover, removeApprover,
-    finalUserIds, addFinalUser, removeFinalUser,
-    activeTypologies, activeOrgUsers, approverEligibleUsers, finalUserEligibleUsers,
+    createOpen,
+    setCreateOpen,
+    createForm,
+    submitCreate,
+    createMutation,
+    createError,
+    selectedTypologyId,
+    setSelectedTypologyId,
+    approverIds,
+    addApprover,
+    removeApprover,
+    finalUserIds,
+    addFinalUser,
+    removeFinalUser,
+    activeTypologies,
+    activeOrgUsers,
+    approverEligibleUsers,
+    finalUserEligibleUsers,
     notifyNoFinalUsersMutation,
-    documentFile, documentExtraction, documentExtractionLoading,
-    documentExtractionError, documentComparison, handleDocumentFile,
+    documentFile,
+    documentExtraction,
+    documentExtractionLoading,
+    documentExtractionError,
+    documentComparison,
+    handleDocumentFile,
     createBlocked,
-    supportingFiles, addSupportingFile, removeSupportingFile,
-  } = hook
+    supportingFiles,
+    addSupportingFile,
+    removeSupportingFile,
+  } = hook;
 
   const typologyOptions: SelectOption[] = activeTypologies.map((ty) => ({
     value: ty.id,
     label: ty.datosDeclarados.nombre ?? ty.datosDeclarados.codigo ?? ty.id,
     sublabel: [ty.datosDeclarados.codigo, ty.datosDeclarados.version].filter(Boolean).join(' · '),
-  }))
+  }));
 
   const availableApproverOptions: SelectOption[] = approverEligibleUsers
     .filter((u) => !approverIds.includes(u.id))
@@ -37,12 +61,12 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
       value: u.id,
       label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
       sublabel: u.position,
-    }))
+    }));
 
   const selectedApproversData = approverIds.map((id) => {
-    const user = approverEligibleUsers.find((u) => u.id === id)
-    return { id, user }
-  })
+    const user = approverEligibleUsers.find((u) => u.id === id);
+    return { id, user };
+  });
 
   const availableFinalUserOptions: SelectOption[] = finalUserEligibleUsers
     .filter((u) => !finalUserIds.includes(u.id))
@@ -50,18 +74,18 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
       value: u.id,
       label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
       sublabel: u.position,
-    }))
+    }));
 
   const selectedFinalUsersData = finalUserIds.map((id) => {
-    const user = finalUserEligibleUsers.find((u) => u.id === id)
-      ?? activeOrgUsers.find((u) => u.id === id)
-    return { id, user }
-  })
+    const user =
+      finalUserEligibleUsers.find((u) => u.id === id) ?? activeOrgUsers.find((u) => u.id === id);
+    return { id, user };
+  });
 
-  const selectedTypology = activeTypologies.find((t) => t.id === selectedTypologyId) ?? null
-  const adminUserIds = activeOrgUsers.filter((u) => u.isSuperAdmin).map((u) => u.id)
+  const selectedTypology = activeTypologies.find((t) => t.id === selectedTypologyId) ?? null;
+  const adminUserIds = activeOrgUsers.filter((u) => u.isSuperAdmin).map((u) => u.id);
 
-  const isSubmitDisabled = createMutation.isPending || createBlocked
+  const isSubmitDisabled = createMutation.isPending || createBlocked;
 
   return (
     <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -72,10 +96,8 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
         <form onSubmit={submitCreate} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto pr-1">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-2">
-
               {/* ── Columna izquierda: datos + documento ── */}
               <div className="space-y-4">
-
                 {/* Título */}
                 <FormField
                   id="wf-title"
@@ -104,21 +126,25 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
 
                 {/* Tipología */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">{t('workflows.dialogs.typologyLabel')}</label>
+                  <label className="text-sm font-medium">
+                    {t('workflows.dialogs.typologyLabel')}
+                  </label>
                   <SearchableSelect
                     options={typologyOptions}
                     value={selectedTypologyId}
                     onChange={(id) => {
-                      setSelectedTypologyId(id)
-                      notifyNoFinalUsersMutation.reset()
-                      removeFinalUser(finalUserIds[0])
+                      setSelectedTypologyId(id);
+                      notifyNoFinalUsersMutation.reset();
+                      removeFinalUser(finalUserIds[0]);
                     }}
                     placeholder={t('workflows.dialogs.typologyPlaceholder')}
                     searchPlaceholder={t('workflows.dialogs.typologySearch')}
                     emptyText={t('workflows.dialogs.typologyEmpty')}
                   />
                   {createError === 'ERR_NO_TYPOLOGY' && (
-                    <p className="text-xs text-destructive">{t('workflows.dialogs.errorNoTypology')}</p>
+                    <p className="text-xs text-destructive">
+                      {t('workflows.dialogs.errorNoTypology')}
+                    </p>
                   )}
                 </div>
 
@@ -126,17 +152,21 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">
                     {t('workflows.dialogs.documentLabel')}{' '}
-                    <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
+                    <span className="font-normal text-muted-foreground">
+                      ({t('workflows.dialogs.optional')})
+                    </span>
                   </label>
-                  <p className="text-xs text-muted-foreground">{t('workflows.dialogs.documentHint')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('workflows.dialogs.documentHint')}
+                  </p>
                   <label
                     htmlFor="wf-document-file"
                     className="flex flex-col items-center justify-center gap-1.5 w-full h-20 rounded-md border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors bg-muted/30 hover:bg-muted/50"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
-                      e.preventDefault()
-                      const file = e.dataTransfer.files[0]
-                      if (file) handleDocumentFile(file)
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleDocumentFile(file);
                     }}
                   >
                     {documentFile ? (
@@ -149,7 +179,9 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     ) : (
                       <>
                         <Upload className="size-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{t('workflows.dialogs.documentDrop')}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t('workflows.dialogs.documentDrop')}
+                        </span>
                       </>
                     )}
                     <input
@@ -158,9 +190,9 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       className="sr-only"
                       accept=".pdf,.docx,.xlsx"
                       onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleDocumentFile(file)
-                        e.target.value = ''
+                        const file = e.target.files?.[0];
+                        if (file) handleDocumentFile(file);
+                        e.target.value = '';
                       }}
                     />
                   </label>
@@ -211,9 +243,13 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">
                     {t('workflows.dialogs.attachmentsLabel')}{' '}
-                    <span className="font-normal text-muted-foreground">({t('workflows.dialogs.optional')})</span>
+                    <span className="font-normal text-muted-foreground">
+                      ({t('workflows.dialogs.optional')})
+                    </span>
                   </label>
-                  <p className="text-xs text-muted-foreground">{t('workflows.dialogs.attachmentsHint')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('workflows.dialogs.attachmentsHint')}
+                  </p>
                   {supportingFiles.length > 0 && (
                     <div className="rounded-md border border-border divide-y divide-border">
                       {supportingFiles.map((file, idx) => (
@@ -221,7 +257,9 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                           <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
                           <span className="flex-1 text-xs truncate">{file.name}</span>
                           <Button
-                            type="button" variant="ghost" size="icon"
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             aria-label="Eliminar adjunto"
                             className="size-6 text-muted-foreground hover:text-destructive shrink-0"
                             onClick={() => removeSupportingFile(idx)}
@@ -244,9 +282,9 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       className="sr-only"
                       accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff"
                       onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) addSupportingFile(file)
-                        e.target.value = ''
+                        const file = e.target.files?.[0];
+                        if (file) addSupportingFile(file);
+                        e.target.value = '';
                       }}
                     />
                   </label>
@@ -255,12 +293,15 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
 
               {/* ── Columna derecha: personas ── */}
               <div className="space-y-4">
-
                 {/* Aprobadores */}
                 <div className="space-y-2">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">{t('workflows.dialogs.approversLabel')}</label>
-                    <p className="text-xs text-muted-foreground">{t('workflows.dialogs.approversHint')}</p>
+                    <label className="text-sm font-medium">
+                      {t('workflows.dialogs.approversLabel')}
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('workflows.dialogs.approversHint')}
+                    </p>
                   </div>
                   {selectedApproversData.length > 0 && (
                     <div className="rounded-md border border-border divide-y divide-border">
@@ -272,14 +313,21 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">
-                              {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
+                              {user
+                                ? [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+                                  user.email
+                                : id}
                             </p>
                             {user?.position && (
-                              <p className="text-xs text-muted-foreground truncate">{user.position}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {user.position}
+                              </p>
                             )}
                           </div>
                           <Button
-                            type="button" variant="ghost" size="icon"
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             aria-label={t('workflows.dialogs.removeApprover')}
                             className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                             onClick={() => removeApprover(id)}
@@ -303,14 +351,18 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     }
                   />
                   {createError === 'ERR_NO_APPROVER' && (
-                    <p className="text-xs text-destructive">{t('workflows.dialogs.errorMinApprover')}</p>
+                    <p className="text-xs text-destructive">
+                      {t('workflows.dialogs.errorMinApprover')}
+                    </p>
                   )}
                 </div>
 
                 {/* Usuarios finales */}
                 <div className="space-y-2">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">{t('workflows.dialogs.finalUsersLabel')}</label>
+                    <label className="text-sm font-medium">
+                      {t('workflows.dialogs.finalUsersLabel')}
+                    </label>
                     <p className="text-xs text-muted-foreground">
                       {t('workflows.dialogs.finalUsersHint')}
                     </p>
@@ -322,14 +374,21 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                           <User className="size-3.5 text-muted-foreground shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">
-                              {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
+                              {user
+                                ? [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+                                  user.email
+                                : id}
                             </p>
                             {user?.position && (
-                              <p className="text-xs text-muted-foreground truncate">{user.position}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {user.position}
+                              </p>
                             )}
                           </div>
                           <Button
-                            type="button" variant="ghost" size="icon"
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             aria-label={t('workflows.dialogs.removeFinalUser')}
                             className="size-7 text-muted-foreground hover:text-destructive shrink-0"
                             onClick={() => removeFinalUser(id)}
@@ -350,16 +409,23 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                         {t('workflows.dialogs.finalUsersNoEligible')}
                       </p>
                       {notifyNoFinalUsersMutation.isSuccess ? (
-                        <p className="text-xs text-green-700 font-medium">{t('workflows.dialogs.finalUsersNotified')}</p>
+                        <p className="text-xs text-green-700 font-medium">
+                          {t('workflows.dialogs.finalUsersNotified')}
+                        </p>
                       ) : (
                         <Button
-                          type="button" size="sm" variant="outline"
+                          type="button"
+                          size="sm"
+                          variant="outline"
                           className="border-amber-400 text-amber-800 hover:bg-amber-100"
-                          disabled={notifyNoFinalUsersMutation.isPending || adminUserIds.length === 0}
+                          disabled={
+                            notifyNoFinalUsersMutation.isPending || adminUserIds.length === 0
+                          }
                           onClick={() =>
                             notifyNoFinalUsersMutation.mutate({
-                              typologyId:   selectedTypologyId,
-                              typologyName: selectedTypology?.datosDeclarados.nombre ?? selectedTypologyId,
+                              typologyId: selectedTypologyId,
+                              typologyName:
+                                selectedTypology?.datosDeclarados.nombre ?? selectedTypologyId,
                               recipientIds: adminUserIds,
                             })
                           }
@@ -383,23 +449,32 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     />
                   ) : null}
                   {createError === 'ERR_NO_FINAL_USER' && (
-                    <p className="text-xs text-destructive">{t('workflows.dialogs.errorMinFinalUser')}</p>
+                    <p className="text-xs text-destructive">
+                      {t('workflows.dialogs.errorMinFinalUser')}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
+          {createError === 'ERR_DOCUMENT_MISMATCH' && (
+            <p className="text-xs text-destructive px-6 pb-2">
+              {t('workflows.dialogs.documentMismatchBlocked')}
+            </p>
+          )}
           <DialogFooter className="pt-4 shrink-0 border-t border-border mt-4">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitDisabled}>
-              {createMutation.isPending ? t('common.creating') : t('workflows.dialogs.createButton')}
+              {createMutation.isPending
+                ? t('common.creating')
+                : t('workflows.dialogs.createButton')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -301,12 +301,9 @@ describe('useWorkflows — createBlocked', () => {
     expect(result.current.createBlocked).toBe(false);
   });
 
-  it('is true while document extraction is in progress', async () => {
+  it('is false initially when no extraction has started', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
 
-    // Simulate extraction in progress — the hook exposes documentExtractionLoading
-    // We can't directly test this without calling handleDocumentFile which hits the API,
-    // so we verify the initial state and the formula: createBlocked = loading || mismatch
     expect(result.current.createBlocked).toBe(false);
     expect(result.current.documentExtractionLoading).toBe(false);
   });

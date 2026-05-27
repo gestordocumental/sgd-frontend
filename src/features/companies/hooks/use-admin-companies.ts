@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,10 +62,10 @@ export function useAdminCompanies() {
     isFetching: companiesIsFetching,
     dataUpdatedAt: companiesDataUpdatedAt,
   } = useQuery({
-    queryKey: ['companies', { page, search: debouncedSearch, status: statusFilter }],
+    queryKey: ['companies', { page: effectivePage, search: debouncedSearch, status: statusFilter }],
     queryFn: () =>
       companiesApi.list({
-        page,
+        page: effectivePage,
         limit: PAGE_SIZE,
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -74,12 +74,21 @@ export function useAdminCompanies() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: activeResult } = useQuery({
+    queryKey: ['companies-active-total'],
+    queryFn: () => companiesApi.list({ status: 'active', limit: 1 }),
+    staleTime: 60_000,
+  });
+
   const companies = companiesResult?.data ?? [];
   const companiesTotal = companiesResult?.total ?? 0;
+  const activeCompaniesTotal = activeResult?.total ?? 0;
   const companiesTotalPages = Math.max(1, Math.ceil(companiesTotal / PAGE_SIZE));
+  const effectivePage = Math.min(page, companiesTotalPages);
 
   const refreshCompanies = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['companies'] });
+    queryClient.invalidateQueries({ queryKey: ['companies-active-total'] });
   }, [queryClient]);
 
   const createMutation = useMutation({
@@ -171,6 +180,7 @@ export function useAdminCompanies() {
   return {
     companies,
     companiesTotal,
+    activeCompaniesTotal,
     companiesTotalPages,
     companiesLoading,
     companiesIsFetching,
@@ -181,7 +191,7 @@ export function useAdminCompanies() {
     setSearch,
     statusFilter,
     setStatusFilter,
-    page,
+    page: effectivePage,
     setPage,
     createOpen,
     setCreateOpen,

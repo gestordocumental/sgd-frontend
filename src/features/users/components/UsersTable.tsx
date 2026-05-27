@@ -220,6 +220,7 @@ function Pager({
           variant="ghost"
           size="icon"
           className="size-7"
+          aria-label={t('common.prevPage')}
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
         >
@@ -232,6 +233,7 @@ function Pager({
           variant="ghost"
           size="icon"
           className="size-7"
+          aria-label={t('common.nextPage')}
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}
         >

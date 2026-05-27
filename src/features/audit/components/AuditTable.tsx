@@ -192,10 +192,11 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">
+          <label htmlFor="audit-filter-correlation-id" className="text-xs text-muted-foreground">
             {t('audit.filters.correlationId')}
           </label>
           <Input
+            id="audit-filter-correlation-id"
             className="h-8 w-72 text-xs font-mono"
             placeholder={t('audit.filters.correlationIdPlaceholder')}
             value={draft.correlationId}

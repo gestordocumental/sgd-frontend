@@ -73,6 +73,9 @@ export async function mockApiFallback(page: Page) {
         json: { data: [], total: 0, page: 1, limit: 20, totalPages: 0 },
       });
     }
-    return route.fulfill({ status: 200, json: {} });
+    return route.fulfill({
+      status: 501,
+      json: { message: `Unmocked ${method} ${route.request().url()}` },
+    });
   });
 }

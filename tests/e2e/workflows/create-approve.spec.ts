@@ -102,7 +102,7 @@ test.describe('Workflow creation', () => {
     await expect(page.getByLabel('Title')).toBeVisible();
   });
 
-  test('Create workflow button is disabled while required fields are missing', async ({ page }) => {
+  test('Create workflow button is visible while required fields are missing', async ({ page }) => {
     await page.goto('/dashboard');
     await page.getByRole('tab', { name: 'Workflows' }).click();
     await page.getByRole('button', { name: 'New workflow' }).click();
@@ -204,10 +204,9 @@ test.describe('Workflow approval', () => {
 
     // Find and click "Start approval" action (inside the detail dialog or action menu)
     const startApprovalBtn = page.getByRole('button', { name: /Start approval/i });
-    if (await startApprovalBtn.isVisible()) {
-      await startApprovalBtn.click();
-      expect(startApprovalCalled).toBe(true);
-    }
+    await expect(startApprovalBtn).toBeVisible();
+    await startApprovalBtn.click();
+    expect(startApprovalCalled).toBe(true);
   });
 
   test('workflow status badge is visible in the list', async ({ page }) => {

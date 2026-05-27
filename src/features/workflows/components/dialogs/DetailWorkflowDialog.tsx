@@ -161,6 +161,7 @@ export function DetailWorkflowDialog({
       const withBlobs = await Promise.all(
         withUrls.map(async (entry) => {
           const res = await fetch(entry.signedUrl);
+          if (!res.ok) throw new Error(`Download failed: ${res.status}`);
           const blob = await res.blob();
           return { zipPath: entry.zipPath, blob };
         }),
@@ -336,7 +337,7 @@ export function DetailWorkflowDialog({
                     {t('workflows.detail.approvalSteps')}
                   </p>
                   <div className="space-y-2">
-                    {detailWorkflow.approvalSteps
+                    {[...detailWorkflow.approvalSteps]
                       .sort((a, b) => a.stepOrder - b.stepOrder)
                       .map((step) => {
                         const actions = (detailWorkflow.approvalActions ?? [])

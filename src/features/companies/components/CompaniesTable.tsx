@@ -58,13 +58,9 @@ export function CompaniesTable({
     setStatusFilter,
     page,
     setPage,
+    activeCompaniesTotal,
   } = hook;
   const { t } = useTranslation();
-
-  // Active count from the current page (partial — accurate only for the fetched slice)
-  const totalActiveCompanies = companies.filter(
-    (c) => !c.deletedAt && c.status === 'active',
-  ).length;
 
   const STATUS_LABELS: Record<StatusFilter, string> = {
     all: t('common.all'),
@@ -83,7 +79,7 @@ export function CompaniesTable({
         />
         <StatCard
           title={t('companies.activeCompanies')}
-          value={totalActiveCompanies}
+          value={activeCompaniesTotal}
           icon={<CheckCircle className="size-5 text-muted-foreground" />}
         />
       </div>

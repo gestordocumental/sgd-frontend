@@ -222,6 +222,9 @@ export interface WorkflowOrgStorageStat {
   totalAttachments: number;
 }
 
+const withIdempotency = (key?: string) =>
+  key ? { headers: { 'Idempotency-Key': key } } : undefined;
+
 export const workflowsApi = {
   stats: () => apiClient.get<WorkflowStats>('/workflows/stats').then((r) => r.data),
 
@@ -247,9 +250,11 @@ export const workflowsApi = {
 
   startApproval: (id: string, idempotencyKey?: string) =>
     apiClient
-      .post<ApiWorkflow>(`/workflows/${id}/start-approval`, undefined, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .post<ApiWorkflow>(
+        `/workflows/${id}/start-approval`,
+        undefined,
+        withIdempotency(idempotencyKey),
+      )
       .then((r) => r.data),
 
   approve: (
@@ -261,16 +266,12 @@ export const workflowsApi = {
     idempotencyKey?: string,
   ) =>
     apiClient
-      .post<ApiWorkflow>(`/workflows/${id}/approve`, dto, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .post<ApiWorkflow>(`/workflows/${id}/approve`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 
   reject: (id: string, dto: { observations: string }, idempotencyKey?: string) =>
     apiClient
-      .post<ApiWorkflow>(`/workflows/${id}/reject`, dto, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .post<ApiWorkflow>(`/workflows/${id}/reject`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 
   getTimeline: (id: string) =>
@@ -288,9 +289,7 @@ export const workflowsApi = {
     idempotencyKey?: string,
   ) =>
     apiClient
-      .post<ApiAdminCycle>(`/workflows/${id}/admin-cycles`, dto, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .post<ApiAdminCycle>(`/workflows/${id}/admin-cycles`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 
   completeAdminStep: (
@@ -309,16 +308,20 @@ export const workflowsApi = {
     idempotencyKey?: string,
   ) =>
     apiClient
-      .patch(`/workflows/${id}/admin-cycles/${cycleId}/steps/${stepId}/complete`, dto, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .patch(
+        `/workflows/${id}/admin-cycles/${cycleId}/steps/${stepId}/complete`,
+        dto,
+        withIdempotency(idempotencyKey),
+      )
       .then((r) => r.data),
 
   skipReviewCycle: (id: string, idempotencyKey?: string) =>
     apiClient
-      .post<ApiWorkflow>(`/workflows/${id}/skip-review-cycle`, undefined, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .post<ApiWorkflow>(
+        `/workflows/${id}/skip-review-cycle`,
+        undefined,
+        withIdempotency(idempotencyKey),
+      )
       .then((r) => r.data),
 
   forwardAdminStep: (
@@ -338,8 +341,10 @@ export const workflowsApi = {
     idempotencyKey?: string,
   ) =>
     apiClient
-      .post<ApiAdminStep>(`/workflows/${id}/admin-cycles/${cycleId}/steps/${stepId}/forward`, dto, {
-        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-      })
+      .post<ApiAdminStep>(
+        `/workflows/${id}/admin-cycles/${cycleId}/steps/${stepId}/forward`,
+        dto,
+        withIdempotency(idempotencyKey),
+      )
       .then((r) => r.data),
 };

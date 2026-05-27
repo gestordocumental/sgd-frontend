@@ -369,6 +369,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
         <button
           type="button"
           className="inline-flex items-center justify-center size-5 rounded text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0"
+          aria-label={t('audit.detail.copy')}
           title={t('audit.detail.copy')}
           onClick={() => {
             navigator.clipboard.writeText(workflow.id).catch(() => undefined);
@@ -381,7 +382,10 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
       {/* Actions */}
       <div className="w-8">
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+          <DropdownMenuTrigger
+            aria-label={t('workflows.actions.openMenu')}
+            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -467,7 +471,7 @@ const STATUS_CONFIG: Record<
   RETURNED_TO_CREATOR: {
     icon: XCircle,
     className: 'bg-red-50 text-red-700 border-red-200',
-    key: 'workflows.status.REJECTED',
+    key: 'workflows.status.RETURNED_TO_CREATOR',
   },
   REJECTED: {
     icon: XCircle,

@@ -72,6 +72,16 @@ function hydrate(): Partial<
   }
 }
 
+function readPersistedAuth(): PersistedAuth | null {
+  const raw = localStorage.getItem(AUTH_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PersistedAuth;
+  } catch {
+    return null;
+  }
+}
+
 const _baseURL = () => import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 export const useAuthStore = create<AuthStore>()((set, get) => {
@@ -152,8 +162,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     },
 
     enterCompany: (companyId, companyName, companyToken, _refreshToken?) => {
-      const raw = localStorage.getItem(AUTH_KEY);
-      const stored: PersistedAuth | null = raw ? JSON.parse(raw) : null;
+      const stored = readPersistedAuth();
       if (!stored) return;
       // Capture the current in-memory access token before it is replaced
       const { accessToken: currentToken } = get();
@@ -217,8 +226,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
         return false;
       }
 
-      const raw = localStorage.getItem(AUTH_KEY);
-      const stored: PersistedAuth | null = raw ? JSON.parse(raw) : null;
+      const stored = readPersistedAuth();
       const baseUser = stored?.user ?? user;
       const updatedUser: AuthUser = {
         ...baseUser!,

@@ -69,7 +69,8 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
     canForwardAdminStep:
       workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' &&
       isCurrentApprover &&
-      !pendingStep?.isOptional &&
+      !!pendingStep &&
+      !pendingStep.isOptional &&
       (activeCycle?.allowedOptionalReviewerIds?.length ?? 0) > 0,
   };
 }

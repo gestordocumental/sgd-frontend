@@ -48,10 +48,14 @@ import { Route } from '../login';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function toBase64Url(value: string): string {
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
 /** Build a base64url-encoded fake JWT that decodeJwt() can parse. */
 function fakeJwt(payload: object): string {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const body = btoa(JSON.stringify(payload));
+  const header = toBase64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = toBase64Url(JSON.stringify(payload));
   return `${header}.${body}.fake-sig`;
 }
 

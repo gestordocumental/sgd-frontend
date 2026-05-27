@@ -80,7 +80,13 @@
   "profile": {
     "myProfile": "Mi perfil",
     "switchContext": "Cambiar a",
-    "changeAvatar": "Cambiar foto de perfil"
+    "changeAvatar": "Cambiar foto de perfil",
+    "sessionRevoked": {
+      "unknownCompany": "la empresa",
+      "switchToGlobal": "Fuiste removido de {{company}}. Regresando a la vista global.",
+      "switchingTo": "Fuiste removido de {{company}}. Cambiando a {{other}}.",
+      "removedFrom": "Fuiste removido de {{company}}."
+    }
   },
   "auth": {
     "welcomeTitle": "Bienvenido a SGD",
@@ -94,6 +100,8 @@
     "loadingWorkspace": "Cargando espacio de trabajo...",
     "hidePassword": "Ocultar contraseña",
     "showPassword": "Mostrar contraseña",
+    "revokedCompanyMessage": "Tu acceso a {{company}} fue revocado por un administrador.",
+    "superAdminRevokedMessage": "Tus privilegios de super administrador fueron revocados. Inicia sesión nuevamente.",
     "serverErrorFallback": "Error al conectar con el servidor. Por favor intenta de nuevo.",
     "devMode": "Modo desarrollo — mocks activos",
     "devCredentials": "admin@sgd.helisa.com · admin123",
@@ -251,6 +259,10 @@
       "USER_ORG_ROLE_UPDATED": "Rol de usuario actualizado",
       "USER_REMOVED_FROM_ORG": "Usuario removido de org",
       "USER_SUPER_ADMIN_CHANGED": "Estado super admin cambiado",
+      "COMPANY_CREATED": "Empresa creada",
+      "COMPANY_UPDATED": "Empresa actualizada",
+      "COMPANY_DELETED": "Empresa eliminada",
+      "COMPANY_RESTORED": "Empresa restaurada",
       "DEPARTAMENTO_CREATED": "Departamento creado",
       "DEPARTAMENTO_UPDATED": "Departamento actualizado",
       "DEPARTAMENTO_DELETED": "Departamento eliminado",
@@ -297,8 +309,9 @@
     "fields": {
       "firstName": "Nombre",
       "lastName": "Apellido",
+      "email": "Correo",
       "idNumber": "Número de identificación",
-      "position": "Cargo libre",
+      "position": "Cargo",
       "isActive": "Estado",
       "isSuperAdmin": "Super admin",
       "departamentoId": "Departamento",
@@ -310,7 +323,11 @@
       "address": "Dirección",
       "phone": "Teléfono",
       "status": "Estado",
-      "role": "Rol"
+      "role": "Rol",
+      "title": "Título",
+      "approvers": "Aprobadores",
+      "mainDocument": "Documento principal",
+      "attachments": "Adjuntos"
     },
     "export": {
       "button": "Exportar Excel",
@@ -322,23 +339,15 @@
       "error": "Error al generar la exportación. Por favor intenta de nuevo.",
       "byCorrelationId": "Exportar por ID de correlación",
       "correlationNote": "Se exportarán todos los eventos con este ID de correlación (hasta 5000).",
-      "orByDate": "o por rango de fechas"
-    },
-    "fields": {
-      "name": "Nombre",
-      "description": "Descripción",
-      "firstName": "Nombre",
-      "lastName": "Apellido",
-      "email": "Correo",
-      "position": "Cargo",
-      "isSuperAdmin": "Super admin",
-      "title": "Título",
-      "approvers": "Aprobadores",
-      "mainDocument": "Documento principal",
-      "attachments": "Adjuntos"
+      "orByDate": "o por rango de fechas",
+      "filePrefix": "auditoria",
+      "filePrefixCorrelation": "auditoria_correlacion",
+      "startLabel": "inicio",
+      "endLabel": "fin"
     },
     "resourceTypes": {
       "user": "Usuario",
+      "company": "Empresa",
       "cargo": "Cargo",
       "area": "Área",
       "departamento": "Departamento",
@@ -618,6 +627,7 @@
       "viewDocument": "Ver documento",
       "downloadDocument": "Descargar documento",
       "uploadDocument": "Cargar documento",
+      "extractionFailed": "No se pudo extraer la información del documento",
       "retryExtraction": "Reintentar extracción",
       "newTypology": "Nueva tipología"
     },
@@ -690,7 +700,7 @@
     "status": {
       "DRAFT": "Borrador",
       "PENDING_APPROVAL": "Pendiente aprobación",
-      "RETURNED_TO_CREATOR": "Rechazado",
+      "RETURNED_TO_CREATOR": "Devuelto al creador",
       "REJECTED": "Rechazado",
       "PENDING_REVIEW_CYCLE": "Pendiente revisión",
       "AVAILABLE_FOR_FINAL_USERS": "Disponible",
@@ -744,7 +754,8 @@
       "startReviewCycle": "Iniciar revisión",
       "completeReviewStep": "Completar paso de revisión",
       "completeStep": "Completar paso",
-      "forwardStep": "Enviar a revisor opcional"
+      "forwardStep": "Enviar a revisor opcional",
+      "openMenu": "Abrir acciones del flujo"
     },
     "empty": "No hay flujos de trabajo registrados",
     "emptyMyTasks": "No tienes tareas de aprobación pendientes",

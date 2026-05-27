@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ const EMPTY_COMPANIES: ApiCompany[] = [];
 export function useUserProfile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const {
     user,
     isSuperAdmin,
@@ -152,6 +154,7 @@ export function useUserProfile() {
     switchToSuperAdmin,
     clearAuth,
     navigate,
+    t,
   });
 
   useEffect(() => {
@@ -164,6 +167,7 @@ export function useUserProfile() {
       switchToSuperAdmin,
       clearAuth,
       navigate,
+      t,
     };
   }, [
     companyIds,
@@ -174,11 +178,13 @@ export function useUserProfile() {
     switchToSuperAdmin,
     clearAuth,
     navigate,
+    t,
   ]);
 
   useEffect(() => {
     const handler = async (e: Event) => {
-      const { orgId } = (e as CustomEvent<{ orgId?: string }>).detail;
+      const detail = (e as CustomEvent<{ orgId?: string } | undefined>).detail;
+      const { orgId } = detail ?? {};
       const {
         companyIds: ids,
         currentCompany: company,
@@ -188,15 +194,20 @@ export function useUserProfile() {
         switchToSuperAdmin: doSuperAdmin,
         clearAuth: doLogout,
         navigate: go,
+        t: translate,
       } = ctxRef.current;
 
-      const companyName = company?.name ?? orgId ?? 'la empresa';
+      const companyName =
+        company?.name ?? orgId ?? translate('profile.sessionRevoked.unknownCompany');
 
       // Case 1: super admin that entered a company context → go back to global
       if (hasAdminToken) {
-        toast.warning(`Fuiste removido de ${companyName}. Regresando a la vista global.`, {
-          duration: 5000,
-        });
+        toast.warning(
+          translate('profile.sessionRevoked.switchToGlobal', { company: companyName }),
+          {
+            duration: 5000,
+          },
+        );
         await doSuperAdmin();
         return;
       }
@@ -206,8 +217,11 @@ export function useUserProfile() {
       if (otherId) {
         const otherName = allCompanies.find((c) => c.id === otherId)?.name;
         const msg = otherName
-          ? `Fuiste removido de ${companyName}. Cambiando a ${otherName}.`
-          : `Fuiste removido de ${companyName}.`;
+          ? translate('profile.sessionRevoked.switchingTo', {
+              company: companyName,
+              other: otherName,
+            })
+          : translate('profile.sessionRevoked.removedFrom', { company: companyName });
         toast.warning(msg, { duration: 5000 });
         await doSwitch(otherId);
         return;

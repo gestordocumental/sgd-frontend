@@ -159,9 +159,7 @@ function LoginPage() {
             {revokedCompany && (
               <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
                 <TriangleAlert className="size-4 mt-0.5 shrink-0" />
-                <span>
-                  Tu acceso a <strong>{revokedCompany}</strong> fue revocado por un administrador.
-                </span>
+                <span>{t('auth.revokedCompanyMessage', { company: revokedCompany })}</span>
               </div>
             )}
 
@@ -169,10 +167,7 @@ function LoginPage() {
             {superAdminRevoked && (
               <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
                 <TriangleAlert className="size-4 mt-0.5 shrink-0" />
-                <span>
-                  Tus privilegios de <strong>super administrador</strong> fueron revocados. Inicia
-                  sesión nuevamente.
-                </span>
+                <span>{t('auth.superAdminRevokedMessage')}</span>
               </div>
             )}
 
