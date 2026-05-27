@@ -1,35 +1,26 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://api-gateway-develop-e2bd.up.railway.app/api/:path*"
+      "src": "/(.*)",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.r2.cloudflarestorage.com https://*.r2.dev; img-src 'self' data: https://*.r2.cloudflarestorage.com https://*.r2.dev; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin"
+      },
+      "continue": true
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
+      "src": "/api/(.*)",
+      "dest": "${RAILWAY_API_URL}/api/$1",
+      "env": ["RAILWAY_API_URL"]
+    },
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api-gateway-develop-e2bd.up.railway.app https://*.r2.cloudflarestorage.com https://*.r2.dev; img-src 'self' data: https://*.r2.cloudflarestorage.com https://*.r2.dev; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
