@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,10 +62,10 @@ export function useAdminCompanies() {
     isFetching: companiesIsFetching,
     dataUpdatedAt: companiesDataUpdatedAt,
   } = useQuery({
-    queryKey: ['companies', { page: effectivePage, search: debouncedSearch, status: statusFilter }],
+    queryKey: ['companies', { page, search: debouncedSearch, status: statusFilter }],
     queryFn: () =>
       companiesApi.list({
-        page: effectivePage,
+        page,
         limit: PAGE_SIZE,
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
