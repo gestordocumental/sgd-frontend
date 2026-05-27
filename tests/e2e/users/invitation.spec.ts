@@ -9,12 +9,19 @@ async function fillRegistrationForm(
     ? never
     : Parameters<Parameters<typeof test>[1]>[0]['page'],
 ) {
+  // Press Tab after each fill to trigger blur → react-hook-form (mode: 'onTouched')
+  // only sets isValid:true once touched fields pass validation.
   await page.getByLabel('First name').fill('Juan');
+  await page.keyboard.press('Tab');
   await page.getByLabel('Last name').fill('García');
+  await page.keyboard.press('Tab');
   await page.getByLabel('ID number').fill('1234567890');
+  await page.keyboard.press('Tab');
   // "Password" appears twice (password + confirm); use nth to distinguish
-  await page.getByLabel('Password').nth(0).fill('SecurePass123!');
+  await page.getByRole('textbox', { name: 'Password' }).nth(0).fill('SecurePass123!');
+  await page.keyboard.press('Tab');
   await page.getByLabel('Confirm password').fill('SecurePass123!');
+  await page.keyboard.press('Tab');
 }
 
 test.describe('User invitation — complete registration', () => {
@@ -27,7 +34,7 @@ test.describe('User invitation — complete registration', () => {
     await expect(page.getByLabel('First name')).toBeVisible();
     await expect(page.getByLabel('Last name')).toBeVisible();
     await expect(page.getByLabel('ID number')).toBeVisible();
-    await expect(page.getByLabel('Password').nth(0)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Password' }).nth(0)).toBeVisible();
     await expect(page.getByLabel('Confirm password')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Complete registration' })).toBeVisible();
   });

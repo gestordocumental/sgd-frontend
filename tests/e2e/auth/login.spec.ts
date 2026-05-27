@@ -20,7 +20,7 @@ test.describe('Login page', () => {
 
     await page.goto('/login');
     await page.getByLabel('Email').fill('superadmin@sgd.com');
-    await page.getByLabel('Password').fill('password123');
+    await page.getByRole('textbox', { name: 'Password' }).fill('password123');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/admin/, { timeout: 8_000 });
@@ -39,7 +39,7 @@ test.describe('Login page', () => {
 
     await page.goto('/login');
     await page.getByLabel('Email').fill('manager@company.com');
-    await page.getByLabel('Password').fill('password123');
+    await page.getByRole('textbox', { name: 'Password' }).fill('password123');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 8_000 });
@@ -74,7 +74,7 @@ test.describe('Login page', () => {
   test('renders email, password fields and Sign in button', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByLabel('Email')).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
     await expect(page.getByText('Welcome to SGD')).toBeVisible();
   });
