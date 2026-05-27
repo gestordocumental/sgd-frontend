@@ -1,22 +1,23 @@
-import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Search, Check } from 'lucide-react'
-import { Input } from './input'
-import { cn } from '@/lib/utils'
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ChevronDown, Search, Check } from 'lucide-react';
+import { Input } from './input';
+import { cn } from '@/lib/utils';
 
 export interface SelectOption {
-  value: string
-  label: string
-  sublabel?: string
+  value: string;
+  label: string;
+  sublabel?: string;
 }
 
 interface SearchableSelectProps {
-  options: SelectOption[]
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  searchPlaceholder?: string
-  emptyText?: string
-  disabled?: boolean
+  options: SelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  disabled?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function SearchableSelect({
@@ -27,35 +28,44 @@ export function SearchableSelect({
   searchPlaceholder = 'Buscar...',
   emptyText = 'Sin resultados',
   disabled = false,
+  onOpenChange,
 }: SearchableSelectProps) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
 
-  const selected = options.find((o) => o.value === value)
+  const setOpenWithCallback = useCallback(
+    (next: boolean) => {
+      setOpen(next);
+      onOpenChange?.(next);
+    },
+    [onOpenChange],
+  );
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selected = options.find((o) => o.value === value);
   const filtered = options.filter(
     (o) =>
       o.label.toLowerCase().includes(search.toLowerCase()) ||
       (o.sublabel?.toLowerCase().includes(search.toLowerCase()) ?? false),
-  )
+  );
 
   // Close when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setSearch('')
+        setOpenWithCallback(false);
+        setSearch('');
       }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [setOpenWithCallback]);
 
   const handleSelect = (option: SelectOption) => {
-    onChange(option.value)
-    setOpen(false)
-    setSearch('')
-  }
+    onChange(option.value);
+    setOpenWithCallback(false);
+    setSearch('');
+  };
 
   return (
     <div ref={containerRef} className="relative">
@@ -63,7 +73,7 @@ export function SearchableSelect({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen((prev) => !prev)}
+        onClick={() => !disabled && setOpenWithCallback(!open)}
         className={cn(
           'flex items-center justify-between w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors',
           'hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
@@ -81,7 +91,12 @@ export function SearchableSelect({
         ) : (
           <span className="text-muted-foreground">{placeholder}</span>
         )}
-        <ChevronDown className={cn('size-4 text-muted-foreground shrink-0 ml-2 transition-transform', open && 'rotate-180')} />
+        <ChevronDown
+          className={cn(
+            'size-4 text-muted-foreground shrink-0 ml-2 transition-transform',
+            open && 'rotate-180',
+          )}
+        />
       </button>
 
       {/* Dropdown */}
@@ -130,5 +145,5 @@ export function SearchableSelect({
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,61 +1,104 @@
-import { useState, useMemo } from 'react'
-import type { ElementType, CSSProperties } from 'react'
-import { Clock, CheckCircle, XCircle, AlertCircle, FileText, History, MoreHorizontal, Trash2, Play, Plus, Copy, Search, RefreshCw } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Pager } from '@/components/ui/pager'
-import { RefreshCountdown } from '@/components/ui/refresh-countdown'
-import { type ApiWorkflow, type WorkflowStatus } from '@/lib/api/workflows'
-import type { useWorkflows } from '@/features/workflows/hooks/use-workflows'
-import { useAuthStore } from '@/store/authStore'
+import { useState, useMemo, useEffect } from 'react';
+import type { ElementType, CSSProperties } from 'react';
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  FileText,
+  History,
+  MoreHorizontal,
+  Trash2,
+  Play,
+  Plus,
+  Copy,
+  Search,
+  RefreshCw,
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pager } from '@/components/ui/pager';
+import { RefreshCountdown } from '@/components/ui/refresh-countdown';
+import { type ApiWorkflow, type WorkflowStatus } from '@/lib/api/workflows';
+import type { useWorkflows } from '@/features/workflows/hooks/use-workflows';
+import { useAuthStore } from '@/store/authStore';
+import { getWorkflowActions } from '@/features/workflows/workflow-state-machine';
 
-type WorkflowsHook = ReturnType<typeof useWorkflows>
+type WorkflowsHook = ReturnType<typeof useWorkflows>;
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 20;
 
 interface WorkflowsTableProps {
-  hook: WorkflowsHook
-  canWrite?: boolean
-  canApprove?: boolean
+  hook: WorkflowsHook;
+  canWrite?: boolean;
+  canApprove?: boolean;
+  canManage?: boolean;
 }
 
-export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: WorkflowsTableProps) {
-  const { t } = useTranslation()
-  const { innerTab, setInnerTab, statusFilter, setStatusFilter } = hook
+export function WorkflowsTable({
+  hook,
+  canWrite = false,
+  canApprove = false,
+  canManage = false,
+}: WorkflowsTableProps) {
+  const { t } = useTranslation();
+  const { innerTab, setInnerTab, statusFilter, setStatusFilter } = hook;
 
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  // If the user has no MANAGE permission, redirect away from the 'all' tab
+  useEffect(() => {
+    if (!canManage && innerTab === 'all') setInnerTab('my-tasks');
+  }, [canManage, innerTab, setInnerTab]);
+
+  const handleSearch = (v: string) => {
+    setSearch(v);
+    setPage(1);
+  };
   const handleStatus = (v: string) => {
-    setStatusFilter(v === 'all' ? undefined : v as WorkflowStatus)
-    setPage(1)
-  }
+    setStatusFilter(v === 'all' ? undefined : (v as WorkflowStatus));
+    setPage(1);
+  };
 
-  const STATUS_OPTIONS = useMemo(() => [
-    { value: 'all',                       label: t('common.all') },
-    { value: 'DRAFT',                     label: t('workflows.status.DRAFT') },
-    { value: 'PENDING_APPROVAL',          label: t('workflows.status.PENDING_APPROVAL') },
-    { value: 'REJECTED',                  label: t('workflows.status.REJECTED') },
-    { value: 'PENDING_REVIEW_CYCLE',      label: t('workflows.status.PENDING_REVIEW_CYCLE') },
-    { value: 'AVAILABLE_FOR_FINAL_USERS', label: t('workflows.status.AVAILABLE_FOR_FINAL_USERS') },
-    { value: 'ADMIN_CYCLE_IN_PROGRESS',   label: t('workflows.status.ADMIN_CYCLE_IN_PROGRESS') },
-    { value: 'CLOSED',                    label: t('workflows.status.CLOSED') },
-    { value: 'CANCELLED',                 label: t('workflows.status.CANCELLED') },
-  ], [t])
+  const STATUS_OPTIONS = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'DRAFT', label: t('workflows.status.DRAFT') },
+      { value: 'PENDING_APPROVAL', label: t('workflows.status.PENDING_APPROVAL') },
+      { value: 'REJECTED', label: t('workflows.status.REJECTED') },
+      { value: 'PENDING_REVIEW_CYCLE', label: t('workflows.status.PENDING_REVIEW_CYCLE') },
+      {
+        value: 'AVAILABLE_FOR_FINAL_USERS',
+        label: t('workflows.status.AVAILABLE_FOR_FINAL_USERS'),
+      },
+      { value: 'ADMIN_CYCLE_IN_PROGRESS', label: t('workflows.status.ADMIN_CYCLE_IN_PROGRESS') },
+      { value: 'CLOSED', label: t('workflows.status.CLOSED') },
+      { value: 'CANCELLED', label: t('workflows.status.CANCELLED') },
+    ],
+    [t],
+  );
 
   const filteredAll = (hook.workflows ?? []).filter((wf) => {
-    const q = search.toLowerCase()
-    return !q || wf.title.toLowerCase().includes(q) || (wf.description ?? '').toLowerCase().includes(q)
-  })
-  const totalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE))
-  const safePage   = Math.min(page, totalPages)
-  const paginatedAll = filteredAll.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+    const q = search.toLowerCase();
+    return (
+      !q || wf.title.toLowerCase().includes(q) || (wf.description ?? '').toLowerCase().includes(q)
+    );
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedAll = filteredAll.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <main className="p-6 space-y-4">
@@ -71,70 +114,102 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
               disabled={hook.isRefreshing}
               title={t('common.refresh')}
             >
-              <RefreshCw className={`size-3.5 text-muted-foreground ${hook.isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`size-3.5 text-muted-foreground ${hook.isRefreshing ? 'animate-spin' : ''}`}
+              />
             </Button>
-            <RefreshCountdown duration={30_000} isFetching={hook.isRefreshing} updatedAt={hook.workflowsDataUpdatedAt} />
+            <RefreshCountdown
+              duration={30_000}
+              isFetching={hook.isRefreshing}
+              updatedAt={hook.workflowsDataUpdatedAt}
+            />
           </div>
         </div>
         {canWrite && (
           <Button size="sm" onClick={hook.openCreate}>
-            <Plus className="size-4" />{t('dashboard.newWorkflow')}
+            <Plus className="size-4" />
+            {t('dashboard.newWorkflow')}
           </Button>
         )}
       </div>
-      <Tabs value={innerTab} onValueChange={(v) => { setInnerTab(v as typeof innerTab); setPage(1) }} className="gap-0">
+      <Tabs
+        value={innerTab}
+        onValueChange={(v) => {
+          setInnerTab(v as typeof innerTab);
+          setPage(1);
+        }}
+        className="gap-0"
+      >
         <TabsList className="w-fit">
-          <TabsTrigger value="all">
-            <FileText className="size-4" />{t('workflows.tabs.all')}
-          </TabsTrigger>
+          {canManage && (
+            <TabsTrigger value="all">
+              <FileText className="size-4" />
+              {t('workflows.tabs.all')}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="my-tasks">
-            <AlertCircle className="size-4" />{t('workflows.tabs.myTasks')}
+            <AlertCircle className="size-4" />
+            {t('workflows.tabs.myTasks')}
             {hook.myTasks.length > 0 && (
-              <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold" style={{ backgroundColor: '#0060C5' }}>
+              <span
+                className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold"
+                style={{ backgroundColor: '#0060C5' }}
+              >
                 {hook.myTasks.length}
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger value="my-available">
-            <CheckCircle className="size-4" />{t('workflows.tabs.myAvailable')}
+            <CheckCircle className="size-4" />
+            {t('workflows.tabs.myAvailable')}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-4 space-y-3">
-          {/* Filters bar */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                value={search}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder={t('common.search')}
-                className="h-8 pl-8 w-52 text-sm"
-              />
+        {canManage && (
+          <TabsContent value="all" className="mt-4 space-y-3">
+            {/* Filters bar */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder={t('common.search')}
+                  className="h-8 pl-8 w-52 text-sm"
+                />
+              </div>
+              <select
+                value={statusFilter ?? 'all'}
+                onChange={(e) => handleStatus(e.target.value)}
+                className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              value={statusFilter ?? 'all'}
-              onChange={(e) => handleStatus(e.target.value)}
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
 
-          <WorkflowList
-            workflows={paginatedAll}
-            isLoading={hook.workflowsLoading}
-            hook={hook}
-            canWrite={canWrite}
-            canApprove={canApprove}
-            emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.empty'}
-          />
-          {totalPages > 1 && (
-            <Pager page={safePage} totalPages={totalPages} total={filteredAll.length} onChange={setPage} className="px-1 py-2" />
-          )}
-        </TabsContent>
+            <WorkflowList
+              workflows={paginatedAll}
+              isLoading={hook.workflowsLoading}
+              hook={hook}
+              canWrite={canWrite}
+              canApprove={canApprove}
+              emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.empty'}
+            />
+            {totalPages > 1 && (
+              <Pager
+                page={safePage}
+                totalPages={totalPages}
+                total={filteredAll.length}
+                onChange={setPage}
+                className="px-1 py-2"
+              />
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="my-tasks" className="mt-4">
           <WorkflowList
@@ -159,22 +234,29 @@ export function WorkflowsTable({ hook, canWrite = false, canApprove = false }: W
         </TabsContent>
       </Tabs>
     </main>
-  )
+  );
 }
 
 // ── WorkflowList ──────────────────────────────────────────────────────────────
 
 interface WorkflowListProps {
-  workflows: ApiWorkflow[]
-  isLoading: boolean
-  hook: WorkflowsHook
-  canWrite: boolean
-  canApprove: boolean
-  emptyKey: string
+  workflows: ApiWorkflow[];
+  isLoading: boolean;
+  hook: WorkflowsHook;
+  canWrite: boolean;
+  canApprove: boolean;
+  emptyKey: string;
 }
 
-function WorkflowList({ workflows, isLoading, hook, canWrite, canApprove, emptyKey }: WorkflowListProps) {
-  const { t } = useTranslation()
+function WorkflowList({
+  workflows,
+  isLoading,
+  hook,
+  canWrite,
+  canApprove,
+  emptyKey,
+}: WorkflowListProps) {
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
@@ -187,7 +269,7 @@ function WorkflowList({ workflows, isLoading, hook, canWrite, canApprove, emptyK
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   if (workflows.length === 0) {
@@ -195,17 +277,25 @@ function WorkflowList({ workflows, isLoading, hook, canWrite, canApprove, emptyK
       <div className="rounded-lg border border-border bg-card flex items-center justify-center py-16 text-sm text-muted-foreground">
         {t(emptyKey)}
       </div>
-    )
+    );
   }
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
       {/* Header */}
       <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 bg-muted/40">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('workflows.table.title')}</span>
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">{t('workflows.table.typology')}</span>
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-36">{t('workflows.table.status')}</span>
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-28">{t('audit.columns.correlationId')}</span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {t('workflows.table.title')}
+        </span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-32">
+          {t('workflows.table.typology')}
+        </span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-36">
+          {t('workflows.table.status')}
+        </span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-28">
+          {t('audit.columns.correlationId')}
+        </span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-8" />
       </div>
       {workflows.map((wf) => (
@@ -218,28 +308,28 @@ function WorkflowList({ workflows, isLoading, hook, canWrite, canApprove, emptyK
         />
       ))}
     </div>
-  )
+  );
 }
 
 // ── WorkflowRow ───────────────────────────────────────────────────────────────
 
 interface WorkflowRowProps {
-  workflow: ApiWorkflow
-  hook: WorkflowsHook
-  canWrite: boolean
-  canApprove: boolean
+  workflow: ApiWorkflow;
+  hook: WorkflowsHook;
+  canWrite: boolean;
+  canApprove: boolean;
 }
 
 function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps) {
-  const { t } = useTranslation()
-  const { user } = useAuthStore()
-  const isCreator = workflow.createdBy === user?.id
-  const isFinalUser = workflow.finalUserIds?.includes(user?.id ?? '') ?? false
-
-  const canStartApproval = isCreator && workflow.status === 'DRAFT'
-  const canDelete = canWrite && isCreator && (workflow.status === 'DRAFT' || workflow.status === 'CANCELLED')
-  const canStartReviewCycle = canApprove && isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE'
-  const canCompleteStep = canApprove && isFinalUser && workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && workflow.currentAssignedUserId === user?.id
+  const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const {
+    canStartApproval,
+    canDelete,
+    canStartReviewCycle,
+    canCompleteAdminStep: canCompleteStep,
+    canForwardAdminStep: canForwardStep,
+  } = getWorkflowActions(workflow, { userId: user?.id, canWrite, canApprove });
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
@@ -279,8 +369,11 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
         <button
           type="button"
           className="inline-flex items-center justify-center size-5 rounded text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0"
+          aria-label={t('audit.detail.copy')}
           title={t('audit.detail.copy')}
-          onClick={() => { navigator.clipboard.writeText(workflow.id).catch(() => undefined) }}
+          onClick={() => {
+            navigator.clipboard.writeText(workflow.id).catch(() => undefined);
+          }}
         >
           <Copy className="size-3" />
         </button>
@@ -289,15 +382,20 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
       {/* Actions */}
       <div className="w-8">
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+          <DropdownMenuTrigger
+            aria-label={t('workflows.actions.openMenu')}
+            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => hook.setDetailWorkflow(workflow)}>
-              <FileText className="size-4" />{t('workflows.actions.viewDetail')}
+              <FileText className="size-4" />
+              {t('workflows.actions.viewDetail')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => hook.openTimeline(workflow.id)}>
-              <History className="size-4" />{t('workflows.actions.viewTimeline')}
+              <History className="size-4" />
+              {t('workflows.actions.viewTimeline')}
             </DropdownMenuItem>
             {canStartApproval && (
               <>
@@ -306,7 +404,8 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
                   onClick={() => hook.startApprovalMutation.mutate(workflow.id)}
                   disabled={hook.startApprovalMutation.isPending}
                 >
-                  <Play className="size-4" />{t('workflows.actions.startApproval')}
+                  <Play className="size-4" />
+                  {t('workflows.actions.startApproval')}
                 </DropdownMenuItem>
               </>
             )}
@@ -314,7 +413,8 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => hook.openReviewCycle(workflow)}>
-                  <Play className="size-4" />{t('workflows.actions.startReviewCycle')}
+                  <Play className="size-4" />
+                  {t('workflows.actions.startReviewCycle')}
                 </DropdownMenuItem>
               </>
             )}
@@ -322,8 +422,15 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => hook.openCompleteStep(workflow)}>
-                  <CheckCircle className="size-4" />{t('workflows.actions.completeReviewStep')}
+                  <CheckCircle className="size-4" />
+                  {t('workflows.actions.completeReviewStep')}
                 </DropdownMenuItem>
+                {canForwardStep && (
+                  <DropdownMenuItem onClick={() => hook.openForwardStep(workflow)}>
+                    <Play className="size-4" />
+                    {t('workflows.actions.forwardStep')}
+                  </DropdownMenuItem>
+                )}
               </>
             )}
             {canDelete && (
@@ -333,7 +440,8 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
                   className="text-destructive focus:text-destructive"
                   onClick={() => hook.setDeleteWorkflow(workflow)}
                 >
-                  <Trash2 className="size-4" />{t('workflows.actions.delete')}
+                  <Trash2 className="size-4" />
+                  {t('workflows.actions.delete')}
                 </DropdownMenuItem>
               </>
             )}
@@ -341,31 +449,70 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
         </DropdownMenu>
       </div>
     </div>
-  )
+  );
 }
 
 // ── WorkflowStatusBadge ───────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<WorkflowStatus, { icon: ElementType; className: string; key: string; style?: CSSProperties }> = {
-  DRAFT:                      { icon: FileText,     className: 'bg-muted text-muted-foreground border-muted-foreground/30',  key: 'workflows.status.DRAFT' },
-  PENDING_APPROVAL:           { icon: Clock,        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',             key: 'workflows.status.PENDING_APPROVAL' },
-  RETURNED_TO_CREATOR:        { icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200',                     key: 'workflows.status.REJECTED' },
-  REJECTED:                   { icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200',                     key: 'workflows.status.REJECTED' },
-  PENDING_REVIEW_CYCLE:       { icon: Clock,        className: 'bg-purple-50 text-purple-700 border-purple-200',             key: 'workflows.status.PENDING_REVIEW_CYCLE' },
-  AVAILABLE_FOR_FINAL_USERS:  { icon: CheckCircle,  className: 'bg-green-50 text-green-700 border-green-200',               key: 'workflows.status.AVAILABLE_FOR_FINAL_USERS' },
-  ADMIN_CYCLE_IN_PROGRESS:    { icon: AlertCircle,  className: 'bg-blue-50 text-blue-700 border-blue-200',                  key: 'workflows.status.ADMIN_CYCLE_IN_PROGRESS' },
-  CLOSED:                     { icon: CheckCircle,  className: 'bg-slate-100 text-slate-600 border-slate-300',              key: 'workflows.status.CLOSED' },
-  CANCELLED:                  { icon: XCircle,      className: 'bg-gray-50 text-gray-500 border-gray-200',                  key: 'workflows.status.CANCELLED' },
-}
+const STATUS_CONFIG: Record<
+  WorkflowStatus,
+  { icon: ElementType; className: string; key: string; style?: CSSProperties }
+> = {
+  DRAFT: {
+    icon: FileText,
+    className: 'bg-muted text-muted-foreground border-muted-foreground/30',
+    key: 'workflows.status.DRAFT',
+  },
+  PENDING_APPROVAL: {
+    icon: Clock,
+    className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    key: 'workflows.status.PENDING_APPROVAL',
+  },
+  RETURNED_TO_CREATOR: {
+    icon: XCircle,
+    className: 'bg-red-50 text-red-700 border-red-200',
+    key: 'workflows.status.RETURNED_TO_CREATOR',
+  },
+  REJECTED: {
+    icon: XCircle,
+    className: 'bg-red-50 text-red-700 border-red-200',
+    key: 'workflows.status.REJECTED',
+  },
+  PENDING_REVIEW_CYCLE: {
+    icon: Clock,
+    className: 'bg-purple-50 text-purple-700 border-purple-200',
+    key: 'workflows.status.PENDING_REVIEW_CYCLE',
+  },
+  AVAILABLE_FOR_FINAL_USERS: {
+    icon: CheckCircle,
+    className: 'bg-green-50 text-green-700 border-green-200',
+    key: 'workflows.status.AVAILABLE_FOR_FINAL_USERS',
+  },
+  ADMIN_CYCLE_IN_PROGRESS: {
+    icon: AlertCircle,
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+    key: 'workflows.status.ADMIN_CYCLE_IN_PROGRESS',
+  },
+  CLOSED: {
+    icon: CheckCircle,
+    className: 'bg-slate-100 text-slate-600 border-slate-300',
+    key: 'workflows.status.CLOSED',
+  },
+  CANCELLED: {
+    icon: XCircle,
+    className: 'bg-gray-50 text-gray-500 border-gray-200',
+    key: 'workflows.status.CANCELLED',
+  },
+};
 
 export function WorkflowStatusBadge({ status }: { status: WorkflowStatus }) {
-  const { t } = useTranslation()
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.DRAFT
-  const Icon = config.icon
+  const { t } = useTranslation();
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.DRAFT;
+  const Icon = config.icon;
   return (
     <Badge variant="outline" className={`gap-1 text-xs ${config.className}`} style={config.style}>
       <Icon className="size-3" />
       {t(config.key)}
     </Badge>
-  )
+  );
 }

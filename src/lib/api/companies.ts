@@ -1,6 +1,6 @@
-import { apiClient } from "./client";
+import { apiClient } from './client';
 
-export type OrgStatus = "active" | "inactive";
+export type OrgStatus = 'active' | 'inactive';
 
 export interface ApiCompany {
   id: string;
@@ -33,20 +33,24 @@ export interface UpdateCompanyDto {
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const companiesApi = {
-  list: (): Promise<ApiCompany[]> =>
-    apiClient.get<ApiCompany[]>("/org").then((r) => r.data),
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'inactive' | 'deleted';
+  }): Promise<{ data: ApiCompany[]; total: number }> =>
+    apiClient.get<{ data: ApiCompany[]; total: number }>('/org', { params }).then((r) => r.data),
 
   getById: (id: string): Promise<ApiCompany> =>
     apiClient.get<ApiCompany>(`/org/${id}`).then((r) => r.data),
 
   create: (dto: CreateCompanyDto): Promise<ApiCompany> =>
-    apiClient.post<ApiCompany>("/org", dto).then((r) => r.data),
+    apiClient.post<ApiCompany>('/org', dto).then((r) => r.data),
 
   update: (id: string, dto: UpdateCompanyDto): Promise<ApiCompany> =>
     apiClient.patch<ApiCompany>(`/org/${id}`, dto).then((r) => r.data),
 
-  remove: (id: string): Promise<void> =>
-    apiClient.delete(`/org/${id}`).then(() => undefined),
+  remove: (id: string): Promise<void> => apiClient.delete(`/org/${id}`).then(() => undefined),
 
   restore: (id: string): Promise<ApiCompany> =>
     apiClient.post<ApiCompany>(`/org/${id}/restore`).then((r) => r.data),

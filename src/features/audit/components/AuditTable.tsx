@@ -1,15 +1,30 @@
-import { useState } from 'react'
-import { Search, X, ChevronLeft, ChevronRight, Eye, Download, Copy, Filter, RefreshCw } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useState } from 'react';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import { RefreshCountdown } from '@/components/ui/refresh-countdown'
-import { AuditExportModal } from './AuditExportModal'
-import { AuditDetailModal } from './AuditDetailModal'
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Download,
+  Copy,
+  Filter,
+  RefreshCw,
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { RefreshCountdown } from '@/components/ui/refresh-countdown';
+import { AuditExportModal } from './AuditExportModal';
+import { AuditDetailModal } from './AuditDetailModal';
 import {
   type AuditHook,
   type AuditLog,
@@ -23,55 +38,68 @@ import {
   formatResourceType,
   resolveActorName,
   resolveResourceName,
-} from './audit-table.utils'
+} from './audit-table.utils';
 
 interface AuditTableProps {
-  hook: AuditHook
-  users?: SimpleUser[]
+  hook: AuditHook;
+  users?: SimpleUser[];
 }
 
 export function AuditTable({ hook, users = [] }: AuditTableProps) {
-  const { t } = useTranslation()
-  const { logs, total, page, limit, isLoading, isFetching, dataUpdatedAt, filters, applyFilters, clearFilters, setPage, refresh } = hook
+  const { t } = useTranslation();
+  const {
+    logs,
+    total,
+    page,
+    limit,
+    isLoading,
+    isFetching,
+    dataUpdatedAt,
+    filters,
+    applyFilters,
+    clearFilters,
+    setPage,
+    refresh,
+  } = hook;
 
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
-  const [exportOpen,  setExportOpen]  = useState(false)
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   function isoToLocal(iso: string | undefined): string {
-    if (!iso) return ''
-    const d = new Date(iso)
-    if (isNaN(d.getTime())) return ''
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   const [draft, setDraft] = useState({
-    action:        filters.action        ?? '',
-    resourceType:  filters.resourceType  ?? '',
-    actorId:       filters.actorId       ?? '',
+    action: filters.action ?? '',
+    resourceType: filters.resourceType ?? '',
+    actorId: filters.actorId ?? '',
     correlationId: filters.correlationId ?? '',
-    from:          isoToLocal(filters.from),
-    to:            isoToLocal(filters.to),
-  })
+    from: isoToLocal(filters.from),
+    to: isoToLocal(filters.to),
+  });
 
-  const totalPages = Math.max(1, Math.ceil(total / limit))
-  const hasFilters = Object.values(filters).some(Boolean)
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const hasFilters = Object.values(filters).some(Boolean);
 
   function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
     applyFilters({
-      action:        draft.action        || undefined,
-      resourceType:  draft.resourceType  || undefined,
-      actorId:       draft.actorId       || undefined,
+      action: draft.action || undefined,
+      resourceType: draft.resourceType || undefined,
+      actorId: draft.actorId || undefined,
       correlationId: draft.correlationId || undefined,
-      from:          draft.from          ? new Date(draft.from).toISOString() : undefined,
-      to:            draft.to            ? new Date(draft.to).toISOString()   : undefined,
-    })
+      from: draft.from ? new Date(draft.from).toISOString() : undefined,
+      to: draft.to ? new Date(draft.to).toISOString() : undefined,
+    });
   }
 
   function handleClear() {
-    setDraft({ action: '', resourceType: '', actorId: '', correlationId: '', from: '', to: '' })
-    clearFilters()
+    setDraft({ action: '', resourceType: '', actorId: '', correlationId: '', from: '', to: '' });
+    clearFilters();
   }
 
   return (
@@ -89,15 +117,20 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
               title={t('common.refresh')}
               aria-label={t('common.refresh')}
             >
-              <RefreshCw className={`size-3.5 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`size-3.5 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`}
+              />
             </Button>
             <RefreshCountdown duration={60_000} isFetching={isFetching} updatedAt={dataUpdatedAt} />
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">{total} {t('audit.events')}</span>
+          <span className="text-xs text-muted-foreground">
+            {total} {t('audit.events')}
+          </span>
           <Button variant="outline" size="sm" className="h-8" onClick={() => setExportOpen(true)}>
-            <Download className="size-3.5" />{t('audit.export.button')}
+            <Download className="size-3.5" />
+            {t('audit.export.button')}
           </Button>
         </div>
       </div>
@@ -105,7 +138,9 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
       {/* Filters */}
       <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-end">
         <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-action" className="text-xs text-muted-foreground">{t('audit.filters.action')}</label>
+          <label htmlFor="audit-filter-action" className="text-xs text-muted-foreground">
+            {t('audit.filters.action')}
+          </label>
           <select
             id="audit-filter-action"
             className="h-8 w-52 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -114,12 +149,16 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           >
             <option value="">{t('audit.filters.all')}</option>
             {ALL_ACTIONS.map((a) => (
-              <option key={a} value={a}>{formatAction(a, t)}</option>
+              <option key={a} value={a}>
+                {formatAction(a, t)}
+              </option>
             ))}
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-resource-type" className="text-xs text-muted-foreground">{t('audit.filters.resourceType')}</label>
+          <label htmlFor="audit-filter-resource-type" className="text-xs text-muted-foreground">
+            {t('audit.filters.resourceType')}
+          </label>
           <select
             id="audit-filter-resource-type"
             className="h-8 w-36 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -128,12 +167,16 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           >
             <option value="">{t('audit.filters.all')}</option>
             {RESOURCE_TYPES.map((r) => (
-              <option key={r} value={r}>{formatResourceType(r, t)}</option>
+              <option key={r} value={r}>
+                {formatResourceType(r, t)}
+              </option>
             ))}
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-actor" className="text-xs text-muted-foreground">{t('audit.filters.actor')}</label>
+          <label htmlFor="audit-filter-actor" className="text-xs text-muted-foreground">
+            {t('audit.filters.actor')}
+          </label>
           <select
             id="audit-filter-actor"
             className="h-8 w-44 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -149,8 +192,11 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">{t('audit.filters.correlationId')}</label>
+          <label htmlFor="audit-filter-correlation-id" className="text-xs text-muted-foreground">
+            {t('audit.filters.correlationId')}
+          </label>
           <Input
+            id="audit-filter-correlation-id"
             className="h-8 w-72 text-xs font-mono"
             placeholder={t('audit.filters.correlationIdPlaceholder')}
             value={draft.correlationId}
@@ -176,11 +222,13 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           />
         </div>
         <Button type="submit" size="sm" className="h-8">
-          <Search className="size-3.5" />{t('common.search')}
+          <Search className="size-3.5" />
+          {t('common.search')}
         </Button>
         {hasFilters && (
           <Button type="button" size="sm" variant="ghost" className="h-8" onClick={handleClear}>
-            <X className="size-3.5" />{t('common.clear')}
+            <X className="size-3.5" />
+            {t('common.clear')}
           </Button>
         )}
       </form>
@@ -204,7 +252,9 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 7 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-full" />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
@@ -222,14 +272,22 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
                   </TableCell>
                   <TableCell className="text-xs">{formatAction(log.action, t)}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${resourceTypeColor(log.resourceType)}`}>
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${resourceTypeColor(log.resourceType)}`}
+                    >
                       {formatResourceType(log.resourceType, t)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate" title={log.resourceId}>
+                  <TableCell
+                    className="text-xs text-muted-foreground max-w-[160px] truncate"
+                    title={log.resourceId}
+                  >
                     {resolveResourceName(log)}
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate" title={log.actorId}>
+                  <TableCell
+                    className="text-xs text-muted-foreground max-w-[160px] truncate"
+                    title={log.actorId}
+                  >
                     {resolveActorName(log.actorId, users)}
                   </TableCell>
                   <TableCell className="text-xs">
@@ -242,18 +300,22 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
                           {log.correlationId.slice(0, 8)}…
                         </span>
                         <Button
-                          variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 shrink-0"
                           title={t('audit.detail.copy')}
                           onClick={() => navigator.clipboard.writeText(log.correlationId!)}
                         >
                           <Copy className="size-3" />
                         </Button>
                         <Button
-                          variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 shrink-0"
                           title={t('audit.detail.filterByCorrelation')}
                           onClick={() => {
-                            setDraft((d) => ({ ...d, correlationId: log.correlationId! }))
-                            applyFilters({ ...filters, correlationId: log.correlationId! })
+                            setDraft((d) => ({ ...d, correlationId: log.correlationId! }));
+                            applyFilters({ ...filters, correlationId: log.correlationId! });
                           }}
                         >
                           <Filter className="size-3" />
@@ -265,7 +327,9 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
                   </TableCell>
                   <TableCell className="w-8">
                     <Button
-                      variant="ghost" size="sm" className="h-7 w-7 p-0"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
                       onClick={() => setSelectedLog(log)}
                       title={t('audit.detail.view')}
                     >
@@ -281,13 +345,29 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
 
       {/* Pagination */}
       <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-        <span>{total} {t('audit.events')}</span>
+        <span>
+          {total} {t('audit.events')}
+        </span>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
             <ChevronLeft className="size-3.5" />
           </Button>
-          <span className="px-2">{page} / {totalPages}</span>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+          <span className="px-2">
+            {page} / {totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
             <ChevronRight className="size-3.5" />
           </Button>
         </div>
@@ -301,8 +381,8 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
           open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           onFilterByCorrelation={(correlationId) => {
-            setDraft((d) => ({ ...d, correlationId }))
-            applyFilters({ ...filters, correlationId })
+            setDraft((d) => ({ ...d, correlationId }));
+            applyFilters({ ...filters, correlationId });
           }}
         />
       )}
@@ -314,7 +394,8 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
         defaultFrom={filters.from}
         defaultTo={filters.to}
         defaultCorrelationId={filters.correlationId}
+        users={users}
       />
     </main>
-  )
+  );
 }
