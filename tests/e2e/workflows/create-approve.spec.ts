@@ -56,6 +56,43 @@ test.beforeEach(async ({ page }) => {
   await injectCompanySession(page, ORG_ID);
   await mockAuthRefresh(page, ORG_ID);
 
+  // Permissions — give the mocked user full workflow access so the tab and
+  // "New workflow" button are visible. Without these mocks the fallback returns
+  // a paginated object instead of an array, crashing useMyPermissions.
+  await page.route(`${API}/users/me/org-roles`, (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: 'or-001',
+          userId: 'usr-001',
+          orgId: ORG_ID,
+          roleId: 'role-admin',
+          assignedBy: null,
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+    }),
+  );
+  await page.route(`${API}/roles`, (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: 'role-admin',
+          name: 'Admin',
+          description: null,
+          orgId: ORG_ID,
+          createdAt: '2024-01-01T00:00:00Z',
+          permissions: [
+            { id: 'p1', module: 'WORKFLOWS', action: 'READ', description: null },
+            { id: 'p2', module: 'WORKFLOWS', action: 'WRITE', description: null },
+            { id: 'p3', module: 'WORKFLOWS', action: 'MANAGE', description: null },
+            { id: 'p4', module: 'WORKFLOWS', action: 'APPROVE', description: null },
+          ],
+        },
+      ],
+    }),
+  );
+
   // Workflow list — empty initially
   await page.route(`${API}/workflows?**`, (route) =>
     route.fulfill({ json: { data: [], total: 0, page: 1, limit: 20, totalPages: 0 } }),

@@ -18,9 +18,9 @@ async function fillRegistrationForm(
   await page.getByLabel('ID number').fill('1234567890');
   await page.keyboard.press('Tab');
   // "Password" appears twice (password + confirm); use nth to distinguish
-  await page.getByRole('textbox', { name: 'Password' }).nth(0).fill('SecurePass123!');
+  await page.getByRole('textbox', { name: 'Password' }).nth(0).fill('SecureP@ss7!');
   await page.keyboard.press('Tab');
-  await page.getByLabel('Confirm password').fill('SecurePass123!');
+  await page.getByLabel('Confirm password').fill('SecureP@ss7!');
   await page.keyboard.press('Tab');
 }
 

@@ -57,7 +57,7 @@ test.describe('Login page', () => {
 
     await page.goto('/login');
     await page.getByLabel('Email').fill('wrong@example.com');
-    await page.getByLabel('Password').fill('wrongpass');
+    await page.getByRole('textbox', { name: 'Password' }).fill('wrongpass');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page.getByText(/Invalid credentials/i)).toBeVisible({ timeout: 5_000 });
