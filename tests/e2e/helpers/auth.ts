@@ -85,8 +85,10 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
 }
 
 /**
- * Catch-all fallback: any unmatched request to the API returns a safe empty
- * response so that unmocked dashboard queries don't break navigation.
+ * Catch-all fallback: any unmatched GET returns a safe empty paginated response
+ * so that unmocked dashboard queries don't break navigation.
+ * Unmocked mutating requests (POST/PATCH/PUT/DELETE) respond with 501 so that
+ * tests fail loudly instead of silently passing with a broken contract.
  *
  * Register this BEFORE more-specific routes — Playwright evaluates routes in
  * reverse-registration order (last registered = highest priority), so specific
@@ -101,9 +103,10 @@ export async function mockApiFallback(page: Page) {
         json: { data: [], total: 0, page: 1, limit: 20, totalPages: 0 },
       });
     }
-    // Return 200 for mutating methods so untracked side-effects don't crash
-    // navigation flows.  Tests that care about mutation correctness override
-    // this with their own page.route() before calling mockApiFallback.
-    return route.fulfill({ status: 200, json: {} });
+    // Fail fast for unmocked mutating requests to avoid false-positive E2E passes.
+    return route.fulfill({
+      status: 501,
+      json: { error: `Unmocked ${method} request in mockApiFallback: ${route.request().url()}` },
+    });
   });
 }
