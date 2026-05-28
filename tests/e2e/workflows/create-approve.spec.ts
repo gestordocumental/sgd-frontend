@@ -23,7 +23,7 @@ const MOCK_TYPOLOGY = {
     originalName: null,
     mimeType: null,
     uploadedAt: null,
-    extractionStatus: 'COMPLETED',
+    extractionStatus: 'NOT_UPLOADED',
   },
   metadataExtraida: {
     nombre: null,
@@ -94,7 +94,7 @@ const CREATED_WORKFLOW = {
   status: 'DRAFT',
   currentApprovalStepOrder: null,
   currentAssignedUserId: null,
-  finalUserIds: [],
+  finalUserIds: ['usr-final'],
   createdBy: 'usr-001',
   closedBy: null,
   closedAt: null,
@@ -267,12 +267,12 @@ test.describe('Workflow creation', () => {
     await page.getByPlaceholder('Search user...').fill('Ana');
     await page.getByRole('button', { name: /Ana Approver/i }).click();
 
-    // Select final user (eligible because departamentoId matches the typology's estructuraOrg)
+    // Select final user (eligible because departamentoId matches the typology's estructuraOrg).
+    // The final-user SearchableSelect uses "Search user…" (U+2026 ellipsis) as its
+    // searchPlaceholder, distinct from the approver search ("Search user..." — ASCII dots),
+    // so the exact-string locator is unambiguous without needing .last() or a container scope.
     await page.getByRole('button', { name: /Select end user/i }).click();
-    await page
-      .getByPlaceholder(/Search user/i)
-      .last()
-      .fill('Carlos');
+    await page.getByPlaceholder('Search user…').fill('Carlos');
     await page.getByRole('button', { name: /Carlos Final/i }).click();
 
     await page.getByRole('button', { name: 'Create workflow' }).click();
