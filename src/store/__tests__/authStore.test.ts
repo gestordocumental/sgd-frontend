@@ -83,7 +83,7 @@ describe('authStore — setAuth', () => {
 
   it('does NOT save super-admin token to a separate localStorage key', () => {
     const user = makeUser({ isSuperAdmin: true });
-    useAuthStore.getState().setAuth(user, 'sa-token', 'refresh-token', true);
+    useAuthStore.getState().setAuth(user, 'sa-token', 'sa-refresh-token', true);
 
     // The old sgd-super-admin-token key must NOT be written
     expect(localStorage.getItem('sgd-super-admin-token')).toBeNull();
@@ -173,7 +173,7 @@ describe('authStore — enterCompany / exitCompany', () => {
     resetStore();
     vi.clearAllMocks();
     mockDecodeJwt.mockReturnValue(makePayload({ isSuperAdmin: true }));
-    useAuthStore.getState().setAuth(makeUser(), 'sa-token', 'rt', true);
+    useAuthStore.getState().setAuth(makeUser(), 'sa-token', 'sa-refresh-token', true);
   });
 
   it('enterCompany updates user with companyId and switches token', () => {
@@ -217,9 +217,46 @@ describe('authStore — enterCompany / exitCompany', () => {
     expect(stored.hasSuperAdminContext).toBe(false);
   });
 
-  it('exitCompany calls /auth/refresh when in-memory token is gone (post-reload) and succeeds', async () => {
-    // Simulate page reload: clear store (zeroes _superAdminToken) then restore
-    // persisted state manually, as hydrate() would on a real reload.
+  // ── Bug fix: expired access token should fall through to refresh token ─────
+
+  it('exitCompany uses stored global refresh token when access token is expired', async () => {
+    // Enter company context (saves 'sa-token' and 'sa-refresh-token' in memory)
+    mockDecodeJwt.mockReturnValue(makePayload({ isSuperAdmin: false, companyId: 'org-1' }));
+    useAuthStore.getState().enterCompany('org-1', 'Acme', 'company-token');
+
+    // Simulate the sa-token expiring: decodeJwt returns expired payload for it
+    mockDecodeJwt.mockImplementation((token) => {
+      if (token === 'sa-token') {
+        return makePayload({ isSuperAdmin: true, exp: Math.floor(Date.now() / 1000) - 60 });
+      }
+      if (token === 'sa-refresh-token') {
+        // refreshToken itself is not decoded by the store — axios returns the new pair
+        return null;
+      }
+      return makePayload({ isSuperAdmin: true }); // for the refreshed token
+    });
+
+    mockAxiosPost.mockResolvedValue({
+      data: { accessToken: 'new-sa-token', refreshToken: 'new-sa-refresh-token' },
+    });
+
+    const result = await useAuthStore.getState().exitCompany();
+
+    // Should have called /auth/refresh with the global refresh token in the body
+    expect(mockAxiosPost).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      { refreshToken: 'sa-refresh-token' },
+      expect.objectContaining({ withCredentials: true }),
+    );
+    expect(result).toBe(true);
+    expect(useAuthStore.getState().accessToken).toBe('new-sa-token');
+    expect(useAuthStore.getState().isSuperAdmin).toBe(true);
+    expect(useAuthStore.getState().hasSuperAdminContext).toBe(false);
+  });
+
+  it('exitCompany falls back to cookie refresh when both in-memory tokens are gone (post-reload)', async () => {
+    // Simulate page reload: clear store (zeroes _superAdminToken and _superAdminRefreshToken)
+    // then restore persisted state manually, as hydrate() would on a real reload.
     resetStore();
     useAuthStore.setState({
       user: makeUser({ companyId: 'org-1', companyName: 'Acme' }),
@@ -234,6 +271,7 @@ describe('authStore — enterCompany / exitCompany', () => {
 
     const result = await useAuthStore.getState().exitCompany();
 
+    // Should call cookie-based refresh (body = undefined)
     expect(mockAxiosPost).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
       undefined,
@@ -252,5 +290,37 @@ describe('authStore — enterCompany / exitCompany', () => {
 
     const result = await useAuthStore.getState().exitCompany();
     expect(result).toBe(false);
+  });
+
+  it('updateTokenPair keeps _superAdminRefreshToken in sync during global silent refresh', async () => {
+    // Simulate a silent refresh while in global context (access token renewed)
+    mockDecodeJwt.mockReturnValue(makePayload({ isSuperAdmin: true }));
+    useAuthStore.getState().updateTokenPair('new-sa-token', 'new-sa-refresh-token');
+
+    // Then enter a company and let the access token expire
+    mockDecodeJwt.mockReturnValue(makePayload({ isSuperAdmin: false, companyId: 'org-1' }));
+    useAuthStore.getState().enterCompany('org-1', 'Acme', 'company-token');
+
+    // Expired access token scenario
+    mockDecodeJwt.mockImplementation((token) => {
+      if (token === 'new-sa-token') {
+        return makePayload({ isSuperAdmin: true, exp: Math.floor(Date.now() / 1000) - 60 });
+      }
+      return makePayload({ isSuperAdmin: true });
+    });
+
+    mockAxiosPost.mockResolvedValue({
+      data: { accessToken: 'final-sa-token', refreshToken: 'final-sa-refresh-token' },
+    });
+
+    const result = await useAuthStore.getState().exitCompany();
+
+    // Must use the UPDATED refresh token (new-sa-refresh-token), not the original (sa-refresh-token)
+    expect(mockAxiosPost).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      { refreshToken: 'new-sa-refresh-token' },
+      expect.anything(),
+    );
+    expect(result).toBe(true);
   });
 });

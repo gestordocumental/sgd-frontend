@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import JSZip from 'jszip';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -146,36 +145,12 @@ export function DetailWorkflowDialog({
 
     setIsDownloadingZip(true);
     try {
-      // Get all signed URLs concurrently
-      const withUrls = await Promise.all(
-        entries.map(async (entry) => {
-          const { signedUrl } = await workflowFilesApi.getSignedUrl(
-            detailWorkflow.orgId,
-            entry.storageKey,
-          );
-          return { ...entry, signedUrl };
-        }),
+      const blob = await workflowFilesApi.downloadZip(
+        detailWorkflow.orgId,
+        entries,
+        detailWorkflow.title,
       );
-
-      // Fetch file blobs concurrently
-      const withBlobs = await Promise.all(
-        withUrls.map(async (entry) => {
-          const res = await fetch(entry.signedUrl);
-          if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-          const blob = await res.blob();
-          return { zipPath: entry.zipPath, blob };
-        }),
-      );
-
-      // Build ZIP
-      const zip = new JSZip();
-      const rootFolder = zip.folder(detailWorkflow.title.replace(/[<>:"/\\|?*]/g, '_'))!;
-      for (const { zipPath, blob } of withBlobs) {
-        rootFolder.file(zipPath, blob);
-      }
-
-      const content = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(content);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${detailWorkflow.title.replace(/[<>:"/\\|?*]/g, '_')}.zip`;

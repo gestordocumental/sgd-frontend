@@ -28,4 +28,17 @@ export const workflowFilesApi = {
         expiresAt: string;
       }>(`/documents/${orgId}/workflow-files/signed-url`, { storageKey })
       .then((r) => r.data),
+
+  downloadZip: (
+    orgId: string,
+    files: Array<{ storageKey: string; zipPath: string }>,
+    title: string,
+  ): Promise<Blob> =>
+    apiClient
+      .post<Blob>(
+        `/documents/${orgId}/workflow-files/download-zip`,
+        { files, title },
+        { responseType: 'blob', timeout: 120_000 },
+      )
+      .then((r) => r.data),
 };

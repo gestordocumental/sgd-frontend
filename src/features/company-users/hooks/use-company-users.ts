@@ -224,7 +224,7 @@ export function useCompanyUsers(companyId: string) {
 
   const toggleOptionalReviewerMutation = useMutation({
     mutationFn: ({ id, value }: { id: string; value: boolean }) =>
-      usersApi.update(id, { isOptionalReviewer: value }),
+      usersApi.setOptionalReviewer(id, companyId, value),
     onSuccess: invalidate,
   });
 

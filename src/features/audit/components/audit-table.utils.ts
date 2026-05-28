@@ -1,13 +1,13 @@
-import type { useAudit } from '../hooks/use-audit'
+import type { useAudit } from '../hooks/use-audit';
 
-export type AuditHook = ReturnType<typeof useAudit>
-export type AuditLog = AuditHook['logs'][number]
+export type AuditHook = ReturnType<typeof useAudit>;
+export type AuditLog = AuditHook['logs'][number];
 
 export interface SimpleUser {
-  id: string
-  firstName?: string | null
-  lastName?: string | null
-  email?: string | null
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
 }
 
 export const RESOURCE_TYPES = [
@@ -18,9 +18,9 @@ export const RESOURCE_TYPES = [
   'departamento',
   'typology',
   'workflow',
-]
+];
 
-export const CORRELATION_RESOURCE_TYPES = new Set(['typology', 'workflow'])
+export const CORRELATION_RESOURCE_TYPES = new Set(['typology', 'workflow']);
 
 export const ACTIONS_BY_SERVICE: Record<string, string[]> = {
   'user-service': [
@@ -32,6 +32,7 @@ export const ACTIONS_BY_SERVICE: Record<string, string[]> = {
     'USER_ORG_ROLE_UPDATED',
     'USER_REMOVED_FROM_ORG',
     'USER_SUPER_ADMIN_CHANGED',
+    'USER_OPTIONAL_REVIEWER_CHANGED',
   ],
   'org-service': [
     'COMPANY_CREATED',
@@ -78,58 +79,66 @@ export const ACTIONS_BY_SERVICE: Record<string, string[]> = {
     'WORKFLOW_CANCELLED',
   ],
   'audit-service': [],
-}
+};
 
-export const ALL_ACTIONS = Array.from(new Set(Object.values(ACTIONS_BY_SERVICE).flat())).sort()
+export const ALL_ACTIONS = Array.from(new Set(Object.values(ACTIONS_BY_SERVICE).flat())).sort();
 
 export const RESOURCE_TYPE_COLORS: Record<string, string> = {
-  user:         'bg-blue-100 text-blue-800',
-  company:      'bg-sky-100 text-sky-800',
-  cargo:        'bg-purple-100 text-purple-800',
-  area:         'bg-violet-100 text-violet-800',
+  user: 'bg-blue-100 text-blue-800',
+  company: 'bg-sky-100 text-sky-800',
+  cargo: 'bg-purple-100 text-purple-800',
+  area: 'bg-violet-100 text-violet-800',
   departamento: 'bg-indigo-100 text-indigo-800',
-  typology:     'bg-green-100 text-green-800',
-  workflow:     'bg-orange-100 text-orange-800',
-}
+  typology: 'bg-green-100 text-green-800',
+  workflow: 'bg-orange-100 text-orange-800',
+};
 
-export type TFn = (key: string, opts?: Record<string, unknown>) => string
+export type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
 export function resolveActorName(actorId: string, users: SimpleUser[]): string {
-  const u = users.find((u) => u.id === actorId)
-  if (!u) return actorId
-  const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim()
-  return name || u.email || actorId
+  const u = users.find((u) => u.id === actorId);
+  if (!u) return actorId;
+  const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+  return name || u.email || actorId;
 }
 
 export function formatAction(action: string, t: TFn): string {
-  return String(t(`audit.actions.${action}`, { defaultValue: action.replace(/_/g, ' ') }))
+  return String(t(`audit.actions.${action}`, { defaultValue: action.replace(/_/g, ' ') }));
 }
 
 export function formatFieldName(field: string, t: TFn): string {
-  return String(t(`audit.fields.${field}`, { defaultValue: field }))
+  return String(t(`audit.fields.${field}`, { defaultValue: field }));
 }
 
 export function resourceTypeColor(type: string) {
-  return RESOURCE_TYPE_COLORS[type] ?? 'bg-muted text-muted-foreground'
+  return RESOURCE_TYPE_COLORS[type] ?? 'bg-muted text-muted-foreground';
 }
 
 export function formatResourceType(type: string, t: TFn): string {
-  return String(t(`audit.resourceTypes.${type}`, { defaultValue: type }))
+  return String(t(`audit.resourceTypes.${type}`, { defaultValue: type }));
 }
 
-export function resolveResourceName(log: { resourceId: string; resourceName?: string | null; metadata: Record<string, unknown> | null }): string {
-  if (log.resourceName) return log.resourceName
-  const m = log.metadata
+export function resolveResourceName(log: {
+  resourceId: string;
+  resourceName?: string | null;
+  metadata: Record<string, unknown> | null;
+}): string {
+  if (log.resourceName) return log.resourceName;
+  const m = log.metadata;
   if (m) {
-    const name = (m['name'] ?? m['email'] ?? m['title']) as string | undefined
-    if (name) return name
+    const name = (m['name'] ?? m['email'] ?? m['title']) as string | undefined;
+    if (name) return name;
   }
-  return log.resourceId
+  return log.resourceId;
 }
 
 export function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
-    year: 'numeric', month: 'short', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  })
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }

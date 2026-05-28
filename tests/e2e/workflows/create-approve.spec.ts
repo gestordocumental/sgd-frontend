@@ -8,13 +8,39 @@ const ORG_ID = 'org-001';
 const MOCK_TYPOLOGY = {
   id: 'typ-001',
   orgId: ORG_ID,
-  datosDeclarados: { nombre: 'Security Policy', codigo: 'SP-001', version: 'v1' },
-  status: 'ACTIVE',
-  documento: { extractionStatus: 'COMPLETED' },
+  typologyStatus: 'ACTIVE',
+  estructuraOrg: {
+    departamentoId: 'dept-001',
+    departamentoNombre: 'Technology',
+    areaId: null,
+    areaNombre: null,
+    cargoId: null,
+    cargoNombre: null,
+  },
+  datosDeclarados: { nombre: 'Security Policy', codigo: 'SP-001', version: 'v1', fuente: 'MANUAL' },
+  documento: {
+    r2Key: null,
+    originalName: null,
+    mimeType: null,
+    uploadedAt: null,
+    extractionStatus: 'NOT_UPLOADED',
+  },
+  metadataExtraida: {
+    nombre: null,
+    codigo: null,
+    version: null,
+    extractedAt: null,
+    discrepancias: [],
+  },
+  fuenteCreacion: 'MANUAL',
+  deletedAt: null,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };
 
+// roles must match the /roles mock (role-admin has WORKFLOWS:APPROVE) so that
+// approverEligibleUsers includes Ana. Fields isActive/deletedAt/registrationStatus
+// are required by the activeOrgUsers filter in use-workflow-queries.ts.
 const MOCK_APPROVER = {
   id: 'usr-approver',
   email: 'approver@company.com',
@@ -22,9 +48,19 @@ const MOCK_APPROVER = {
   lastName: 'Approver',
   position: 'Legal Manager',
   isSuperAdmin: false,
-  roles: [{ name: 'workflow_approver', permissions: ['workflow:approve'] }],
+  isActive: true,
+  deletedAt: null,
+  registrationStatus: 'active',
+  departamentoId: null,
+  areaId: null,
+  cargoId: null,
+  orgRemovedAt: null,
+  isOptionalReviewer: false,
+  roles: [{ roleId: 'role-admin', roleName: 'Admin' }],
 };
 
+// departamentoId must match MOCK_TYPOLOGY.estructuraOrg.departamentoId so that
+// Carlos appears in finalUserEligibleUsers when the typology is selected.
 const MOCK_FINAL_USER = {
   id: 'usr-final',
   email: 'final@company.com',
@@ -32,18 +68,43 @@ const MOCK_FINAL_USER = {
   lastName: 'Final',
   position: 'Department Head',
   isSuperAdmin: false,
-  roles: [{ name: 'workflow_viewer', permissions: ['workflow:view_final'] }],
+  isActive: true,
+  deletedAt: null,
+  registrationStatus: 'active',
+  departamentoId: 'dept-001',
+  areaId: null,
+  cargoId: null,
+  orgRemovedAt: null,
+  isOptionalReviewer: false,
+  roles: [{ roleId: 'role-viewer', roleName: 'Viewer' }],
 };
 
 const CREATED_WORKFLOW = {
   id: 'wf-new-001',
   orgId: ORG_ID,
   title: 'Security Policy Approval',
+  description: null,
+  typologyId: 'typ-001',
+  typologyCode: 'SP-001',
+  typologyVersion: 'v1',
+  typologyName: 'Security Policy',
+  mainDocumentId: null,
+  mainDocumentValidated: false,
+  mainDocumentMetadata: null,
   status: 'DRAFT',
+  currentApprovalStepOrder: null,
+  currentAssignedUserId: null,
+  finalUserIds: ['usr-final'],
   createdBy: 'usr-001',
-  approvers: [{ userId: 'usr-approver', stepOrder: 1 }],
-  attachments: [],
+  closedBy: null,
+  closedAt: null,
+  cancelledBy: null,
+  cancelledAt: null,
+  // approvalSteps is accessed as .length in DetailWorkflowDialog — must be an array
+  approvalSteps: [],
   approvalActions: [],
+  attachments: [],
+  activeAdminCycle: null,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };
@@ -112,6 +173,13 @@ test.beforeEach(async ({ page }) => {
   await page.route(`${API}/users/by-org/${ORG_ID}**`, (route) =>
     route.fulfill({ json: { data: [MOCK_APPROVER, MOCK_FINAL_USER], total: 2 } }),
   );
+
+  // Org-structure endpoints — useCompanyUsers calls listAllCargos on mount (always
+  // enabled). Without this mock the fallback returns a paginated object instead of
+  // an array, causing allCargos.map() to throw and crash CompanyDashboard before
+  // the Workflows tab ever renders.
+  await page.route(`${API}/org/${ORG_ID}/cargos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -199,6 +267,14 @@ test.describe('Workflow creation', () => {
     await page.getByPlaceholder('Search user...').fill('Ana');
     await page.getByRole('button', { name: /Ana Approver/i }).click();
 
+    // Select final user (eligible because departamentoId matches the typology's estructuraOrg).
+    // The final-user SearchableSelect uses "Search user…" (U+2026 ellipsis) as its
+    // searchPlaceholder, distinct from the approver search ("Search user..." — ASCII dots),
+    // so the exact-string locator is unambiguous without needing .last() or a container scope.
+    await page.getByRole('button', { name: /Select end user/i }).click();
+    await page.getByPlaceholder('Search user…').fill('Carlos');
+    await page.getByRole('button', { name: /Carlos Final/i }).click();
+
     await page.getByRole('button', { name: 'Create workflow' }).click();
 
     // Dialog closes after successful creation
@@ -216,7 +292,7 @@ test.describe('Workflow approval', () => {
       }),
     );
     await page.route(`${API}/workflows/${draftWorkflow.id}`, (route) =>
-      route.fulfill({ json: { ...draftWorkflow, status: 'IN_APPROVAL' } }),
+      route.fulfill({ json: draftWorkflow }),
     );
     await page.route(`${API}/workflows/${draftWorkflow.id}/start-approval`, (route) =>
       route.fulfill({ json: { ...draftWorkflow, status: 'IN_APPROVAL' } }),
