@@ -20,7 +20,6 @@ function makeUser(overrides: Partial<ApiUser> = {}): ApiUser {
     cargoId: null,
     isActive: true,
     isSuperAdmin: false,
-    isOptionalReviewer: false,
     registrationStatus: 'active',
     avatarUrl: null,
     deletedAt: null,
