@@ -18,7 +18,6 @@ export interface ApiUser {
   registrationStatus: 'pending_credentials' | 'active';
   isActive: boolean;
   isSuperAdmin: boolean;
-  isOptionalReviewer: boolean;
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -28,6 +27,8 @@ export interface ApiUser {
 export interface ApiUserWithRoles extends ApiUser {
   roles: ApiUserRole[];
   orgRemovedAt: string | null;
+  /** Per-org flag: true when this user is an optional reviewer in the specific organization that returned this record. */
+  isOptionalReviewer: boolean;
 }
 
 export interface CreateUserDto {
@@ -46,7 +47,6 @@ export interface UpdateUserDto {
   idNumber?: string;
   position?: string;
   isActive?: boolean;
-  isOptionalReviewer?: boolean;
   departamentoId?: string | null;
   areaId?: string | null;
   cargoId?: string | null;
@@ -141,6 +141,11 @@ export const usersApi = {
 
   removeUserFromOrg: (userId: string, orgId: string) =>
     apiClient.delete<void>(`/users/${userId}/orgs/${orgId}`).then((r) => r.data),
+
+  setOptionalReviewer: (userId: string, orgId: string, value: boolean) =>
+    apiClient
+      .patch<void>(`/users/${userId}/orgs/${orgId}/optional-reviewer`, { value })
+      .then((r) => r.data),
 
   // No USERS:READ required — a user can always read their own roles in their current company
   getMyOrgRoles: () =>

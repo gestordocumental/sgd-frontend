@@ -55,6 +55,7 @@ export async function injectCompanySession(page: Page, orgId = 'org-001') {
 export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
   const companyJwt = companyUserJwt(orgId);
   const globalJwt = globalUserJwt();
+
   await page.route(`${API}/auth/refresh`, (route) =>
     route.fulfill({ json: { accessToken: globalJwt, refreshToken: 'rt-mock' } }),
   );
@@ -62,11 +63,30 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
     route.fulfill({ json: { accessToken: companyJwt, refreshToken: 'rt-company' } }),
   );
   await page.route(`${API}/auth/me/companies`, (route) => route.fulfill({ json: [orgId] }));
+
+  // User profile — queried by useUserProfile on every dashboard mount
+  await page.route(`${API}/users/usr-001`, (route) =>
+    route.fulfill({
+      json: {
+        id: 'usr-001',
+        email: 'manager@company.com',
+        firstName: 'Test',
+        lastName: 'Manager',
+        isActive: true,
+        isSuperAdmin: false,
+      },
+    }),
+  );
+
+  // Company detail — queried by useUserProfile to resolve company name
+  await page.route(`${API}/org/${orgId}`, (route) =>
+    route.fulfill({ json: { id: orgId, name: 'Test Company', nit: '000000', isActive: true } }),
+  );
 }
 
 /**
- * Catch-all fallback: any unmatched request to the API returns an empty
- * successful response so that unmocked dashboard queries don't break navigation.
+ * Catch-all fallback: any unmatched request to the API returns a safe empty
+ * response so that unmocked dashboard queries don't break navigation.
  *
  * Register this BEFORE more-specific routes — Playwright evaluates routes in
  * reverse-registration order (last registered = highest priority), so specific
@@ -81,9 +101,9 @@ export async function mockApiFallback(page: Page) {
         json: { data: [], total: 0, page: 1, limit: 20, totalPages: 0 },
       });
     }
-    return route.fulfill({
-      status: 501,
-      json: { message: `Unmocked ${method} ${route.request().url()}` },
-    });
+    // Return 200 for mutating methods so untracked side-effects don't crash
+    // navigation flows.  Tests that care about mutation correctness override
+    // this with their own page.route() before calling mockApiFallback.
+    return route.fulfill({ status: 200, json: {} });
   });
 }

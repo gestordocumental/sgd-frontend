@@ -5,16 +5,29 @@ import { decodeJwt } from '@/lib/jwt';
 
 const AUTH_KEY = 'sgd-auth';
 
+// sessionStorage key for the global super-admin refresh token.
+// sessionStorage is used (not localStorage) so it is scoped to the tab and
+// cleared automatically when the tab is closed.  It survives page refreshes,
+// which is the critical difference from the in-memory variable: after a
+// reload the refresh cookie is company-scoped, so exitCompany() needs this
+// token to call /auth/refresh with a body parameter and obtain a global token.
+const SA_REFRESH_KEY = 'sgd-sar';
+
 // ── In-memory token storage ────────────────────────────────────────────────
 // Access tokens are NOT written to localStorage.  If an XSS payload runs
 // it cannot read the token via localStorage.getItem().  The httpOnly
 // refresh-token cookie lets the silent-refresh interceptor (client.ts)
 // renew the access token on every 401 or page reload.
 //
-// The super-admin token is kept in this module-level variable so that
+// The super-admin tokens are kept in module-level variables so that
 // enterCompany() / exitCompany() works within the same tab session.
-// After a page reload it is re-obtained via a plain /auth/refresh call.
+// After a page reload the access token is re-obtained via /auth/refresh.
+// The refresh token backup allows exitCompany() to recover a global token
+// even after the access token has expired during a company context session.
 let _superAdminToken: string | null = null;
+// Initialized from sessionStorage so exitCompany() can recover a global
+// token even after a page refresh (when the cookie is company-scoped).
+let _superAdminRefreshToken: string | null = sessionStorage.getItem(SA_REFRESH_KEY);
 
 interface PersistedAuth {
   user: AuthUser;
@@ -93,7 +106,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     isSuperAdmin: stored.isSuperAdmin ?? false,
     hasSuperAdminContext: stored.hasSuperAdminContext ?? false,
 
-    setAuth: (user, accessToken, _refreshToken, isSuperAdmin) => {
+    setAuth: (user, accessToken, refreshToken, isSuperAdmin) => {
       localStorage.setItem(
         AUTH_KEY,
         JSON.stringify({
@@ -103,10 +116,14 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
           hasSuperAdminContext: false,
         } satisfies PersistedAuth),
       );
-      // Keep the global token in memory so enterCompany + exitCompany works
-      // within the same tab session without touching localStorage
+      // Keep the global tokens in memory so enterCompany + exitCompany works
+      // within the same tab session without touching localStorage.
+      // The refresh token backup lets exitCompany() recover a global token
+      // even when the access token has expired mid-company-session.
       if (isSuperAdmin && !user.companyId) {
         _superAdminToken = accessToken;
+        _superAdminRefreshToken = refreshToken;
+        sessionStorage.setItem(SA_REFRESH_KEY, refreshToken);
       }
       set({ user, accessToken, isAuthenticated: true, isSuperAdmin, hasSuperAdminContext: false });
     },
@@ -130,7 +147,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       set({ accessToken, isSuperAdmin });
     },
 
-    updateTokenPair: (accessToken, _refreshToken) => {
+    updateTokenPair: (accessToken, refreshToken) => {
       const decoded = decodeJwt(accessToken);
       const isSuperAdmin = decoded?.isSuperAdmin === true;
       const raw = localStorage.getItem(AUTH_KEY);
@@ -144,14 +161,21 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       }
       const { user } = get();
       if (isSuperAdmin && !user?.companyId) {
+        // Keep both tokens in sync so exitCompany() always has a valid
+        // global refresh token even after the access token has been silently
+        // renewed one or more times while in the global (non-company) context.
         _superAdminToken = accessToken;
+        _superAdminRefreshToken = refreshToken;
+        sessionStorage.setItem(SA_REFRESH_KEY, refreshToken);
       }
       set({ accessToken, isSuperAdmin });
     },
 
     clearAuth: () => {
       localStorage.removeItem(AUTH_KEY);
+      sessionStorage.removeItem(SA_REFRESH_KEY);
       _superAdminToken = null;
+      _superAdminRefreshToken = null;
       set({
         user: null,
         accessToken: null,
@@ -192,11 +216,56 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     exitCompany: async () => {
       const { user } = get();
 
-      // --- Obtain the global super-admin token ---
-      // Primary: use the in-memory backup set by setAuth / enterCompany
-      // Fallback: /auth/refresh (used after a page reload when memory is gone)
+      // --- Obtain a live global super-admin token ---
+      // Strategy (in order):
+      //   1. Cached access token (_superAdminToken) — fast path, same-session.
+      //   2. Cached global refresh token (_superAdminRefreshToken) — handles the
+      //      common case where the access token expired during a long company
+      //      session.  Sent in the request body so the cookie (company-scoped)
+      //      is not used.
+      //   3. Cookie-based /auth/refresh — post-reload fallback when both
+      //      in-memory tokens are gone (the cookie holds whatever token was last
+      //      issued, which may or may not be global).
       let globalToken = _superAdminToken;
 
+      // Step 1: discard the cached access token if it is expired or not global.
+      // Without this check an expired-but-truthy string would bypass step 2/3.
+      if (globalToken) {
+        const decoded = decodeJwt(globalToken);
+        const isExpired =
+          !decoded || typeof decoded.exp !== 'number' || decoded.exp * 1000 < Date.now();
+        if (isExpired || decoded?.isSuperAdmin !== true) {
+          globalToken = null;
+          _superAdminToken = null;
+        }
+      }
+
+      // Step 2: renew using the stored global refresh token (body, not cookie).
+      // _superAdminRefreshToken survives page refreshes via sessionStorage (SA_REFRESH_KEY).
+      let newRefreshToken: string | null = null;
+      if (!globalToken && _superAdminRefreshToken) {
+        try {
+          const { data } = await axios.post<{ accessToken: string; refreshToken: string }>(
+            `${_baseURL()}/auth/refresh`,
+            { refreshToken: _superAdminRefreshToken },
+            {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: 15000,
+              withCredentials: true,
+            },
+          );
+          globalToken = data.accessToken;
+          newRefreshToken = data.refreshToken;
+          _superAdminToken = data.accessToken;
+          _superAdminRefreshToken = data.refreshToken;
+        } catch {
+          _superAdminRefreshToken = null;
+          sessionStorage.removeItem(SA_REFRESH_KEY);
+          // Fall through to the cookie-based path.
+        }
+      }
+
+      // Step 3: cookie-based fallback (post-reload, in-memory state is gone).
       if (!globalToken) {
         try {
           const { data } = await axios.post<{ accessToken: string; refreshToken: string }>(
@@ -209,20 +278,24 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
             },
           );
           globalToken = data.accessToken;
+          newRefreshToken = data.refreshToken;
         } catch {
           return false;
         }
       }
 
-      // Validate the token is a live super-admin token
+      // Validate the token we ended up with is a live super-admin global token.
       const decoded = decodeJwt(globalToken);
       if (
         !decoded ||
         typeof decoded.exp !== 'number' ||
         decoded.exp * 1000 < Date.now() ||
-        decoded.isSuperAdmin !== true
+        decoded.isSuperAdmin !== true ||
+        decoded.companyId // reject company-scoped tokens
       ) {
         _superAdminToken = null;
+        _superAdminRefreshToken = null;
+        sessionStorage.removeItem(SA_REFRESH_KEY);
         return false;
       }
 
@@ -242,8 +315,14 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
           hasSuperAdminContext: false,
         } satisfies PersistedAuth),
       );
-      // Retain global token in memory for the next enterCompany cycle
+      // Retain global token in memory for the next enterCompany cycle.
+      // Also persist the new refresh token so a subsequent page refresh
+      // keeps the super-admin context recoverable.
       _superAdminToken = globalToken;
+      if (newRefreshToken) {
+        _superAdminRefreshToken = newRefreshToken;
+        sessionStorage.setItem(SA_REFRESH_KEY, newRefreshToken);
+      }
       set({
         user: updatedUser,
         accessToken: globalToken,

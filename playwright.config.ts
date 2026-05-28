@@ -26,6 +26,10 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       VITE_USE_MOCKS: 'false',
+      // Ensures API calls use a same-origin path so page.route('/api/v1/**')
+      // intercepts them.  Without this Vite falls back to http://localhost:8000
+      // and the route patterns never match in CI (no backend running).
+      VITE_API_URL: '/api/v1',
     },
     timeout: 60_000,
   },
