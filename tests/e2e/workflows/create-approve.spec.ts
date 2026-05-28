@@ -9,7 +9,7 @@ const MOCK_TYPOLOGY = {
   id: 'typ-001',
   orgId: ORG_ID,
   datosDeclarados: { nombre: 'Security Policy', codigo: 'SP-001', version: 'v1' },
-  status: 'ACTIVE',
+  typologyStatus: 'ACTIVE',
   documento: { extractionStatus: 'COMPLETED' },
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
@@ -223,7 +223,7 @@ test.describe('Workflow approval', () => {
       }),
     );
     await page.route(`${API}/workflows/${draftWorkflow.id}`, (route) =>
-      route.fulfill({ json: { ...draftWorkflow, status: 'IN_APPROVAL' } }),
+      route.fulfill({ json: draftWorkflow }),
     );
     await page.route(`${API}/workflows/${draftWorkflow.id}/start-approval`, (route) =>
       route.fulfill({ json: { ...draftWorkflow, status: 'IN_APPROVAL' } }),
