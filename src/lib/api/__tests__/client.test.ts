@@ -9,7 +9,7 @@ import axiosRetry from 'axios-retry';
 
 const mockAuthState = {
   accessToken: null as string | null,
-  updateTokenPair: vi.fn(),
+  updateAccessToken: vi.fn(),
   clearAuth: vi.fn(),
 };
 
@@ -48,14 +48,14 @@ beforeEach(() => {
 
   // Re-initialise mock state after resetAllMocks
   mockAuthState.accessToken = null;
-  mockAuthState.updateTokenPair = vi.fn();
+  mockAuthState.updateAccessToken = vi.fn();
   mockAuthState.clearAuth = vi.fn();
 });
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
-function makeRefreshResponse(accessToken = 'new-access', refreshToken = 'new-refresh') {
-  return Promise.resolve({ data: { accessToken, refreshToken } });
+function makeRefreshResponse(accessToken = 'new-access') {
+  return Promise.resolve({ data: { accessToken } });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -174,10 +174,10 @@ describe('response interceptor — silent refresh succeeds', () => {
     expect(body).toBeUndefined();
   });
 
-  it('calls updateTokenPair with the tokens returned by the refresh endpoint', async () => {
+  it('calls updateAccessToken with the new access token after silent refresh', async () => {
     await apiClient.get('/api/protected');
 
-    expect(mockAuthState.updateTokenPair).toHaveBeenCalledWith('new-access', 'new-refresh');
+    expect(mockAuthState.updateAccessToken).toHaveBeenCalledWith('new-access');
   });
 
   it('resolves with the retried response body', async () => {
@@ -278,7 +278,7 @@ describe('response interceptor — concurrent 401s are queued', () => {
     let refreshCallCount = 0;
     axiosPostSpy.mockImplementation(() => {
       refreshCallCount++;
-      return makeRefreshResponse('queued-token', 'queued-rt');
+      return makeRefreshResponse('queued-token');
     });
 
     mock.onGet('/api/resource-a').replyOnce(401);
@@ -297,7 +297,7 @@ describe('response interceptor — concurrent 401s are queued', () => {
   });
 
   it('sends the new access token on every replayed request', async () => {
-    axiosPostSpy.mockImplementation(() => makeRefreshResponse('token-for-all', 'rt'));
+    axiosPostSpy.mockImplementation(() => makeRefreshResponse('token-for-all'));
 
     mock.onGet('/api/resource-a').replyOnce(401);
     mock.onGet('/api/resource-b').replyOnce(401);

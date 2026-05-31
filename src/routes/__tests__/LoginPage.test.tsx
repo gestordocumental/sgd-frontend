@@ -28,17 +28,27 @@ vi.mock('@/store/authStore', () => ({
         isAuthenticated: false,
         accessToken: null,
         clearAuth: vi.fn(),
-        updateTokenPair: vi.fn(),
+        updateAccessToken: vi.fn(),
       }),
     },
   ),
 }));
 
-// Mock TanStack Router hooks used by the component
+// Mock TanStack Router hooks used by the component.
+// Link is stubbed as a plain <a> because the real Link requires a router context.
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (opts: Record<string, unknown>) => opts,
   redirect: vi.fn(),
   useNavigate: () => mockNavigate,
+  Link: ({
+    to,
+    children,
+    ...props
+  }: {
+    to: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => createElement('a', { href: String(to), ...props }, children),
 }));
 
 // Import login module AFTER mocks are in place.
@@ -97,7 +107,6 @@ const server = setupServer(
     if (body.email === 'admin@test.com' && body.password === 'Admin123!') {
       return HttpResponse.json({
         accessToken: SUPER_ADMIN_JWT,
-        refreshToken: 'refresh-token',
         user: null,
       });
     }
@@ -105,7 +114,6 @@ const server = setupServer(
     if (body.email === 'user@test.com' && body.password === 'User1234!') {
       return HttpResponse.json({
         accessToken: REGULAR_JWT,
-        refreshToken: 'refresh-token',
         user: null,
       });
     }
@@ -118,9 +126,7 @@ const server = setupServer(
 
   http.get('*/auth/me/companies', () => HttpResponse.json(['company-1'])),
 
-  http.post('*/auth/switch-company', () =>
-    HttpResponse.json({ accessToken: COMPANY_JWT, refreshToken: 'company-refresh' }),
-  ),
+  http.post('*/auth/switch-company', () => HttpResponse.json({ accessToken: COMPANY_JWT })),
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -171,7 +177,6 @@ describe('LoginPage — super-admin login flow', () => {
       expect(mockSetAuth).toHaveBeenCalledWith(
         expect.objectContaining({ email: 'admin@test.com' }),
         SUPER_ADMIN_JWT,
-        'refresh-token',
         true, // isSuperAdmin
       );
     });

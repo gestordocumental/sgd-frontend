@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { apiClient } from './client';
 
 export interface ApiUserRole {
@@ -120,7 +121,16 @@ export const usersApi = {
         data: ApiUserWithRoles[];
         total: number;
       }>(`/users/by-org/${orgId}`, { params: { page, limit } })
-      .then((r) => r.data),
+      .then((r) => {
+        const result = r.data;
+        if (result.total > limit) {
+          Sentry.captureMessage(
+            `listUsersByOrg truncated: ${result.total} > ${limit} for org ${orgId}`,
+            { level: 'warning' },
+          );
+        }
+        return result;
+      }),
 
   create: (dto: CreateUserDto) => apiClient.post<ApiUserCreated>('/users', dto).then((r) => r.data),
 

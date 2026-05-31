@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
 // Paths that must NOT trigger a silent refresh on 401 (would cause infinite loops)
 const SKIP_REFRESH_PATHS = [
   '/auth/refresh',
+  '/auth/exit-company',
   '/auth/login',
   '/auth/forgot-password',
   '/auth/reset-password',
@@ -115,7 +116,7 @@ apiClient.interceptors.response.use(
       // Use a plain axios call (not apiClient) to avoid triggering this interceptor again.
       // No body needed — the browser sends the httpOnly refresh-token cookie automatically
       // because withCredentials: true is set.
-      const { data } = await axios.post<{ accessToken: string; refreshToken: string }>(
+      const { data } = await axios.post<{ accessToken: string }>(
         `${baseURL}/auth/refresh`,
         undefined,
         { headers: { 'Content-Type': 'application/json' }, timeout: 15000, withCredentials: true },
@@ -129,7 +130,7 @@ apiClient.interceptors.response.use(
       const decoded = decodeJwt(finalAccessToken);
       const { user } = useAuthStore.getState();
       if (!decoded?.companyId && user?.companyId) {
-        const switchRes = await axios.post<{ accessToken: string; refreshToken: string }>(
+        const switchRes = await axios.post<{ accessToken: string }>(
           `${baseURL}/auth/switch-company`,
           { companyId: user.companyId },
           {
@@ -144,7 +145,7 @@ apiClient.interceptors.response.use(
         finalAccessToken = switchRes.data.accessToken;
       }
 
-      useAuthStore.getState().updateTokenPair(finalAccessToken, data.refreshToken);
+      useAuthStore.getState().updateAccessToken(finalAccessToken);
       flushQueue(null, finalAccessToken);
 
       original.headers.Authorization = `Bearer ${finalAccessToken}`;

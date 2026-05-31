@@ -115,6 +115,18 @@ export function useCompanyUsers(companyId: string) {
     enabled: !!editUser && !!editSelectedAreaId,
   });
 
+  // When editCargos loads asynchronously after editForm.reset(), the native <select>
+  // had no matching <option> at reset time and shows the placeholder.
+  // Re-apply cargoId once the list arrives, but only if the user hasn't changed it yet.
+  useEffect(() => {
+    if (!editUser?.cargoId || editCargos.length === 0) return;
+    const current = editForm.getValues('cargoId');
+    if (current === editUser.cargoId && editCargos.some((c) => c.id === editUser.cargoId)) {
+      editForm.setValue('cargoId', editUser.cargoId, { shouldDirty: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editCargos]);
+
   const {
     data: usersPage,
     isLoading: usersLoading,

@@ -22,14 +22,18 @@ export default defineConfig({
     // Start the Vite dev server without MSW — Playwright intercepts API calls directly
     command: 'npm run dev',
     url: 'http://localhost:5173',
-    // Reuse an already-running dev server locally; always spawn a fresh one in CI
-    reuseExistingServer: !process.env.CI,
+    // Always spawn a fresh server so webServer.env (incl. VITE_E2E) is always
+    // injected — reusing a stale local server would leave the overlay active.
+    reuseExistingServer: false,
     env: {
       VITE_USE_MOCKS: 'false',
       // Ensures API calls use a same-origin path so page.route('/api/v1/**')
       // intercepts them.  Without this Vite falls back to http://localhost:8000
       // and the route patterns never match in CI (no backend running).
       VITE_API_URL: '/api/v1',
+      // Disable TanStack Router DevTools in e2e so the overlay doesn't
+      // interfere with pointer events during tests.
+      VITE_E2E: 'true',
     },
     timeout: 60_000,
   },

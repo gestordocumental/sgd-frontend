@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,25 +75,28 @@ function LoginPage() {
       };
 
       if (isSuperAdmin) {
-        setAuth(baseUser, token, data.refreshToken, true);
+        setAuth(baseUser, token, true);
         navigate({ to: '/dashboard/admin' });
         return;
       }
 
-      // For company users: resolve their company and get a company-scoped token
-      setAuth(baseUser, token, data.refreshToken, false);
+      // For company users: resolve their company and get a company-scoped token.
+      // setAuth is intentionally deferred until the full token is resolved so that
+      // a failure in getMyCompanies/switchCompany never leaves a partial session
+      // (authenticated store with no companyId) while the user stays on /login.
       setIsSwitchingCompany(true);
       try {
         const companies = await authApi.getMyCompanies();
         if (companies.length > 0) {
           const companyId = companies[0];
-          const { accessToken: companyToken, refreshToken: companyRefresh } =
-            await authApi.switchCompany(companyId);
-          setAuth({ ...baseUser, companyId }, companyToken, companyRefresh, false);
+          const { accessToken: companyToken } = await authApi.switchCompany(companyId);
+          setAuth({ ...baseUser, companyId }, companyToken, false);
+        } else {
+          setAuth(baseUser, token, false);
         }
       } catch {
         setServerError(t('auth.serverErrorFallback'));
-        // Se mantiene el token original ya persistido por setAuth.
+        return;
       } finally {
         setIsSwitchingCompany(false);
       }
@@ -228,13 +231,12 @@ function LoginPage() {
 
             {/* ¿Olvidaste tu contraseña? */}
             <div className="flex justify-end">
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-sm text-primary hover:underline underline-offset-4"
-                onClick={() => navigate({ to: '/forgot-password' })}
               >
                 {t('auth.forgotPassword')}
-              </button>
+              </Link>
             </div>
 
             {/* Botón de acceso */}

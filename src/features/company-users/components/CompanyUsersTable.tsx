@@ -341,7 +341,12 @@ function UserRow({
       {canWrite && (
         <TableCell>
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+            <DropdownMenuTrigger
+              aria-label={t('users.actions.menuLabel', {
+                name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
+              })}
+              className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

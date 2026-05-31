@@ -217,7 +217,9 @@
       "globalUsers": "Usuarios (globales)",
       "monthlyRegistrations": "Registros por mes (6 meses)",
       "recentOrgs": "Organizaciones recientes",
-      "usersCount": "{{count}} usuarios"
+      "usersCount": "{{count}} usuarios",
+      "usersPerOrgBarLabel": "{{org}}: {{active}} activos, {{inactive}} inactivos (de {{total}} usuarios)",
+      "storageBarLabel": "{{name}}: {{storage}} en uso"
     },
     "orgStatus": {
       "active": "Activa",
@@ -570,6 +572,7 @@
       "VIEWER": "Solo lectura"
     },
     "actions": {
+      "menuLabel": "Acciones para el rol {{name}}",
       "editRole": "Editar rol",
       "deleteRole": "Eliminar rol"
     },
