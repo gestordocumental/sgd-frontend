@@ -30,6 +30,9 @@ export default defineConfig({
       // intercepts them.  Without this Vite falls back to http://localhost:8000
       // and the route patterns never match in CI (no backend running).
       VITE_API_URL: '/api/v1',
+      // Disable TanStack Router DevTools in e2e so the overlay doesn't
+      // interfere with pointer events during tests.
+      VITE_E2E: 'true',
     },
     timeout: 60_000,
   },

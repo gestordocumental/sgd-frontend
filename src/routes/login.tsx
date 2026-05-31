@@ -92,7 +92,7 @@ function LoginPage() {
         }
       } catch {
         setServerError(t('auth.serverErrorFallback'));
-        // Se mantiene el token original ya persistido por setAuth.
+        return;
       } finally {
         setIsSwitchingCompany(false);
       }

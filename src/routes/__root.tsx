@@ -7,7 +7,7 @@ export const Route = createRootRoute({
     <>
       <Outlet />
       <Toaster position="top-center" richColors />
-      {import.meta.env.DEV && <TanStackRouterDevtools />}
+      {import.meta.env.DEV && !import.meta.env.VITE_E2E && <TanStackRouterDevtools />}
     </>
   ),
 });

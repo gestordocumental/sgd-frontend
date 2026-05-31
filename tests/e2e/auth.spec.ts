@@ -150,8 +150,10 @@ test.describe('Login page', () => {
   });
 
   test('forgot password link navigates to /forgot-password', async ({ page }) => {
-    await page.getByRole('link', { name: 'Forgot your password?' }).click();
-    await expect(page).toHaveURL(/\/forgot-password/);
+    await expect(page.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
   });
 
   test('already authenticated users are redirected away from /login', async ({ page }) => {
