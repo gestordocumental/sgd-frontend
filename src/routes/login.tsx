@@ -80,8 +80,10 @@ function LoginPage() {
         return;
       }
 
-      // For company users: resolve their company and get a company-scoped token
-      setAuth(baseUser, token, false);
+      // For company users: resolve their company and get a company-scoped token.
+      // setAuth is intentionally deferred until the full token is resolved so that
+      // a failure in getMyCompanies/switchCompany never leaves a partial session
+      // (authenticated store with no companyId) while the user stays on /login.
       setIsSwitchingCompany(true);
       try {
         const companies = await authApi.getMyCompanies();
@@ -89,6 +91,8 @@ function LoginPage() {
           const companyId = companies[0];
           const { accessToken: companyToken } = await authApi.switchCompany(companyId);
           setAuth({ ...baseUser, companyId }, companyToken, false);
+        } else {
+          setAuth(baseUser, token, false);
         }
       } catch {
         setServerError(t('auth.serverErrorFallback'));
