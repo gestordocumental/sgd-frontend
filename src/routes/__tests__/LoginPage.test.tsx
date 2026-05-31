@@ -34,11 +34,21 @@ vi.mock('@/store/authStore', () => ({
   ),
 }));
 
-// Mock TanStack Router hooks used by the component
+// Mock TanStack Router hooks used by the component.
+// Link is stubbed as a plain <a> because the real Link requires a router context.
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (opts: Record<string, unknown>) => opts,
   redirect: vi.fn(),
   useNavigate: () => mockNavigate,
+  Link: ({
+    to,
+    children,
+    ...props
+  }: {
+    to: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => createElement('a', { href: String(to), ...props }, children),
 }));
 
 // Import login module AFTER mocks are in place.
