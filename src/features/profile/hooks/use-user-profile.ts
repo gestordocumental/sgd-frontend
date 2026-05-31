@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { authApi } from '@/lib/api/auth';
-import { companiesApi, type ApiCompany } from '@/lib/api/companies';
+import { companiesApi, fetchAllCompanies, type ApiCompany } from '@/lib/api/companies';
 import { usersApi } from '@/lib/api/users';
 import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
@@ -65,16 +65,14 @@ export function useUserProfile() {
 
   // Super admins: load all companies then filter to the user's assigned ones.
   // This avoids per-org permission issues with getById on a global token.
-  // limit=500 fetches the full list in one request — this is the context-switcher,
-  // not the admin table, so we need the complete dataset without pagination UI.
-  const { data: allCompaniesResult } = useQuery({
+  // fetchAllCompanies paginates automatically (100/page) so results are never
+  // silently truncated regardless of how many organisations exist.
+  const { data: allCompanies = EMPTY_COMPANIES } = useQuery({
     queryKey: ['all-companies-for-switch'],
-    queryFn: () => companiesApi.list({ limit: 500 }),
+    queryFn: fetchAllCompanies,
     staleTime: 300_000,
     enabled: isSuperAdmin && companyIds.length > 0,
   });
-
-  const allCompanies: ApiCompany[] = allCompaniesResult?.data ?? EMPTY_COMPANIES;
 
   // Regular users: fetch details per company.
   // Use allSettled so a 403 on a non-current company (OrgGuard requires companyId === :id)
@@ -130,8 +128,7 @@ export function useUserProfile() {
 
   const switchToCompany = useCallback(
     async (companyId: string) => {
-      const { accessToken: companyToken, refreshToken: companyRefresh } =
-        await authApi.switchCompany(companyId);
+      const { accessToken: companyToken } = await authApi.switchCompany(companyId);
       const company = companies.find((c) => c.id === companyId);
       // Persist the full company list before entering company context so that
       // after a page refresh (when isSuperAdmin becomes false and the
@@ -139,7 +136,7 @@ export function useUserProfile() {
       if (companies.length > 0) {
         sessionStorage.setItem(COMPANIES_SESSION_KEY, JSON.stringify(companies));
       }
-      enterCompany(companyId, company?.name ?? companyId, companyToken, companyRefresh);
+      enterCompany(companyId, company?.name ?? companyId, companyToken);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
         queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
@@ -288,6 +285,22 @@ export function useUserProfile() {
     window.addEventListener('sgd:super-admin-revoked', handler);
     return () => window.removeEventListener('sgd:super-admin-revoked', handler);
   }, []); // stable — reads from ref
+
+  // Relay revocation events from other tabs via BroadcastChannel.
+  // BroadcastChannel does not deliver back to the posting tab, so this only
+  // fires in tabs that did NOT receive the original SSE event. Retransmitting
+  // as a window custom event lets the existing handlers above take care of it.
+  useEffect(() => {
+    const bc = new BroadcastChannel('sgd-session');
+    bc.onmessage = ({ data }: MessageEvent<{ type: string; orgId?: string }>) => {
+      if (data.type === 'sgd:session-revoked') {
+        window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: data }));
+      } else if (data.type === 'sgd:super-admin-revoked') {
+        window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
+      }
+    };
+    return () => bc.close();
+  }, []);
 
   return {
     user,

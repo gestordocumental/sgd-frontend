@@ -75,21 +75,20 @@ function LoginPage() {
       };
 
       if (isSuperAdmin) {
-        setAuth(baseUser, token, data.refreshToken, true);
+        setAuth(baseUser, token, true);
         navigate({ to: '/dashboard/admin' });
         return;
       }
 
       // For company users: resolve their company and get a company-scoped token
-      setAuth(baseUser, token, data.refreshToken, false);
+      setAuth(baseUser, token, false);
       setIsSwitchingCompany(true);
       try {
         const companies = await authApi.getMyCompanies();
         if (companies.length > 0) {
           const companyId = companies[0];
-          const { accessToken: companyToken, refreshToken: companyRefresh } =
-            await authApi.switchCompany(companyId);
-          setAuth({ ...baseUser, companyId }, companyToken, companyRefresh, false);
+          const { accessToken: companyToken } = await authApi.switchCompany(companyId);
+          setAuth({ ...baseUser, companyId }, companyToken, false);
         }
       } catch {
         setServerError(t('auth.serverErrorFallback'));

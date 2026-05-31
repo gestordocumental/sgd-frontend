@@ -16,7 +16,7 @@ vi.mock('@/store/authStore', () => ({
   useAuthStore: Object.assign(
     vi.fn(() => vi.fn()),
     {
-      getState: () => ({ accessToken: null, clearAuth: vi.fn(), updateTokenPair: vi.fn() }),
+      getState: () => ({ accessToken: null, clearAuth: vi.fn(), updateAccessToken: vi.fn() }),
     },
   ),
 }));

@@ -55,3 +55,21 @@ export const companiesApi = {
   restore: (id: string): Promise<ApiCompany> =>
     apiClient.post<ApiCompany>(`/org/${id}/restore`).then((r) => r.data),
 };
+
+// Fetches every page and returns a flat array.
+// Used by the super-admin context-switcher so it never silently truncates when
+// there are more than PAGE_SIZE organisations.
+const FETCH_ALL_PAGE_SIZE = 100;
+
+export async function fetchAllCompanies(): Promise<ApiCompany[]> {
+  const first = await companiesApi.list({ page: 1, limit: FETCH_ALL_PAGE_SIZE });
+  if (first.total <= FETCH_ALL_PAGE_SIZE) return first.data;
+
+  const totalPages = Math.ceil(first.total / FETCH_ALL_PAGE_SIZE);
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) =>
+      companiesApi.list({ page: i + 2, limit: FETCH_ALL_PAGE_SIZE }),
+    ),
+  );
+  return [...first.data, ...rest.flatMap((r) => r.data)];
+}

@@ -28,7 +28,7 @@ vi.mock('@/store/authStore', () => ({
         isAuthenticated: false,
         accessToken: null,
         clearAuth: vi.fn(),
-        updateTokenPair: vi.fn(),
+        updateAccessToken: vi.fn(),
       }),
     },
   ),
@@ -97,7 +97,6 @@ const server = setupServer(
     if (body.email === 'admin@test.com' && body.password === 'Admin123!') {
       return HttpResponse.json({
         accessToken: SUPER_ADMIN_JWT,
-        refreshToken: 'refresh-token',
         user: null,
       });
     }
@@ -105,7 +104,6 @@ const server = setupServer(
     if (body.email === 'user@test.com' && body.password === 'User1234!') {
       return HttpResponse.json({
         accessToken: REGULAR_JWT,
-        refreshToken: 'refresh-token',
         user: null,
       });
     }
@@ -118,9 +116,7 @@ const server = setupServer(
 
   http.get('*/auth/me/companies', () => HttpResponse.json(['company-1'])),
 
-  http.post('*/auth/switch-company', () =>
-    HttpResponse.json({ accessToken: COMPANY_JWT, refreshToken: 'company-refresh' }),
-  ),
+  http.post('*/auth/switch-company', () => HttpResponse.json({ accessToken: COMPANY_JWT })),
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -171,7 +167,6 @@ describe('LoginPage — super-admin login flow', () => {
       expect(mockSetAuth).toHaveBeenCalledWith(
         expect.objectContaining({ email: 'admin@test.com' }),
         SUPER_ADMIN_JWT,
-        'refresh-token',
         true, // isSuperAdmin
       );
     });

@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Copy, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { orgStructureApi } from '@/lib/api/org-structure';
 import {
   type AuditLog,
   type SimpleUser,
@@ -14,11 +16,14 @@ import {
   resolveResourceName,
 } from './audit-table.utils';
 
-function formatValue(value: unknown, t: (key: string) => string): string {
-  if (value == null || value === '') return '—';
-  if (value === true) return t('common.active');
-  if (value === false) return t('common.inactive');
-  return String(value);
+// Fields in audit changes that hold org-structure UUIDs
+const ORG_STRUCTURE_FIELDS = new Set(['departamentoId', 'areaId', 'cargoId']);
+
+function hasOrgStructureChanges(
+  changes: Record<string, { from: unknown; to: unknown }> | null,
+): boolean {
+  if (!changes) return false;
+  return Object.keys(changes).some((k) => ORG_STRUCTURE_FIELDS.has(k));
 }
 
 interface AuditDetailModalProps {
@@ -27,6 +32,7 @@ interface AuditDetailModalProps {
   open: boolean;
   onClose: () => void;
   onFilterByCorrelation: (correlationId: string) => void;
+  companyId?: string;
 }
 
 export function AuditDetailModal({
@@ -35,12 +41,52 @@ export function AuditDetailModal({
   open,
   onClose,
   onFilterByCorrelation,
+  companyId,
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
   const changes = (log.metadata?.['changes'] ?? null) as Record<
     string,
     { from: unknown; to: unknown }
   > | null;
+
+  const orgId = companyId ?? log.orgId;
+  const needsOrgLookup = !!orgId && hasOrgStructureChanges(changes);
+
+  const { data: depts = [] } = useQuery({
+    queryKey: ['departamentos', orgId],
+    queryFn: () => orgStructureApi.listDepartamentos(orgId!),
+    staleTime: 300_000,
+    enabled: needsOrgLookup,
+  });
+
+  const { data: allAreas = [] } = useQuery({
+    queryKey: ['all-areas', orgId],
+    queryFn: () => orgStructureApi.listAllAreas(orgId!),
+    staleTime: 300_000,
+    enabled: needsOrgLookup,
+  });
+
+  const { data: allCargos = [] } = useQuery({
+    queryKey: ['all-cargos', orgId],
+    queryFn: () => orgStructureApi.listAllCargos(orgId!),
+    staleTime: 300_000,
+    enabled: needsOrgLookup,
+  });
+
+  const deptMap = new Map(depts.map((d) => [d.id, d.name]));
+  const areaMap = new Map(allAreas.map((a) => [a.id, a.name]));
+  const cargoMap = new Map(allCargos.map((c) => [c.id, c.name]));
+
+  function resolveChangeValue(field: string, value: unknown): string {
+    if (value == null || value === '') return '—';
+    if (value === true) return t('common.active');
+    if (value === false) return t('common.inactive');
+    const str = String(value);
+    if (field === 'departamentoId') return deptMap.get(str) ?? str;
+    if (field === 'areaId') return areaMap.get(str) ?? str;
+    if (field === 'cargoId') return cargoMap.get(str) ?? str;
+    return str;
+  }
 
   return (
     <Dialog
@@ -149,10 +195,12 @@ export function AuditDetailModal({
                       ) : (
                         <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 text-xs min-w-0">
                           <span className="line-through text-red-500/80 break-words">
-                            {formatValue(from, t)}
+                            {resolveChangeValue(field, from)}
                           </span>
                           <span className="text-muted-foreground shrink-0">→</span>
-                          <span className="text-green-600 break-words">{formatValue(to, t)}</span>
+                          <span className="text-green-600 break-words">
+                            {resolveChangeValue(field, to)}
+                          </span>
                         </div>
                       )}
                     </div>

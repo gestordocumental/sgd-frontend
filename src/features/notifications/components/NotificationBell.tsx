@@ -57,10 +57,7 @@ export function NotificationBell({ onWorkflowClick, companies = [] }: Notificati
       >
         <Bell className="size-4" />
         {unreadCount > 0 && (
-          <span
-            className="absolute top-1 right-1 inline-flex h-3.5 min-w-3.5 px-1 items-center justify-center rounded-full text-[9px] text-white font-bold leading-none"
-            style={{ backgroundColor: '#0060C5' }}
-          >
+          <span className="absolute top-1 right-1 inline-flex h-3.5 min-w-3.5 px-1 items-center justify-center rounded-full text-[9px] text-white font-bold leading-none bg-brand">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}

@@ -8,7 +8,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -51,12 +51,17 @@ export function DetailWorkflowDialog({
   } = hook;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
+  // Memoized so atob + JSON.parse only re-run when the token or user changes,
+  // not on every re-render caused by isDownloadingZip or other local state.
+  const currentUserId = useMemo(
+    () => (accessToken ? decodeJwt(accessToken)?.sub : null) ?? user?.id,
+    [accessToken, user?.id],
+  );
+
   const userName = (userId: string) => orgUsersMap.get(userId) ?? t('common.unknownUser');
 
   if (!detailWorkflow) return null;
 
-  // createdBy viene del sub del JWT — usamos sub decodificado para comparar con certeza
-  const currentUserId = (accessToken ? decodeJwt(accessToken)?.sub : null) ?? user?.id;
   const isCreator = detailWorkflow.createdBy === currentUserId;
 
   const {

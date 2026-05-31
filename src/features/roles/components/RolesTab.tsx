@@ -255,7 +255,10 @@ function RoleRow({
           </span>
           {canWrite && (
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+              <DropdownMenuTrigger
+                aria-label={t('roles.actions.menuLabel', { name: role.name })}
+                className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
                 <MoreHorizontal className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

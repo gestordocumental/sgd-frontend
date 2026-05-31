@@ -151,10 +151,7 @@ export function WorkflowsTable({
             <AlertCircle className="size-4" />
             {t('workflows.tabs.myTasks')}
             {hook.myTasks.length > 0 && (
-              <span
-                className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold"
-                style={{ backgroundColor: '#0060C5' }}
-              >
+              <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand">
                 {hook.myTasks.length}
               </span>
             )}

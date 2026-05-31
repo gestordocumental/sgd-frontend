@@ -43,9 +43,10 @@ import {
 interface AuditTableProps {
   hook: AuditHook;
   users?: SimpleUser[];
+  companyId?: string;
 }
 
-export function AuditTable({ hook, users = [] }: AuditTableProps) {
+export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
   const { t } = useTranslation();
   const {
     logs,
@@ -378,6 +379,7 @@ export function AuditTable({ hook, users = [] }: AuditTableProps) {
         <AuditDetailModal
           log={selectedLog}
           users={users}
+          companyId={companyId}
           open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           onFilterByCorrelation={(correlationId) => {

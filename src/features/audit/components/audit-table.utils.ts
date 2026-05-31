@@ -124,11 +124,26 @@ export function resolveResourceName(log: {
   metadata: Record<string, unknown> | null;
 }): string {
   if (log.resourceName) return log.resourceName;
+
   const m = log.metadata;
-  if (m) {
-    const name = (m['name'] ?? m['email'] ?? m['title']) as string | undefined;
-    if (name) return name;
+  if (!m) return log.resourceId;
+
+  // For *_UPDATED events: the name may live in metadata.changes.name.{from,to}
+  // when resourceName was not yet indexed (legacy documents).
+  const changes = m['changes'];
+  if (changes && typeof changes === 'object' && !Array.isArray(changes)) {
+    const nameChange = (changes as Record<string, unknown>)['name'];
+    if (nameChange && typeof nameChange === 'object' && !Array.isArray(nameChange)) {
+      const { to, from } = nameChange as { to: unknown; from: unknown };
+      if (to && typeof to === 'string') return to;
+      if (from && typeof from === 'string') return from;
+    }
   }
+
+  // For *_CREATED events: name, email, or title may appear at the top level.
+  const topLevel = (m['name'] ?? m['email'] ?? m['title']) as string | undefined;
+  if (topLevel && typeof topLevel === 'string') return topLevel;
+
   return log.resourceId;
 }
 

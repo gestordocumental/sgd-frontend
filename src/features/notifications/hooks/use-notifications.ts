@@ -14,6 +14,11 @@ export function useNotifications() {
   useEffect(() => {
     if (!accessToken) return;
 
+    // BroadcastChannel propagates revocation events to other tabs of the same origin.
+    // BroadcastChannel does NOT deliver messages back to the tab that posted them,
+    // so the current tab handles its own revocation via window.dispatchEvent below.
+    const bc = new BroadcastChannel('sgd-session');
+
     let es: EventSource | null = null;
     let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let retryDelayMs = 1_000;
@@ -34,13 +39,16 @@ export function useNotifications() {
             typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
           const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
           if (payload.orgId && payload.orgId !== currentCompanyId) return;
+          bc.postMessage({ type: 'sgd:session-revoked', ...payload });
           window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: payload }));
         } catch {
+          bc.postMessage({ type: 'sgd:session-revoked' });
           window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: {} }));
         }
       });
 
       sse.addEventListener('super-admin-revoked', () => {
+        bc.postMessage({ type: 'sgd:super-admin-revoked' });
         window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
       });
 
@@ -79,6 +87,7 @@ export function useNotifications() {
     return () => {
       active = false;
       es?.close();
+      bc.close();
       if (retryTimeoutId !== null) clearTimeout(retryTimeoutId);
     };
   }, [accessToken, queryClient]);

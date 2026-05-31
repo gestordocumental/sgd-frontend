@@ -1,3 +1,4 @@
+import '@/instrument'; // must be first — initializes Sentry before any other module
 import '@/i18n';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
