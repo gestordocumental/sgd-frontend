@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -227,13 +227,12 @@ function LoginPage() {
 
             {/* ¿Olvidaste tu contraseña? */}
             <div className="flex justify-end">
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-sm text-primary hover:underline underline-offset-4"
-                onClick={() => navigate({ to: '/forgot-password' })}
               >
                 {t('auth.forgotPassword')}
-              </button>
+              </Link>
             </div>
 
             {/* Botón de acceso */}

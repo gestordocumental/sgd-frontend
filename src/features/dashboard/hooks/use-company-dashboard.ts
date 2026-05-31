@@ -79,10 +79,11 @@ export function useCompanyDashboard() {
 
   const handleWorkflowNotificationClick = useCallback(
     async (workflowId: string) => {
+      if (!canViewWorkflows) return;
       handleTabChange('workflows');
       await workflows.openDetailById(workflowId);
     },
-    [handleTabChange, workflows],
+    [canViewWorkflows, handleTabChange, workflows],
   );
 
   return {

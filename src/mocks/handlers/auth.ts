@@ -33,4 +33,8 @@ export const authHandlers = [
   http.post('*/auth/refresh', () => {
     return HttpResponse.json({ accessToken: 'mock.jwt.access-token.refreshed' });
   }),
+
+  http.post('*/auth/exit-company', () => {
+    return HttpResponse.json({ accessToken: 'mock.jwt.global-token' });
+  }),
 ];

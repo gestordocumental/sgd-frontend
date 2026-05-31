@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 
 // Build a fake JWT that the frontend can decode (signature is not verified client-side).
 function makeJwt(payload: Record<string, unknown>): string {
-  const b64 = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url');
-  return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(payload)}.fakesig`;
+  const b64url = (obj: object) =>
+    btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(payload)}.fakesig`;
 }
 
 const EXP = Math.floor(Date.now() / 1000) + 3600;
@@ -46,7 +47,7 @@ test.describe('Login page', () => {
   test('renders the form with expected fields and button', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Welcome to SGD' })).toBeVisible();
     await expect(page.getByLabel('Email')).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 
@@ -71,7 +72,7 @@ test.describe('Login page', () => {
     );
 
     await page.getByLabel('Email').fill('wrong@test.com');
-    await page.getByLabel('Password').fill('WrongPass1!');
+    await page.getByRole('textbox', { name: 'Password' }).fill('WrongPass1!');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page.getByText('Invalid credentials')).toBeVisible();
@@ -84,7 +85,7 @@ test.describe('Login page', () => {
     );
 
     await page.getByLabel('Email').fill('user@test.com');
-    await page.getByLabel('Password').fill('SomePass1!');
+    await page.getByRole('textbox', { name: 'Password' }).fill('SomePass1!');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     // axiosRetry will retry 500s, so wait with a longer timeout
@@ -95,6 +96,10 @@ test.describe('Login page', () => {
   });
 
   test('successful login as a regular user navigates to /dashboard', async ({ page }) => {
+    // Register the catch-all first so specific routes below take precedence (Playwright is LIFO)
+    await page.route('**/api/v1/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+    );
     await page.route('**/api/v1/auth/login', (route) =>
       route.fulfill({
         status: 200,
@@ -116,19 +121,19 @@ test.describe('Login page', () => {
         body: JSON.stringify({ accessToken: COMPANY_TOKEN }),
       }),
     );
-    // Allow subsequent dashboard API calls to succeed silently
-    await page.route('**/api/v1/**', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
-    );
 
     await page.getByLabel('Email').fill('user@test.com');
-    await page.getByLabel('Password').fill('ValidPass1!');
+    await page.getByRole('textbox', { name: 'Password' }).fill('ValidPass1!');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
   test('successful login as super admin navigates to /dashboard/admin', async ({ page }) => {
+    // Register the catch-all first so the specific login route below takes precedence (Playwright is LIFO)
+    await page.route('**/api/v1/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+    );
     await page.route('**/api/v1/auth/login', (route) =>
       route.fulfill({
         status: 200,
@@ -136,20 +141,16 @@ test.describe('Login page', () => {
         body: JSON.stringify({ accessToken: SA_TOKEN }),
       }),
     );
-    // Allow subsequent dashboard API calls to succeed silently
-    await page.route('**/api/v1/**', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
-    );
 
     await page.getByLabel('Email').fill('sa@test.com');
-    await page.getByLabel('Password').fill('AdminPass1!');
+    await page.getByRole('textbox', { name: 'Password' }).fill('AdminPass1!');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/admin/);
   });
 
   test('forgot password link navigates to /forgot-password', async ({ page }) => {
-    await page.getByRole('button', { name: 'Forgot your password?' }).click();
+    await page.getByRole('link', { name: 'Forgot your password?' }).click();
     await expect(page).toHaveURL(/\/forgot-password/);
   });
 

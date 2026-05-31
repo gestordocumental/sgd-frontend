@@ -26,10 +26,11 @@ export function formatBytes(bytes: number): string {
 
 export function buildMonthlyOrgData(companies: ApiCompany[]): { label: string; count: number }[] {
   const now = new Date();
+  const locale = i18n.language.startsWith('es') ? 'es-CO' : 'en-US';
   return Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
     return {
-      label: d.toLocaleString('default', { month: 'short' }),
+      label: d.toLocaleString(locale, { month: 'short' }),
       count: companies.filter((c) => {
         const cd = new Date(c.createdAt);
         return cd.getFullYear() === d.getFullYear() && cd.getMonth() === d.getMonth();

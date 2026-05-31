@@ -291,7 +291,13 @@ export function useUserProfile() {
   // fires in tabs that did NOT receive the original SSE event. Retransmitting
   // as a window custom event lets the existing handlers above take care of it.
   useEffect(() => {
-    const bc = new BroadcastChannel('sgd-session');
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('sgd-session');
+    } catch {
+      // BroadcastChannel not supported (e.g. Safari < 15.4, some WebViews) — cross-tab sync disabled
+      return;
+    }
     bc.onmessage = ({ data }: MessageEvent<{ type: string; orgId?: string }>) => {
       if (data.type === 'sgd:session-revoked') {
         window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: data }));
@@ -299,7 +305,7 @@ export function useUserProfile() {
         window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
       }
     };
-    return () => bc.close();
+    return () => bc?.close();
   }, []);
 
   return {

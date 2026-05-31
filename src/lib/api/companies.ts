@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import { apiClient } from './client';
 
 export type OrgStatus = 'active' | 'inactive';
@@ -62,14 +64,19 @@ export const companiesApi = {
 const FETCH_ALL_PAGE_SIZE = 100;
 
 export async function fetchAllCompanies(): Promise<ApiCompany[]> {
-  const first = await companiesApi.list({ page: 1, limit: FETCH_ALL_PAGE_SIZE });
-  if (first.total <= FETCH_ALL_PAGE_SIZE) return first.data;
+  try {
+    const first = await companiesApi.list({ page: 1, limit: FETCH_ALL_PAGE_SIZE });
+    if (first.total <= FETCH_ALL_PAGE_SIZE) return first.data;
 
-  const totalPages = Math.ceil(first.total / FETCH_ALL_PAGE_SIZE);
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, i) =>
-      companiesApi.list({ page: i + 2, limit: FETCH_ALL_PAGE_SIZE }),
-    ),
-  );
-  return [...first.data, ...rest.flatMap((r) => r.data)];
+    const totalPages = Math.ceil(first.total / FETCH_ALL_PAGE_SIZE);
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) =>
+        companiesApi.list({ page: i + 2, limit: FETCH_ALL_PAGE_SIZE }),
+      ),
+    );
+    return [...first.data, ...rest.flatMap((r) => r.data)];
+  } catch (error) {
+    Sentry.captureException(error, { tags: { context: 'fetchAllCompanies' } });
+    throw error;
+  }
 }

@@ -210,8 +210,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
 
       const stored = readPersistedAuth();
       const baseUser = stored?.user ?? user;
+      if (!baseUser) {
+        _superAdminToken = null;
+        return false;
+      }
       const updatedUser: AuthUser = {
-        ...baseUser!,
+        ...baseUser,
         companyId: undefined,
         companyName: undefined,
       };

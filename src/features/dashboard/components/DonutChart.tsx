@@ -27,15 +27,17 @@ export function DonutChart({ slices, title, centerLabel, noDataLabel }: DonutCha
 
   const paths = visible.reduce<PathEntry[]>((acc, sl) => {
     const prevAngle = acc.length === 0 ? -Math.PI / 2 : acc[acc.length - 1]._endAngle;
-    const angle = (sl.value / total) * 2 * Math.PI - gap;
-    const startA = prevAngle + gap / 2;
+    const fullAngle = (sl.value / total) * 2 * Math.PI;
+    const appliedGap = Math.min(gap, fullAngle * 0.8);
+    const angle = Math.max(fullAngle - appliedGap, 0);
+    const startA = prevAngle + appliedGap / 2;
     const endA = startA + angle;
     const large = angle > Math.PI ? 1 : 0;
     const path = `M ${cx + r * Math.cos(startA)} ${cy + r * Math.sin(startA)}
       A ${r} ${r} 0 ${large} 1 ${cx + r * Math.cos(endA)} ${cy + r * Math.sin(endA)}
       L ${cx + innerR * Math.cos(endA)} ${cy + innerR * Math.sin(endA)}
       A ${innerR} ${innerR} 0 ${large} 0 ${cx + innerR * Math.cos(startA)} ${cy + innerR * Math.sin(startA)} Z`;
-    return [...acc, { ...sl, path, _endAngle: prevAngle + (sl.value / total) * 2 * Math.PI }];
+    return [...acc, { ...sl, path, _endAngle: prevAngle + fullAngle }];
   }, []);
 
   return (
