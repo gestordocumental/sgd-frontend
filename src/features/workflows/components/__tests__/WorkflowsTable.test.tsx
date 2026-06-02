@@ -24,7 +24,7 @@ const mockGetWorkflowActions = vi.fn(() => ({
 }));
 
 vi.mock('@/features/workflows/workflow-state-machine', () => ({
-  getWorkflowActions: (...args: unknown[]) => mockGetWorkflowActions(...args),
+  getWorkflowActions: () => mockGetWorkflowActions(),
 }));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

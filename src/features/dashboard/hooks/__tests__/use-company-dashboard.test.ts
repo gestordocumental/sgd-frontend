@@ -96,11 +96,14 @@ describe('useCompanyDashboard — effectiveTab', () => {
     ['org-structure', 'ORG_STRUCTURE', 'READ'],
     ['workflows', 'WORKFLOWS', 'READ'],
     ['audit', 'AUDIT', 'READ'],
-  ] as const)('falls back to overview on %s when the required permission is denied', (tab) => {
-    const { result } = renderHook(() => useCompanyDashboard());
-    navigateTo(result, tab);
-    expect(result.current.effectiveTab).toBe('overview');
-  });
+  ] as const)(
+    'falls back to overview on %s when the required permission is denied',
+    (tab, _module, _action) => {
+      const { result } = renderHook(() => useCompanyDashboard());
+      navigateTo(result, tab);
+      expect(result.current.effectiveTab).toBe('overview');
+    },
+  );
 
   it.each([
     ['users', 'USERS', 'READ'],

@@ -155,12 +155,14 @@ describe('useWorkflows — approverEligibleUsers', () => {
 
     // Open create to trigger queries
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    await waitFor(() => expect(result.current.approverEligibleUsers.length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(result.current.queries.approverEligibleUsers.length).toBeGreaterThan(0),
+    );
 
-    expect(result.current.approverEligibleUsers.map((u) => u.id)).toEqual(['u-1']);
+    expect(result.current.queries.approverEligibleUsers.map((u) => u.id)).toEqual(['u-1']);
   });
 
   it('excludes inactive users from eligible approvers', async () => {
@@ -184,12 +186,14 @@ describe('useWorkflows — approverEligibleUsers', () => {
 
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    await waitFor(() => expect(result.current.approverEligibleUsers.length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(result.current.queries.approverEligibleUsers.length).toBeGreaterThan(0),
+    );
 
-    expect(result.current.approverEligibleUsers.map((u) => u.id)).toEqual(['u-2']);
+    expect(result.current.queries.approverEligibleUsers.map((u) => u.id)).toEqual(['u-2']);
   });
 });
 
@@ -203,12 +207,12 @@ describe('useWorkflows — finalUserEligibleUsers', () => {
 
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
     // No typology selected → empty
-    await waitFor(() => expect(result.current.activeTypologies.length).toBeGreaterThan(0));
-    expect(result.current.finalUserEligibleUsers).toHaveLength(0);
+    await waitFor(() => expect(result.current.queries.activeTypologies.length).toBeGreaterThan(0));
+    expect(result.current.queries.finalUserEligibleUsers).toHaveLength(0);
   });
 
   it('filters users by departamentoId from the selected typology', async () => {
@@ -224,17 +228,19 @@ describe('useWorkflows — finalUserEligibleUsers', () => {
 
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    await waitFor(() => expect(result.current.activeTypologies.length).toBeGreaterThan(0));
+    await waitFor(() => expect(result.current.queries.activeTypologies.length).toBeGreaterThan(0));
 
     act(() => {
-      result.current.setSelectedTypologyId('typ-1');
+      result.current.dialogs.setSelectedTypologyId('typ-1');
     });
 
-    await waitFor(() => expect(result.current.finalUserEligibleUsers.length).toBeGreaterThan(0));
-    expect(result.current.finalUserEligibleUsers.map((u) => u.id)).toEqual(['u-match']);
+    await waitFor(() =>
+      expect(result.current.queries.finalUserEligibleUsers.length).toBeGreaterThan(0),
+    );
+    expect(result.current.queries.finalUserEligibleUsers.map((u) => u.id)).toEqual(['u-match']);
   });
 
   it('further filters by areaId when typology has areaId defined', async () => {
@@ -250,16 +256,20 @@ describe('useWorkflows — finalUserEligibleUsers', () => {
 
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    await waitFor(() => expect(result.current.activeTypologies.length).toBeGreaterThan(0));
+    await waitFor(() => expect(result.current.queries.activeTypologies.length).toBeGreaterThan(0));
     act(() => {
-      result.current.setSelectedTypologyId('typ-1');
+      result.current.dialogs.setSelectedTypologyId('typ-1');
     });
 
-    await waitFor(() => expect(result.current.finalUserEligibleUsers.length).toBeGreaterThan(0));
-    expect(result.current.finalUserEligibleUsers.map((u) => u.id)).toEqual(['u-right-area']);
+    await waitFor(() =>
+      expect(result.current.queries.finalUserEligibleUsers.length).toBeGreaterThan(0),
+    );
+    expect(result.current.queries.finalUserEligibleUsers.map((u) => u.id)).toEqual([
+      'u-right-area',
+    ]);
   });
 
   it('does not filter by areaId when typology areaId is null', async () => {
@@ -279,17 +289,19 @@ describe('useWorkflows — finalUserEligibleUsers', () => {
 
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    await waitFor(() => expect(result.current.activeTypologies.length).toBeGreaterThan(0));
+    await waitFor(() => expect(result.current.queries.activeTypologies.length).toBeGreaterThan(0));
     act(() => {
-      result.current.setSelectedTypologyId('typ-1');
+      result.current.dialogs.setSelectedTypologyId('typ-1');
     });
 
-    await waitFor(() => expect(result.current.finalUserEligibleUsers.length).toBeGreaterThan(0));
-    expect(result.current.finalUserEligibleUsers.map((u) => u.id)).toContain('u-a');
-    expect(result.current.finalUserEligibleUsers.map((u) => u.id)).toContain('u-b');
+    await waitFor(() =>
+      expect(result.current.queries.finalUserEligibleUsers.length).toBeGreaterThan(0),
+    );
+    expect(result.current.queries.finalUserEligibleUsers.map((u) => u.id)).toContain('u-a');
+    expect(result.current.queries.finalUserEligibleUsers.map((u) => u.id)).toContain('u-b');
   });
 });
 
@@ -298,14 +310,14 @@ describe('useWorkflows — finalUserEligibleUsers', () => {
 describe('useWorkflows — createBlocked', () => {
   it('is false when no document has been uploaded', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
-    expect(result.current.createBlocked).toBe(false);
+    expect(result.current.extraction.createBlocked).toBe(false);
   });
 
   it('is false initially when no extraction has started', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
 
-    expect(result.current.createBlocked).toBe(false);
-    expect(result.current.documentExtractionLoading).toBe(false);
+    expect(result.current.extraction.createBlocked).toBe(false);
+    expect(result.current.extraction.documentExtractionLoading).toBe(false);
   });
 });
 
@@ -315,44 +327,44 @@ describe('useWorkflows — addApprover / removeApprover', () => {
   it('adds an approver to the list', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
     act(() => {
-      result.current.addApprover('u-1');
+      result.current.dialogs.addApprover('u-1');
     });
-    expect(result.current.approverIds).toContain('u-1');
+    expect(result.current.dialogs.approverIds).toContain('u-1');
   });
 
   it('does not add the same approver twice', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
     act(() => {
-      result.current.addApprover('u-1');
-      result.current.addApprover('u-1');
+      result.current.dialogs.addApprover('u-1');
+      result.current.dialogs.addApprover('u-1');
     });
-    expect(result.current.approverIds.filter((id) => id === 'u-1')).toHaveLength(1);
+    expect(result.current.dialogs.approverIds.filter((id) => id === 'u-1')).toHaveLength(1);
   });
 
   it('removes a specific approver', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
     act(() => {
-      result.current.addApprover('u-1');
-      result.current.addApprover('u-2');
+      result.current.dialogs.addApprover('u-1');
+      result.current.dialogs.addApprover('u-2');
     });
     act(() => {
-      result.current.removeApprover('u-1');
+      result.current.dialogs.removeApprover('u-1');
     });
 
-    expect(result.current.approverIds).not.toContain('u-1');
-    expect(result.current.approverIds).toContain('u-2');
+    expect(result.current.dialogs.approverIds).not.toContain('u-1');
+    expect(result.current.dialogs.approverIds).toContain('u-2');
   });
 });
 
@@ -364,22 +376,22 @@ describe('useWorkflows — openCreate', () => {
 
     // Add some state first
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
     act(() => {
-      result.current.addApprover('u-1');
-      result.current.setSelectedTypologyId('typ-1');
+      result.current.dialogs.addApprover('u-1');
+      result.current.dialogs.setSelectedTypologyId('typ-1');
     });
 
     // Open again — should reset
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    expect(result.current.approverIds).toHaveLength(0);
-    expect(result.current.selectedTypologyId).toBe('');
-    expect(result.current.createError).toBeNull();
-    expect(result.current.createOpen).toBe(true);
+    expect(result.current.dialogs.approverIds).toHaveLength(0);
+    expect(result.current.dialogs.selectedTypologyId).toBe('');
+    expect(result.current.dialogs.createError).toBeNull();
+    expect(result.current.dialogs.createOpen).toBe(true);
   });
 });
 
@@ -393,11 +405,11 @@ describe('useWorkflows — openDetailById', () => {
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
 
     await act(async () => {
-      await result.current.openDetailById('wf-99');
+      await result.current.actions.openDetailById('wf-99');
     });
 
     expect(mockGetById).toHaveBeenCalledWith('wf-99');
-    expect(result.current.detailWorkflow?.id).toBe('wf-99');
+    expect(result.current.dialogs.detailWorkflow?.id).toBe('wf-99');
   });
 });
 
@@ -417,12 +429,12 @@ describe('useWorkflows — orgUsersMap', () => {
 
     const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
     act(() => {
-      result.current.openCreate();
+      result.current.actions.openCreate();
     });
 
-    await waitFor(() => expect(result.current.orgUsersMap.size).toBeGreaterThan(0));
+    await waitFor(() => expect(result.current.queries.orgUsersMap.size).toBeGreaterThan(0));
 
-    expect(result.current.orgUsersMap.get('u-1')).toBe('Ana García');
-    expect(result.current.orgUsersMap.get('u-2')).toBe('solo@email.com');
+    expect(result.current.queries.orgUsersMap.get('u-1')).toBe('Ana García');
+    expect(result.current.queries.orgUsersMap.get('u-2')).toBe('solo@email.com');
   });
 });

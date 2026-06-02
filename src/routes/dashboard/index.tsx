@@ -113,9 +113,9 @@ function CompanyDashboard() {
               <TabsTrigger value="workflows">
                 <GitBranch className="size-4" />
                 <span className="hidden xl:inline">{t('dashboard.workflows')}</span>
-                {workflows.myTasks.length > 0 && (
+                {workflows.queries.myTasks.length > 0 && (
                   <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand">
-                    {workflows.myTasks.length}
+                    {workflows.queries.myTasks.length}
                   </span>
                 )}
               </TabsTrigger>

@@ -120,7 +120,7 @@ features/<dominio>/
 
 ### Login y resolución de contexto
 
-```
+```text
 Usuario                  Frontend                    Backend
   |                         |                            |
   |--- credenciales ------->|                            |
@@ -146,7 +146,7 @@ El `accessToken` con `companyId` es el token de trabajo. El token global (sin `c
 
 El `accessToken` expira. El `refreshToken` viaja solo en una cookie `httpOnly` — el JS nunca puede leerlo.
 
-```
+```text
 Frontend                    Backend
   |                            |
   |-- GET /cualquier-endpoint->| → 401 Unauthorized
@@ -171,7 +171,7 @@ Las peticiones concurrentes que lleguen mientras el refresh está en curso se en
 
 Un super-admin puede entrar al contexto de una empresa y volver al contexto global:
 
-```
+```text
 Estado global              Estado empresa
 (sin companyId)            (con companyId)
        |                          |
@@ -197,7 +197,7 @@ Ficheros clave: `src/store/authStore.ts` (`enterCompany`, `exitCompany`), `src/l
 
 Las notificaciones en tiempo real usan Server-Sent Events. El JWT no puede enviarse en la URL (quedaría en logs de proxy y acceso del servidor), así que se usa un ticket efímero:
 
-```
+```text
 Frontend                    Backend
   |                            |
   |-- POST /notifications/     |
