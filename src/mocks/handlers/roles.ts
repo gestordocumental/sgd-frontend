@@ -93,8 +93,13 @@ export const rolesHandlers = [
   // All available permissions
   http.get('*/permissions', () => HttpResponse.json(MOCK_PERMISSIONS)),
 
-  // List roles for an org
-  http.get('*/roles', () => HttpResponse.json(rolesDb)),
+  // List roles for an org — filter by orgId when provided so tests can
+  // verify scoping behaviour instead of always getting the full set.
+  http.get('*/roles', ({ request }) => {
+    const orgId = new URL(request.url).searchParams.get('orgId');
+    const data = orgId ? rolesDb.filter((r) => r.orgId === orgId) : rolesDb;
+    return HttpResponse.json(data);
+  }),
 
   // Get role by ID
   http.get('*/roles/:id', ({ params }) => {

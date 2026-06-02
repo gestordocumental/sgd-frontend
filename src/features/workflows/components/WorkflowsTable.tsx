@@ -145,7 +145,10 @@ export function WorkflowsTable({
             <AlertCircle className="size-4" />
             {t('workflows.tabs.myTasks')}
             {myTasks.length > 0 && (
-              <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand">
+              <span
+                data-testid="my-tasks-badge"
+                className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand"
+              >
                 {myTasks.length}
               </span>
             )}
@@ -255,7 +258,10 @@ function WorkflowList({
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
+      <div
+        data-testid="workflow-skeleton"
+        className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border"
+      >
         {[1, 2, 3].map((i) => (
           <div key={i} className="flex items-center gap-4 px-5 py-4">
             <Skeleton className="h-4 w-48" />
@@ -387,7 +393,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => hook.setDetailWorkflow(workflow)}>
+            <DropdownMenuItem onClick={() => setDetailWorkflow(workflow)}>
               <FileText className="size-4" />
               {t('workflows.actions.viewDetail')}
             </DropdownMenuItem>

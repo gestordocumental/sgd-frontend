@@ -52,7 +52,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     isFetching: workflowsIsFetching,
     dataUpdatedAt: workflowsUpdatedAt,
   } = useQuery({
-    queryKey: ['workflows', statusFilter, debouncedSearch, page],
+    queryKey: ['workflows', companyId, statusFilter, debouncedSearch, page],
     queryFn: () =>
       workflowsApi.list({
         status: statusFilter,
@@ -63,7 +63,8 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
-    enabled: innerTab === 'all',
+    // Block while debounce is pending so we never fire (oldSearch, page=1).
+    enabled: innerTab === 'all' && search === debouncedSearch,
   });
 
   const {

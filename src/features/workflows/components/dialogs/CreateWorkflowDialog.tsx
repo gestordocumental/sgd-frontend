@@ -133,7 +133,7 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     onChange={(id) => {
                       setSelectedTypologyId(id);
                       notifyNoFinalUsersMutation.reset();
-                      removeFinalUser(finalUserIds[0]);
+                      if (finalUserIds.length > 0) removeFinalUser(finalUserIds[0]);
                     }}
                     placeholder={t('workflows.dialogs.typologyPlaceholder')}
                     searchPlaceholder={t('workflows.dialogs.typologySearch')}

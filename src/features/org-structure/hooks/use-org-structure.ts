@@ -72,21 +72,21 @@ export function useOrgStructure(companyId: string, enabled = true) {
     queryKey: ['areas', companyId, selectedDeptId],
     queryFn: () => orgStructureApi.listAreas(companyId, selectedDeptId),
     staleTime: 60_000,
-    enabled: !!companyId && !!selectedDeptId,
+    enabled: enabled && !!companyId && !!selectedDeptId,
   });
 
   const { data: cargos = [], isLoading: cargosLoading } = useQuery({
     queryKey: ['cargos', companyId, selectedDeptId, selectedAreaId],
     queryFn: () => orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId),
     staleTime: 60_000,
-    enabled: !!companyId && !!selectedDeptId && !!selectedAreaId,
+    enabled: enabled && !!companyId && !!selectedDeptId && !!selectedAreaId,
   });
 
   const { data: deptCargos = [], isLoading: deptCargosLoading } = useQuery({
     queryKey: ['dept-cargos', companyId, selectedDeptId],
     queryFn: () => orgStructureApi.listDeptCargos(companyId, selectedDeptId),
     staleTime: 60_000,
-    enabled: !!companyId && !!selectedDeptId,
+    enabled: enabled && !!companyId && !!selectedDeptId,
   });
 
   // ── Invalidation helpers ───────────────────────────────────────

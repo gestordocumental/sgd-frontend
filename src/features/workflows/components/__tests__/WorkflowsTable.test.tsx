@@ -289,8 +289,7 @@ describe('WorkflowsTable — permissions', () => {
 describe('WorkflowsTable — loading state', () => {
   it('renders skeleton rows while "all" tab data is loading', () => {
     render(<WorkflowsTable hook={makeHook({ queries: { workflowsLoading: true } })} canManage />);
-    // Skeleton rows are present (at least one animate-pulse element)
-    expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('workflow-skeleton')).toBeInTheDocument();
   });
 
   it('renders skeleton rows while my-tasks data is loading', () => {
@@ -303,7 +302,7 @@ describe('WorkflowsTable — loading state', () => {
         canManage
       />,
     );
-    expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('workflow-skeleton')).toBeInTheDocument();
   });
 });
 
@@ -499,9 +498,7 @@ describe('WorkflowsTable — my-tasks badge', () => {
 
   it('hides the count badge when there are no tasks', () => {
     render(<WorkflowsTable hook={makeHook()} canManage />);
-    // No badge number visible in my-tasks tab
-    const tab = screen.getByRole('tab', { name: /my tasks/i });
-    expect(tab.querySelector('span.bg-brand')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('my-tasks-badge')).not.toBeInTheDocument();
   });
 });
 
@@ -587,10 +584,7 @@ describe('WorkflowsTable — pagination', () => {
         canManage
       />,
     );
-    const pagerBtns = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('button.size-7'),
-    ).filter((btn) => btn.querySelector('svg'));
-    fireEvent.click(pagerBtns[pagerBtns.length - 1]);
+    fireEvent.click(screen.getByRole('button', { name: /next page/i }));
     expect(setPage).toHaveBeenCalledWith(2);
   });
 });

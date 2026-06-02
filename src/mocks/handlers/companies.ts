@@ -57,6 +57,7 @@ export const companiesHandlers = [
 
     const filtered = companiesDb.filter((c) => {
       if (status === 'deleted' && c.deletedAt === null) return false;
+      if (status !== 'deleted' && c.deletedAt !== null) return false;
       if (status === 'active' && c.status !== 'active') return false;
       if (status === 'inactive' && c.status !== 'inactive') return false;
       if (search && !c.name.toLowerCase().includes(search)) return false;

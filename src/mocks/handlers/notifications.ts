@@ -51,7 +51,13 @@ const MOCK_NOTIFICATIONS: ApiNotification[] = [
   },
 ];
 
-let notificationsDb = MOCK_NOTIFICATIONS.map((n) => ({ ...n }));
+const createNotificationsDb = () => MOCK_NOTIFICATIONS.map((n) => ({ ...n }));
+
+export function resetNotificationsDb() {
+  notificationsDb = createNotificationsDb();
+}
+
+let notificationsDb = createNotificationsDb();
 
 // ── Handlers — order: specific static paths before :id patterns ───────────────
 

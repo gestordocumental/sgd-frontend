@@ -205,6 +205,8 @@ apiClient.interceptors.response.use(
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${finalAccessToken}`,
+              // switch-company bypasses apiClient so we attach the CSRF header manually.
+              ...(csrfToken && { [CSRF_HEADER]: csrfToken }),
             },
             timeout: 15000,
             withCredentials: true,
@@ -220,17 +222,8 @@ apiClient.interceptors.response.use(
       original.headers.Authorization = `Bearer ${finalAccessToken}`;
       return apiClient(original);
     } catch (refreshError) {
-      const status = (refreshError as { response?: { status?: number; data?: unknown } })?.response
-        ?.status;
-      const body = (refreshError as { response?: { data?: unknown } })?.response?.data;
-      console.error(
-        '[auth:refresh] Silent refresh failed — status:',
-        status,
-        '| body:',
-        body,
-        '| raw:',
-        refreshError,
-      );
+      const status = (refreshError as { response?: { status?: number } })?.response?.status;
+      console.error('[auth:refresh] Silent refresh failed', { status });
       flushQueue(refreshError, null);
       useAuthStore.getState().clearAuth();
       void router.navigate({ to: '/login', replace: true });

@@ -174,14 +174,13 @@ export const workflowsHandlers = [
   ),
 
   // Get single workflow by ID
-  http.get('*/workflows/:id', ({ params }) =>
-    HttpResponse.json(
-      MOCK_WORKFLOWS.find((w) => w.id === params['id']) ?? {
-        ...BASE_WORKFLOW,
-        id: params['id'] as string,
-      },
-    ),
-  ),
+  http.get('*/workflows/:id', ({ params }) => {
+    const workflow = MOCK_WORKFLOWS.find((w) => w.id === params['id']);
+    if (!workflow) {
+      return HttpResponse.json({ message: 'Workflow not found' }, { status: 404 });
+    }
+    return HttpResponse.json(workflow);
+  }),
 
   // Paginated list
   http.get('*/workflows', ({ request }) => {
@@ -229,7 +228,10 @@ export const workflowsHandlers = [
   // Update workflow
   http.patch('*/workflows/:id', async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    const existing = MOCK_WORKFLOWS.find((w) => w.id === params['id']) ?? BASE_WORKFLOW;
+    const existing = MOCK_WORKFLOWS.find((w) => w.id === params['id']);
+    if (!existing) {
+      return HttpResponse.json({ message: 'Workflow not found' }, { status: 404 });
+    }
     return HttpResponse.json<ApiWorkflow>({
       ...existing,
       ...(body['title'] !== undefined && { title: body['title'] as string }),

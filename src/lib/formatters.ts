@@ -46,7 +46,10 @@ export function buildMonthlyOrgData(companies: ApiCompany[]): { label: string; c
  * to `t(key, vars)` so that i18next handles interpolation natively.
  */
 export function timeAgoKey(dateStr: string): { key: string; vars?: Record<string, number> } {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp)) return { key: 'notifications.justNow' };
+
+  const diff = Math.max(0, Date.now() - timestamp);
   const mins = Math.floor(diff / 60_000);
   if (mins < 1) return { key: 'notifications.justNow' };
   if (mins < 60) return { key: 'notifications.minutesAgo', vars: { n: mins } };

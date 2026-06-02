@@ -62,7 +62,7 @@ export function useCompanyUsers(companyId: string) {
 
   const { data: roles = [] } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(),
+    queryFn: () => rolesApi.listRoles(companyId),
     staleTime: 300_000,
     enabled: createUserOpen || !!editUser,
   });

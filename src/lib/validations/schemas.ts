@@ -26,7 +26,7 @@ export const newPasswordField = z
     'validation.password.noConsecutive',
   );
 
-export const requiredString = () => z.string().min(1, 'validation.required');
+export const requiredString = () => z.string().trim().min(1, 'validation.required');
 
 export const optionalString = z.string().optional();
 
