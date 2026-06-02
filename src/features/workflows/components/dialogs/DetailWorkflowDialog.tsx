@@ -36,19 +36,18 @@ export function DetailWorkflowDialog({
 }) {
   const { t } = useTranslation();
   const { user, accessToken } = useAuthStore();
+  const { detailWorkflow, setDetailWorkflow } = hook.dialogs;
+  const { startApprovalMutation } = hook.mutations;
+  const { orgUsersMap } = hook.queries;
   const {
-    detailWorkflow,
-    setDetailWorkflow,
-    startApprovalMutation,
     openApprove,
     openReject,
     openTimeline,
     openEdit,
-    orgUsersMap,
     openReviewCycle,
     openCompleteStep,
     openForwardStep,
-  } = hook;
+  } = hook.actions;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
   // Memoized so atob + JSON.parse only re-run when the token or user changes,

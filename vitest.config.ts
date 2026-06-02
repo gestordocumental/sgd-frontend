@@ -47,6 +47,13 @@ export default defineConfig({
         },
         // API client — interceptors + silent refresh + retry condition
         'src/lib/api/client.ts': { statements: 75, branches: 70, functions: 75, lines: 75 },
+        // Workflows UI — critical rendering, permissions, pagination, row actions
+        'src/features/workflows/components/WorkflowsTable.tsx': {
+          statements: 60,
+          branches: 55,
+          functions: 60,
+          lines: 60,
+        },
       },
     },
   },

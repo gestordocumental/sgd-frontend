@@ -81,7 +81,7 @@ export function useCompanyDashboard() {
     async (workflowId: string) => {
       if (!canViewWorkflows) return;
       handleTabChange('workflows');
-      await workflows.openDetailById(workflowId);
+      await workflows.actions.openDetailById(workflowId);
     },
     [canViewWorkflows, handleTabChange, workflows],
   );

@@ -12,7 +12,7 @@ import {
 import { requiredString } from '@/lib/validations/schemas';
 
 const companySchema = z.object({
-  name: requiredString('The company name'),
+  name: requiredString(),
   nit: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),

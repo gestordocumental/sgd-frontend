@@ -11,7 +11,7 @@ export default defineConfig({
     ? [['github'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
     : [['html', { open: 'on-failure', outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
     // Capture a trace on the first retry so failures are diagnosable
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
@@ -20,8 +20,8 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     // Start the Vite dev server without MSW — Playwright intercepts API calls directly
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev -- --port 4173',
+    url: 'http://localhost:4173',
     // Always spawn a fresh server so webServer.env (incl. VITE_E2E) is always
     // injected — reusing a stale local server would leave the overlay active.
     reuseExistingServer: false,

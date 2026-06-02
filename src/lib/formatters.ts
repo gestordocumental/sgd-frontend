@@ -17,6 +17,7 @@ export function isDeleted(user: ApiUser): boolean {
 }
 
 export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
   if (bytes === 0) return '0 B';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -37,6 +38,22 @@ export function buildMonthlyOrgData(companies: ApiCompany[]): { label: string; c
       }).length,
     };
   });
+}
+
+/**
+ * Returns the i18next key and interpolation variables for a relative
+ * "time ago" string. The caller is responsible for passing the result
+ * to `t(key, vars)` so that i18next handles interpolation natively.
+ */
+export function timeAgoKey(dateStr: string): { key: string; vars?: Record<string, number> } {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return { key: 'notifications.justNow' };
+  if (mins < 60) return { key: 'notifications.minutesAgo', vars: { n: mins } };
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return { key: 'notifications.hoursAgo', vars: { n: hrs } };
+  const days = Math.floor(hrs / 24);
+  return { key: 'notifications.daysAgo', vars: { n: days } };
 }
 
 export function formatDate(dateStr: string): string {

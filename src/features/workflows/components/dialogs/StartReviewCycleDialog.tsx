@@ -18,11 +18,9 @@ export function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
     setReviewCycleWorkflow,
     reviewCycleReviewerIds,
     setReviewCycleReviewerIds,
-    createAdminCycleMutation,
-    skipReviewCycleMutation,
-    activeOrgUsers,
-    orgUsersMap,
-  } = hook;
+  } = hook.dialogs;
+  const { createAdminCycleMutation, skipReviewCycleMutation } = hook.mutations;
+  const { activeOrgUsers, orgUsersMap } = hook.queries;
   const { t } = useTranslation();
 
   const [selectOpen, setSelectOpen] = useState(false);

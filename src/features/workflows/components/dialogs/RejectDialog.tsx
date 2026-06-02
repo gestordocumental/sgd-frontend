@@ -1,16 +1,29 @@
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { FormField } from '@/components/ui/form-field'
-import type { WorkflowsHook } from './workflow-dialog.types'
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import type { WorkflowsHook } from './workflow-dialog.types';
 
 export function RejectDialog({ hook }: { hook: WorkflowsHook }) {
-  const { t } = useTranslation()
-  const { rejectWorkflow, setRejectWorkflow, rejectForm, rejectMutation } = hook
+  const { t } = useTranslation();
+  const { rejectWorkflow, setRejectWorkflow } = hook.dialogs;
+  const { rejectMutation } = hook.mutations;
+  const { rejectForm } = hook.forms;
 
   return (
-    <Dialog open={!!rejectWorkflow} onOpenChange={(o) => { if (!o) setRejectWorkflow(null) }}>
+    <Dialog
+      open={!!rejectWorkflow}
+      onOpenChange={(o) => {
+        if (!o) setRejectWorkflow(null);
+      }}
+    >
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{t('workflows.dialogs.rejectTitle')}</DialogTitle>
@@ -22,8 +35,8 @@ export function RejectDialog({ hook }: { hook: WorkflowsHook }) {
         </p>
         <form
           onSubmit={rejectForm.handleSubmit((values) => {
-            if (!rejectWorkflow) return
-            rejectMutation.mutate({ id: rejectWorkflow.id, dto: values })
+            if (!rejectWorkflow) return;
+            rejectMutation.mutate({ id: rejectWorkflow.id, dto: values });
           })}
           className="space-y-4"
         >
@@ -47,11 +60,13 @@ export function RejectDialog({ hook }: { hook: WorkflowsHook }) {
               style={{ backgroundColor: '#dc2626' }}
               disabled={rejectMutation.isPending || !rejectForm.formState.isValid}
             >
-              {rejectMutation.isPending ? t('common.processing') : t('workflows.dialogs.rejectButton')}
+              {rejectMutation.isPending
+                ? t('common.processing')
+                : t('workflows.dialogs.rejectButton')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

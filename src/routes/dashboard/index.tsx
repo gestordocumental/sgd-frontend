@@ -144,14 +144,16 @@ function CompanyDashboard() {
           usersLoading={companyUsers.usersLoading}
         />
       </TabsContent>
-      <TabsContent value="company" className="flex-1 overflow-auto">
-        <CompanyTab
-          company={companyUsers.company}
-          activeUsersCount={activeUsers.length}
-          totalUsersCount={companyUsers.users.length}
-          rolesCount={roles.roles.length}
-        />
-      </TabsContent>
+      {mountedTabs.has('company') && (
+        <TabsContent value="company" keepMounted className="flex-1 overflow-auto">
+          <CompanyTab
+            company={companyUsers.company}
+            activeUsersCount={activeUsers.length}
+            totalUsersCount={companyUsers.users.length}
+            rolesCount={roles.roles.length}
+          />
+        </TabsContent>
+      )}
       {canViewUsers && mountedTabs.has('users') && (
         <TabsContent value="users" keepMounted className="flex-1 overflow-auto">
           <CompanyUsersTable hook={companyUsers} canWrite={canWriteUsers} />

@@ -7,7 +7,8 @@
     "justNow": "Ahora mismo",
     "minutesAgo": "Hace {{n}} min",
     "hoursAgo": "Hace {{n}} h",
-    "daysAgo": "Hace {{n}} días"
+    "daysAgo": "Hace {{n}} días",
+    "loadMore": "Ver más"
   },
   "validation": {
     "required": "Este campo es requerido",

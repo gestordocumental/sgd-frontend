@@ -29,8 +29,8 @@ const createUserSchema = z.object({
 });
 
 const editUserSchema = z.object({
-  firstName: requiredString('The first name'),
-  lastName: requiredString('The last name'),
+  firstName: requiredString(),
+  lastName: requiredString(),
   idNumber: optionalString,
   roleId: z.string().optional(),
 });

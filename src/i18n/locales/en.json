@@ -7,7 +7,8 @@
     "justNow": "Just now",
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}} h ago",
-    "daysAgo": "{{n}} days ago"
+    "daysAgo": "{{n}} days ago",
+    "loadMore": "Load more"
   },
   "validation": {
     "required": "This field is required",

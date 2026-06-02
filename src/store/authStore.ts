@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import * as Sentry from '@sentry/react';
 import type { AuthUser } from '@/types/auth';
 import { decodeJwt } from '@/lib/jwt';
+
+function sentryUser(user: AuthUser): Parameters<typeof Sentry.setUser>[0] {
+  return { id: user.id, email: user.email, companyId: user.companyId ?? null };
+}
 
 const AUTH_KEY = 'sgd-auth';
 
@@ -97,6 +102,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       if (isSuperAdmin && !user.companyId) {
         _superAdminToken = accessToken;
       }
+      Sentry.setUser(sentryUser(user));
       set({ user, accessToken, isAuthenticated: true, isSuperAdmin, hasSuperAdminContext: false });
     },
 
@@ -122,6 +128,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     clearAuth: () => {
       localStorage.removeItem(AUTH_KEY);
       _superAdminToken = null;
+      Sentry.setUser(null);
       set({
         user: null,
         accessToken: null,
@@ -151,6 +158,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
           hasSuperAdminContext: true,
         } satisfies PersistedAuth),
       );
+      Sentry.setUser(sentryUser(updatedUser));
       set({
         user: updatedUser,
         accessToken: companyToken,
@@ -229,6 +237,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
         } satisfies PersistedAuth),
       );
       _superAdminToken = globalToken;
+      Sentry.setUser(sentryUser(updatedUser));
       set({
         user: updatedUser,
         accessToken: globalToken,

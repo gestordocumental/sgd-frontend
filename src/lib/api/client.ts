@@ -5,6 +5,44 @@ import { router } from '@/router';
 import { decodeJwt } from '@/lib/jwt';
 
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
+const CSRF_COOKIE = 'sgd_csrf_token';
+const CSRF_HEADER = 'x-csrf-token';
+const CSRF_STORAGE_KEY = 'sgd_csrf';
+
+// Evict the stale CSRF cookie that was previously set with path=/api/v1/auth.
+// Without this the browser sends BOTH the old and new cookies; the backend's old
+// code picked the more-specific-path one first, causing an "Invalid CSRF token" 401.
+// This one-time cleanup runs on every module load (no-op once the old cookie is gone).
+document.cookie = `${CSRF_COOKIE}=; path=/api/v1/auth; max-age=0; samesite=strict`;
+
+// In-memory cache — fastest path. sessionStorage survives page reloads (same tab).
+let _csrfToken: string | null = null;
+
+function getCsrfToken(): string | null {
+  if (_csrfToken) return _csrfToken;
+  const stored = sessionStorage.getItem(CSRF_STORAGE_KEY);
+  if (stored) {
+    _csrfToken = stored;
+    return stored;
+  }
+  // Fallback: cookie is readable after a fresh login with the updated backend
+  // (cookie path is now '/').
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${CSRF_COOKIE}=([^;]+)`));
+  if (match) {
+    const val = decodeURIComponent(match[1]);
+    _csrfToken = val;
+    sessionStorage.setItem(CSRF_STORAGE_KEY, val);
+    return val;
+  }
+  return null;
+}
+
+export function storeCsrfToken(token: string): void {
+  _csrfToken = token;
+  sessionStorage.setItem(CSRF_STORAGE_KEY, token);
+}
+
 // Paths checked against the end of the request URL (baseURL-independent)
 const PUBLIC_PATHS = [
   '/auth/login',
@@ -50,7 +88,7 @@ axiosRetry(apiClient, {
     (error.response !== undefined && error.response.status >= 500),
 });
 
-// Adjunta el JWT en cada request autenticada.
+// Adjunta el JWT y el CSRF token en cada request autenticada.
 apiClient.interceptors.request.use((config) => {
   if (isPublicEndpoint(config.url)) {
     delete config.headers.Authorization;
@@ -61,6 +99,14 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Double-submit CSRF token for state-changing requests.
+  const method = config.method?.toUpperCase();
+  if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrf = getCsrfToken();
+    if (csrf) config.headers[CSRF_HEADER] = csrf;
+  }
+
   return config;
 });
 
@@ -87,6 +133,14 @@ function flushQueue(error: unknown, token: string | null) {
   });
   pendingQueue = [];
 }
+
+// Capture the csrfToken from any auth response (login, switch-company, exit-company)
+// so it's available in sessionStorage on the next page load.
+apiClient.interceptors.response.use((response) => {
+  const csrf = (response.data as { csrfToken?: string })?.csrfToken;
+  if (csrf) storeCsrfToken(csrf);
+  return response;
+});
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -116,13 +170,27 @@ apiClient.interceptors.response.use(
       // Use a plain axios call (not apiClient) to avoid triggering this interceptor again.
       // No body needed — the browser sends the httpOnly refresh-token cookie automatically
       // because withCredentials: true is set.
-      const { data } = await axios.post<{ accessToken: string }>(
+      // x-csrf-token echoes the non-httpOnly sgd_csrf_token cookie to satisfy the
+      // double-submit CSRF check on the /auth/refresh endpoint.
+      const csrfToken = getCsrfToken();
+      console.debug('[auth:refresh] CSRF token', csrfToken ? '✓ present' : '✗ missing');
+      const { data } = await axios.post<{ accessToken: string; csrfToken?: string }>(
         `${baseURL}/auth/refresh`,
         undefined,
-        { headers: { 'Content-Type': 'application/json' }, timeout: 15000, withCredentials: true },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && { [CSRF_HEADER]: csrfToken }),
+          },
+          timeout: 15000,
+          withCredentials: true,
+        },
       );
 
       let finalAccessToken = data.accessToken;
+
+      // Persist the fresh CSRF token so the next page reload can send it in the header.
+      if (data.csrfToken) storeCsrfToken(data.csrfToken);
 
       // Safety net: if the refresh returned a token without companyId but the user is
       // in a company context (token missing companyId due to a stale login cookie being
@@ -130,7 +198,7 @@ apiClient.interceptors.response.use(
       const decoded = decodeJwt(finalAccessToken);
       const { user } = useAuthStore.getState();
       if (!decoded?.companyId && user?.companyId) {
-        const switchRes = await axios.post<{ accessToken: string }>(
+        const switchRes = await axios.post<{ accessToken: string; csrfToken?: string }>(
           `${baseURL}/auth/switch-company`,
           { companyId: user.companyId },
           {
@@ -143,6 +211,7 @@ apiClient.interceptors.response.use(
           },
         );
         finalAccessToken = switchRes.data.accessToken;
+        if (switchRes.data.csrfToken) storeCsrfToken(switchRes.data.csrfToken);
       }
 
       useAuthStore.getState().updateAccessToken(finalAccessToken);
@@ -151,6 +220,17 @@ apiClient.interceptors.response.use(
       original.headers.Authorization = `Bearer ${finalAccessToken}`;
       return apiClient(original);
     } catch (refreshError) {
+      const status = (refreshError as { response?: { status?: number; data?: unknown } })?.response
+        ?.status;
+      const body = (refreshError as { response?: { data?: unknown } })?.response?.data;
+      console.error(
+        '[auth:refresh] Silent refresh failed — status:',
+        status,
+        '| body:',
+        body,
+        '| raw:',
+        refreshError,
+      );
       flushQueue(refreshError, null);
       useAuthStore.getState().clearAuth();
       void router.navigate({ to: '/login', replace: true });
