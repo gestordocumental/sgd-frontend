@@ -5,11 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { rolesApi, type ApiRole } from '@/lib/api/roles';
 import { usersApi } from '@/lib/api/users';
-import { requiredString } from '@/lib/validations/schemas';
+import { requiredString, optionalString } from '@/lib/validations/schemas';
 
 const roleSchema = z.object({
   name: requiredString(),
-  description: requiredString(),
+  description: optionalString,
 });
 
 export type RoleForm = z.infer<typeof roleSchema>;
@@ -51,8 +51,8 @@ export function useRoles(companyId: string) {
   const invalidateMyOrgRoles = () => queryClient.removeQueries({ queryKey: ['my-org-roles'] });
 
   const createRoleMutation = useMutation({
-    mutationFn: (dto: { name: string; description: string; permissionIds: string[] }) =>
-      rolesApi.createRole(dto),
+    mutationFn: (dto: { name: string; description?: string; permissionIds: string[] }) =>
+      rolesApi.createRole({ ...dto, description: dto.description ?? '' }),
     onSuccess: () => {
       invalidateRoles();
       setCreateRoleOpen(false);
@@ -65,10 +65,10 @@ export function useRoles(companyId: string) {
       dto,
     }: {
       id: string;
-      dto: { name: string; description: string; permissionIds: string[] };
+      dto: { name: string; description?: string; permissionIds: string[] };
     }) => {
       const { permissionIds, ...roleData } = dto;
-      await rolesApi.updateRole(id, roleData);
+      await rolesApi.updateRole(id, { ...roleData, description: roleData.description ?? '' });
       return rolesApi.assignPermissions(id, permissionIds);
     },
     onSuccess: () => {
@@ -124,7 +124,7 @@ export function useRoles(companyId: string) {
   const openEdit = (role: ApiRole) => {
     setEditRole(role);
     setSelectedPermIds(role.permissions.map((p) => p.id));
-    editForm.reset({ name: role.name, description: role.description ?? '' });
+    editForm.reset({ name: role.name, description: role.description ?? undefined });
     editForm.trigger();
   };
 

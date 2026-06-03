@@ -105,7 +105,7 @@ export const usersApi = {
     page?: number;
     limit?: number;
     search?: string;
-    status?: 'active' | 'deleted' | 'pending';
+    status?: 'active' | 'inactive' | 'deleted' | 'pending';
   }) =>
     apiClient
       .get<{ data: ApiUser[]; total: number }>('/users/super-admins', { params })
@@ -140,6 +140,10 @@ export const usersApi = {
   remove: (id: string) => apiClient.delete<void>(`/users/${id}`).then((r) => r.data),
 
   restore: (id: string) => apiClient.post<ApiUser>(`/users/${id}/restore`).then((r) => r.data),
+
+  disable: (id: string) => apiClient.patch<ApiUser>(`/users/${id}/disable`).then((r) => r.data),
+
+  enable: (id: string) => apiClient.patch<ApiUser>(`/users/${id}/enable`).then((r) => r.data),
 
   toggleSuperAdmin: (id: string, enabled: boolean) =>
     apiClient.patch<ApiUser>(`/users/${id}/super-admin`, { enabled }).then((r) => r.data),

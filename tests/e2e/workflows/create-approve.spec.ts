@@ -178,8 +178,8 @@ test.beforeEach(async ({ page }) => {
   // every mount (always enabled). Without plain-array mocks the fallback returns a
   // paginated object, causing allCargos.map() / departamentos.map() in
   // CompanyUserDialogs to throw and crash the dashboard.
-  await page.route(`${API}/org/${ORG_ID}/cargos`, (route) => route.fulfill({ json: [] }));
-  await page.route(`${API}/org/${ORG_ID}/departamentos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/org/${ORG_ID}/cargos**`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/org/${ORG_ID}/departamentos**`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
 });
 

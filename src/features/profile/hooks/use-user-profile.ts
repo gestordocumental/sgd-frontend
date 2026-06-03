@@ -55,7 +55,7 @@ export function useUserProfile() {
     } catch {
       return EMPTY_COMPANIES;
     }
-  }, [hasSuperAdminContext, isSuperAdmin]);
+  }, [hasSuperAdminContext]);
 
   // Fetch the IDs of companies this user belongs to
   const { data: companyIds = EMPTY_COMPANY_IDS } = useQuery({

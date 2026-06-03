@@ -42,7 +42,13 @@ const MOCK_COMPANIES: ApiCompany[] = [
   },
 ];
 
-let companiesDb = [...MOCK_COMPANIES];
+const createCompaniesDb = () => MOCK_COMPANIES.map((c) => ({ ...c }));
+
+export function resetCompaniesDb() {
+  companiesDb = createCompaniesDb();
+}
+
+let companiesDb = createCompaniesDb();
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 

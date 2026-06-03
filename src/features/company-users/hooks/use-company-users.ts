@@ -278,6 +278,16 @@ export function useCompanyUsers(companyId: string) {
     },
   });
 
+  const disableMutation = useMutation({
+    mutationFn: (id: string) => usersApi.disable(id),
+    onSuccess: invalidate,
+  });
+
+  const enableMutation = useMutation({
+    mutationFn: (id: string) => usersApi.enable(id),
+    onSuccess: invalidate,
+  });
+
   const editForm = useForm<EditUserForm>({
     resolver: zodResolver(editUserSchema),
     mode: 'onChange',
@@ -351,6 +361,8 @@ export function useCompanyUsers(companyId: string) {
     editMutation,
     deleteMutation,
     restoreMutation,
+    disableMutation,
+    enableMutation,
     resendInvitationMutation,
     toggleOptionalReviewerMutation,
   };

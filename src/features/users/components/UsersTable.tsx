@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Ban,
+  CircleCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +40,7 @@ import { initials, isDeleted } from '@/lib/formatters';
 import type { ApiUser } from '@/lib/api/users';
 import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users';
 
-type StatusFilter = 'all' | 'active' | 'deleted' | 'pending';
+type StatusFilter = 'all' | 'active' | 'inactive' | 'deleted' | 'pending';
 
 interface UsersTableProps {
   hook: AdminUsersHook;
@@ -49,6 +51,8 @@ export function UsersTable({ hook }: UsersTableProps) {
     superAdmins,
     superAdminsTotal,
     superAdminsTotalPages,
+    superAdminsActiveTotal,
+    superAdminsInactiveTotal,
     superAdminsLoading,
     superAdminsIsFetching,
     superAdminsDataUpdatedAt,
@@ -56,6 +60,8 @@ export function UsersTable({ hook }: UsersTableProps) {
     openEdit,
     setDeleteUser,
     restoreMutation,
+    disableMutation,
+    enableMutation,
     toggleSuperAdminMutation,
     resendInvitationMutation,
     saSearch,
@@ -67,13 +73,10 @@ export function UsersTable({ hook }: UsersTableProps) {
   } = hook;
   const { t } = useTranslation();
 
-  // Totals from current page data (accurate only for the fetched slice)
-  const totalActive = superAdmins.filter((u) => !isDeleted(u)).length;
-  const totalSA = superAdmins.filter((u) => u.isSuperAdmin).length;
-
   const STATUS_LABELS: Record<StatusFilter, string> = {
     all: t('common.all'),
     active: t('common.active'),
+    inactive: t('common.inactive'),
     deleted: t('common.deleted'),
     pending: t('common.pending'),
   };
@@ -88,13 +91,13 @@ export function UsersTable({ hook }: UsersTableProps) {
         />
         <StatCard
           title={t('users.activeUsers')}
-          value={totalActive}
-          icon={<Users className="size-5 text-muted-foreground" />}
+          value={superAdminsActiveTotal}
+          icon={<ShieldCheck className="size-5 text-muted-foreground" />}
         />
         <StatCard
-          title={t('users.superAdmins')}
-          value={totalSA}
-          icon={<ShieldCheck className="size-5 text-muted-foreground" />}
+          title={t('users.inactiveUsers')}
+          value={superAdminsInactiveTotal}
+          icon={<ShieldOff className="size-5 text-muted-foreground" />}
         />
       </div>
 
@@ -139,7 +142,7 @@ export function UsersTable({ hook }: UsersTableProps) {
               onChange={(e) => setSaStatus(e.target.value as StatusFilter)}
               className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
             >
-              {(['all', 'active', 'deleted', 'pending'] as StatusFilter[]).map((s) => (
+              {(['all', 'active', 'inactive', 'deleted', 'pending'] as StatusFilter[]).map((s) => (
                 <option key={s} value={s}>
                   {STATUS_LABELS[s]}
                 </option>
@@ -175,6 +178,8 @@ export function UsersTable({ hook }: UsersTableProps) {
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
                   onRestore={() => restoreMutation.mutate(u.id)}
+                  onDisable={() => disableMutation.mutate(u.id)}
+                  onEnable={() => enableMutation.mutate(u.id)}
                   onToggleSuperAdmin={() =>
                     toggleSuperAdminMutation.mutate({ id: u.id, isSuperAdmin: !u.isSuperAdmin })
                   }
@@ -251,6 +256,8 @@ interface UserRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onRestore: () => void;
+  onDisable: () => void;
+  onEnable: () => void;
   onToggleSuperAdmin: () => void;
   onResendInvitation: () => void;
 }
@@ -260,6 +267,8 @@ function UserRow({
   onEdit,
   onDelete,
   onRestore,
+  onDisable,
+  onEnable,
   onToggleSuperAdmin,
   onResendInvitation,
 }: UserRowProps) {
@@ -311,12 +320,16 @@ function UserRow({
           <Badge variant="destructive" className="text-xs">
             {t('common.deleted')}
           </Badge>
-        ) : (
+        ) : u.isActive ? (
           <Badge
             variant="outline"
             className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
           >
             {t('common.active')}
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+            {t('common.inactive')}
           </Badge>
         )}
       </TableCell>
@@ -334,6 +347,15 @@ function UserRow({
                 <DropdownMenuItem onClick={onEdit}>
                   <Pencil className="size-4" /> {t('users.actions.edit')}
                 </DropdownMenuItem>
+                {u.isActive ? (
+                  <DropdownMenuItem onClick={onDisable}>
+                    <Ban className="size-4" /> {t('users.actions.disable')}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={onEnable}>
+                    <CircleCheck className="size-4" /> {t('users.actions.enable')}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={onToggleSuperAdmin}>
                   {u.isSuperAdmin ? (
                     <>
