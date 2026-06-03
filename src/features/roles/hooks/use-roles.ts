@@ -5,11 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { rolesApi, type ApiRole } from '@/lib/api/roles';
 import { usersApi } from '@/lib/api/users';
-import { requiredString, optionalString } from '@/lib/validations/schemas';
+import { requiredString } from '@/lib/validations/schemas';
 
 const roleSchema = z.object({
   name: requiredString(),
-  description: optionalString,
+  description: requiredString(),
 });
 
 export type RoleForm = z.infer<typeof roleSchema>;
@@ -124,7 +124,7 @@ export function useRoles(companyId: string) {
   const openEdit = (role: ApiRole) => {
     setEditRole(role);
     setSelectedPermIds(role.permissions.map((p) => p.id));
-    editForm.reset({ name: role.name, description: role.description ?? undefined });
+    editForm.reset({ name: role.name, description: role.description ?? '' });
     editForm.trigger();
   };
 
