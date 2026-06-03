@@ -20,10 +20,6 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
   const {
     createOpen,
     setCreateOpen,
-    createForm,
-    submitCreate,
-    createMutation,
-    createError,
     selectedTypologyId,
     setSelectedTypologyId,
     approverIds,
@@ -32,11 +28,16 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
     finalUserIds,
     addFinalUser,
     removeFinalUser,
-    activeTypologies,
-    activeOrgUsers,
-    approverEligibleUsers,
-    finalUserEligibleUsers,
-    notifyNoFinalUsersMutation,
+    createError,
+    supportingFiles,
+    addSupportingFile,
+    removeSupportingFile,
+  } = hook.dialogs;
+  const { activeTypologies, activeOrgUsers, approverEligibleUsers, finalUserEligibleUsers } =
+    hook.queries;
+  const { createMutation, notifyNoFinalUsersMutation } = hook.mutations;
+  const { createForm, submitCreate } = hook.forms;
+  const {
     documentFile,
     documentExtraction,
     documentExtractionLoading,
@@ -44,10 +45,7 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
     documentComparison,
     handleDocumentFile,
     createBlocked,
-    supportingFiles,
-    addSupportingFile,
-    removeSupportingFile,
-  } = hook;
+  } = hook.extraction;
 
   const typologyOptions: SelectOption[] = activeTypologies.map((ty) => ({
     value: ty.id,
@@ -135,7 +133,7 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     onChange={(id) => {
                       setSelectedTypologyId(id);
                       notifyNoFinalUsersMutation.reset();
-                      removeFinalUser(finalUserIds[0]);
+                      if (finalUserIds.length > 0) removeFinalUser(finalUserIds[0]);
                     }}
                     placeholder={t('workflows.dialogs.typologyPlaceholder')}
                     searchPlaceholder={t('workflows.dialogs.typologySearch')}

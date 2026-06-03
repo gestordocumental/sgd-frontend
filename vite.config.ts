@@ -12,13 +12,16 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('i18next')) return 'i18n';
+          if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
+          if (id.includes('@sentry')) return 'monitoring';
+          if (id.includes('xlsx') || id.includes('jszip')) return 'xlsx';
+          if (id.includes('@tanstack')) return 'tanstack';
+          if (id.includes('@base-ui')) return 'ui';
           return 'vendor';
         },
       },

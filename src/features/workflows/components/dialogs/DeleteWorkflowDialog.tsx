@@ -1,14 +1,26 @@
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import type { WorkflowsHook } from './workflow-dialog.types'
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import type { WorkflowsHook } from './workflow-dialog.types';
 
 export function DeleteWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
-  const { t } = useTranslation()
-  const { deleteWorkflow, setDeleteWorkflow, deleteMutation } = hook
+  const { t } = useTranslation();
+  const { deleteWorkflow, setDeleteWorkflow } = hook.dialogs;
+  const { deleteMutation } = hook.mutations;
 
   return (
-    <Dialog open={!!deleteWorkflow} onOpenChange={(o) => { if (!o) setDeleteWorkflow(null) }}>
+    <Dialog
+      open={!!deleteWorkflow}
+      onOpenChange={(o) => {
+        if (!o) setDeleteWorkflow(null);
+      }}
+    >
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{t('workflows.dialogs.deleteTitle')}</DialogTitle>
@@ -19,7 +31,9 @@ export function DeleteWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {t('workflows.dialogs.deleteConfirmPost')}
         </p>
         <DialogFooter className="pt-2">
-          <Button variant="outline" onClick={() => setDeleteWorkflow(null)}>{t('common.cancel')}</Button>
+          <Button variant="outline" onClick={() => setDeleteWorkflow(null)}>
+            {t('common.cancel')}
+          </Button>
           <Button
             variant="destructive"
             disabled={deleteMutation.isPending}
@@ -30,5 +44,5 @@ export function DeleteWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -36,19 +36,18 @@ export function DetailWorkflowDialog({
 }) {
   const { t } = useTranslation();
   const { user, accessToken } = useAuthStore();
+  const { detailWorkflow, setDetailWorkflow } = hook.dialogs;
+  const { startApprovalMutation } = hook.mutations;
+  const { orgUsersMap } = hook.queries;
   const {
-    detailWorkflow,
-    setDetailWorkflow,
-    startApprovalMutation,
     openApprove,
     openReject,
     openTimeline,
     openEdit,
-    orgUsersMap,
     openReviewCycle,
     openCompleteStep,
     openForwardStep,
-  } = hook;
+  } = hook.actions;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
   // Memoized so atob + JSON.parse only re-run when the token or user changes,
@@ -83,9 +82,14 @@ export function DetailWorkflowDialog({
     (a.attachments ?? []).map((att) => ({ ...att, userId: a.userId })),
   );
 
-  const handleOpenFile = async (storageKey: string) => {
+  const handleOpenFile = async (storageKey: string, originalName?: string, mimeType?: string) => {
     try {
-      const { signedUrl } = await workflowFilesApi.getSignedUrl(detailWorkflow.orgId, storageKey);
+      const { signedUrl } = await workflowFilesApi.getSignedUrl(
+        detailWorkflow.orgId,
+        storageKey,
+        originalName,
+        mimeType,
+      );
       window.open(signedUrl, '_blank', 'noopener,noreferrer');
     } catch {
       // silently fail — user can retry
@@ -233,7 +237,13 @@ export function DetailWorkflowDialog({
                         size="icon"
                         aria-label={t('workflows.detail.downloadDoc')}
                         className="size-7 shrink-0"
-                        onClick={() => handleOpenFile(mainDocMeta.storageKey!)}
+                        onClick={() =>
+                          handleOpenFile(
+                            mainDocMeta.storageKey!,
+                            mainDocMeta.originalName,
+                            mainDocMeta.mimeType,
+                          )
+                        }
                       >
                         <Download className="size-3.5" />
                       </Button>
@@ -261,7 +271,9 @@ export function DetailWorkflowDialog({
                             size="icon"
                             aria-label={t('workflows.detail.downloadAttachment')}
                             className="size-7 shrink-0"
-                            onClick={() => handleOpenFile(att.storageKey)}
+                            onClick={() =>
+                              handleOpenFile(att.storageKey, att.originalName, att.mimeType)
+                            }
                           >
                             <Download className="size-3.5" />
                           </Button>
@@ -296,7 +308,9 @@ export function DetailWorkflowDialog({
                             size="icon"
                             aria-label={t('workflows.detail.downloadAttachment')}
                             className="size-7 shrink-0"
-                            onClick={() => handleOpenFile(att.storageKey)}
+                            onClick={() =>
+                              handleOpenFile(att.storageKey, att.originalName, att.mimeType)
+                            }
                           >
                             <Download className="size-3.5" />
                           </Button>
@@ -457,7 +471,13 @@ export function DetailWorkflowDialog({
                                             variant="ghost"
                                             size="icon"
                                             className="size-6 shrink-0"
-                                            onClick={() => handleOpenFile(att.storageKey)}
+                                            onClick={() =>
+                                              handleOpenFile(
+                                                att.storageKey,
+                                                att.originalName,
+                                                att.mimeType,
+                                              )
+                                            }
                                           >
                                             <Download className="size-3" />
                                           </Button>

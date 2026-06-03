@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { ElementType, CSSProperties } from 'react';
 import {
   Clock,
@@ -37,8 +37,6 @@ import { getWorkflowActions } from '@/features/workflows/workflow-state-machine'
 
 type WorkflowsHook = ReturnType<typeof useWorkflows>;
 
-const PAGE_SIZE = 20;
-
 interface WorkflowsTableProps {
   hook: WorkflowsHook;
   canWrite?: boolean;
@@ -53,24 +51,27 @@ export function WorkflowsTable({
   canManage = false,
 }: WorkflowsTableProps) {
   const { t } = useTranslation();
-  const { innerTab, setInnerTab, statusFilter, setStatusFilter } = hook;
-
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const { innerTab, setInnerTab, statusFilter, setStatusFilter, search, setSearch, page, setPage } =
+    hook.dialogs;
+  const {
+    workflows,
+    workflowsLoading,
+    workflowsTotal,
+    workflowsTotalPages,
+    myTasks,
+    myTasksLoading,
+    myAvailable,
+    myAvailableLoading,
+    isRefreshing,
+    workflowsDataUpdatedAt,
+    invalidateAll,
+  } = hook.queries;
+  const { openCreate } = hook.actions;
 
   // If the user has no MANAGE permission, redirect away from the 'all' tab
   useEffect(() => {
     if (!canManage && innerTab === 'all') setInnerTab('my-tasks');
   }, [canManage, innerTab, setInnerTab]);
-
-  const handleSearch = (v: string) => {
-    setSearch(v);
-    setPage(1);
-  };
-  const handleStatus = (v: string) => {
-    setStatusFilter(v === 'all' ? undefined : (v as WorkflowStatus));
-    setPage(1);
-  };
 
   const STATUS_OPTIONS = useMemo(
     () => [
@@ -90,15 +91,8 @@ export function WorkflowsTable({
     [t],
   );
 
-  const filteredAll = (hook.workflows ?? []).filter((wf) => {
-    const q = search.toLowerCase();
-    return (
-      !q || wf.title.toLowerCase().includes(q) || (wf.description ?? '').toLowerCase().includes(q)
-    );
-  });
-  const totalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paginatedAll = filteredAll.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  // Search and pagination are server-side; workflows already contains the current page slice.
+  const totalPages = workflowsTotalPages;
 
   return (
     <main className="p-6 space-y-4">
@@ -110,23 +104,23 @@ export function WorkflowsTable({
               variant="ghost"
               size="icon"
               className="size-7"
-              onClick={hook.invalidateAll}
-              disabled={hook.isRefreshing}
+              onClick={invalidateAll}
+              disabled={isRefreshing}
               title={t('common.refresh')}
             >
               <RefreshCw
-                className={`size-3.5 text-muted-foreground ${hook.isRefreshing ? 'animate-spin' : ''}`}
+                className={`size-3.5 text-muted-foreground ${isRefreshing ? 'animate-spin' : ''}`}
               />
             </Button>
             <RefreshCountdown
               duration={30_000}
-              isFetching={hook.isRefreshing}
-              updatedAt={hook.workflowsDataUpdatedAt}
+              isFetching={isRefreshing}
+              updatedAt={workflowsDataUpdatedAt}
             />
           </div>
         </div>
         {canWrite && (
-          <Button size="sm" onClick={hook.openCreate}>
+          <Button size="sm" onClick={openCreate}>
             <Plus className="size-4" />
             {t('dashboard.newWorkflow')}
           </Button>
@@ -150,9 +144,12 @@ export function WorkflowsTable({
           <TabsTrigger value="my-tasks">
             <AlertCircle className="size-4" />
             {t('workflows.tabs.myTasks')}
-            {hook.myTasks.length > 0 && (
-              <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand">
-                {hook.myTasks.length}
+            {myTasks.length > 0 && (
+              <span
+                data-testid="my-tasks-badge"
+                className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand"
+              >
+                {myTasks.length}
               </span>
             )}
           </TabsTrigger>
@@ -170,14 +167,18 @@ export function WorkflowsTable({
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
                 <Input
                   value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('common.search')}
                   className="h-8 pl-8 w-52 text-sm"
                 />
               </div>
               <select
                 value={statusFilter ?? 'all'}
-                onChange={(e) => handleStatus(e.target.value)}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value === 'all' ? undefined : (e.target.value as WorkflowStatus),
+                  )
+                }
                 className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
               >
                 {STATUS_OPTIONS.map((o) => (
@@ -189,8 +190,8 @@ export function WorkflowsTable({
             </div>
 
             <WorkflowList
-              workflows={paginatedAll}
-              isLoading={hook.workflowsLoading}
+              workflows={workflows ?? []}
+              isLoading={workflowsLoading}
               hook={hook}
               canWrite={canWrite}
               canApprove={canApprove}
@@ -198,9 +199,9 @@ export function WorkflowsTable({
             />
             {totalPages > 1 && (
               <Pager
-                page={safePage}
+                page={page}
                 totalPages={totalPages}
-                total={filteredAll.length}
+                total={workflowsTotal}
                 onChange={setPage}
                 className="px-1 py-2"
               />
@@ -210,8 +211,8 @@ export function WorkflowsTable({
 
         <TabsContent value="my-tasks" className="mt-4">
           <WorkflowList
-            workflows={hook.myTasks}
-            isLoading={hook.myTasksLoading}
+            workflows={myTasks}
+            isLoading={myTasksLoading}
             hook={hook}
             canWrite={false}
             canApprove={canApprove}
@@ -221,8 +222,8 @@ export function WorkflowsTable({
 
         <TabsContent value="my-available" className="mt-4">
           <WorkflowList
-            workflows={hook.myAvailable}
-            isLoading={hook.myAvailableLoading}
+            workflows={myAvailable}
+            isLoading={myAvailableLoading}
             hook={hook}
             canWrite={false}
             canApprove={false}
@@ -257,7 +258,10 @@ function WorkflowList({
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
+      <div
+        data-testid="workflow-skeleton"
+        className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border"
+      >
         {[1, 2, 3].map((i) => (
           <div key={i} className="flex items-center gap-4 px-5 py-4">
             <Skeleton className="h-4 w-48" />
@@ -320,6 +324,9 @@ interface WorkflowRowProps {
 function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
+  const { setDetailWorkflow, setDeleteWorkflow } = hook.dialogs;
+  const { startApprovalMutation } = hook.mutations;
+  const { openTimeline, openReviewCycle, openCompleteStep, openForwardStep } = hook.actions;
   const {
     canStartApproval,
     canDelete,
@@ -335,7 +342,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
         <button
           type="button"
           className="text-sm font-medium text-left hover:underline truncate block max-w-full"
-          onClick={() => hook.setDetailWorkflow(workflow)}
+          onClick={() => setDetailWorkflow(workflow)}
         >
           {workflow.title}
         </button>
@@ -386,11 +393,11 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => hook.setDetailWorkflow(workflow)}>
+            <DropdownMenuItem onClick={() => setDetailWorkflow(workflow)}>
               <FileText className="size-4" />
               {t('workflows.actions.viewDetail')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => hook.openTimeline(workflow.id)}>
+            <DropdownMenuItem onClick={() => openTimeline(workflow.id)}>
               <History className="size-4" />
               {t('workflows.actions.viewTimeline')}
             </DropdownMenuItem>
@@ -398,8 +405,8 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => hook.startApprovalMutation.mutate(workflow.id)}
-                  disabled={hook.startApprovalMutation.isPending}
+                  onClick={() => startApprovalMutation.mutate(workflow.id)}
+                  disabled={startApprovalMutation.isPending}
                 >
                   <Play className="size-4" />
                   {t('workflows.actions.startApproval')}
@@ -409,7 +416,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
             {canStartReviewCycle && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => hook.openReviewCycle(workflow)}>
+                <DropdownMenuItem onClick={() => openReviewCycle(workflow)}>
                   <Play className="size-4" />
                   {t('workflows.actions.startReviewCycle')}
                 </DropdownMenuItem>
@@ -418,12 +425,12 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
             {canCompleteStep && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => hook.openCompleteStep(workflow)}>
+                <DropdownMenuItem onClick={() => openCompleteStep(workflow)}>
                   <CheckCircle className="size-4" />
                   {t('workflows.actions.completeReviewStep')}
                 </DropdownMenuItem>
                 {canForwardStep && (
-                  <DropdownMenuItem onClick={() => hook.openForwardStep(workflow)}>
+                  <DropdownMenuItem onClick={() => openForwardStep(workflow)}>
                     <Play className="size-4" />
                     {t('workflows.actions.forwardStep')}
                   </DropdownMenuItem>
@@ -435,7 +442,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
-                  onClick={() => hook.setDeleteWorkflow(workflow)}
+                  onClick={() => setDeleteWorkflow(workflow)}
                 >
                   <Trash2 className="size-4" />
                   {t('workflows.actions.delete')}

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { authApi } from '@/lib/api/auth';
@@ -10,10 +10,12 @@ import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 
 const EMPTY_COMPANY_IDS: string[] = [];
-// sessionStorage key for company list snapshot taken when super-admin enters
-// a company context.  Allows showing correct names after a page refresh, when
-// the all-companies query is disabled (company token has isSuperAdmin: false).
-const COMPANIES_SESSION_KEY = 'sgd-companies-cache';
+// localStorage key for company list snapshot taken when super-admin enters
+// a company context.  Allows showing correct names after a page refresh or in
+// a new tab, when the all-companies query is disabled (company token has
+// isSuperAdmin: false).  localStorage is used instead of sessionStorage so the
+// cache is shared across tabs opened while the user is in company context.
+const COMPANIES_CACHE_KEY = 'sgd-companies-cache';
 const EMPTY_COMPANIES: ApiCompany[] = [];
 
 export function useUserProfile() {
@@ -40,19 +42,20 @@ export function useUserProfile() {
   const hasSuperAdminToken =
     hasSuperAdminContext || (isSuperAdmin && !currentCompanyId && !!accessToken);
 
-  // Company list snapshot loaded from sessionStorage after a page refresh.
+  // Company list snapshot derived from localStorage.
   // When hasSuperAdminContext is true but isSuperAdmin is false (company-scoped
   // token), the all-companies query is disabled and React Query cache is gone,
   // so non-current companies would otherwise display as raw IDs.
-  const [sessionCompanies] = useState<ApiCompany[]>(() => {
-    if (!hasSuperAdminContext || isSuperAdmin) return [];
+  // useMemo avoids a useState+useEffect pair and re-reads on every context switch.
+  const sessionCompanies = useMemo<ApiCompany[]>(() => {
+    if (!hasSuperAdminContext) return EMPTY_COMPANIES;
     try {
-      const raw = sessionStorage.getItem(COMPANIES_SESSION_KEY);
-      return raw ? (JSON.parse(raw) as ApiCompany[]) : [];
+      const raw = localStorage.getItem(COMPANIES_CACHE_KEY);
+      return raw ? (JSON.parse(raw) as ApiCompany[]) : EMPTY_COMPANIES;
     } catch {
-      return [];
+      return EMPTY_COMPANIES;
     }
-  });
+  }, [hasSuperAdminContext, isSuperAdmin]);
 
   // Fetch the IDs of companies this user belongs to
   const { data: companyIds = EMPTY_COMPANY_IDS } = useQuery({
@@ -74,17 +77,13 @@ export function useUserProfile() {
     enabled: isSuperAdmin && companyIds.length > 0,
   });
 
-  // Regular users: fetch details per company.
-  // Use allSettled so a 403 on a non-current company (OrgGuard requires companyId === :id)
-  // doesn't wipe out the whole list.
+  // Regular users: resolve org names in one call via GET /org/mine?ids=...
+  // The frontend already has the org IDs from /auth/me/companies; passing them
+  // directly avoids any cross-service call inside org-service (which would require
+  // a token the user-service doesn't accept from org-service).
   const { data: myCompanies = EMPTY_COMPANIES } = useQuery({
-    queryKey: ['companies-by-ids', companyIds],
-    queryFn: async () => {
-      const results = await Promise.allSettled(companyIds.map((id) => companiesApi.getById(id)));
-      return results
-        .filter((r): r is PromiseFulfilledResult<ApiCompany> => r.status === 'fulfilled')
-        .map((r) => r.value);
-    },
+    queryKey: ['my-org-details', companyIds],
+    queryFn: () => companiesApi.getMyOrgs(companyIds),
     staleTime: 300_000,
     enabled: !isSuperAdmin && companyIds.length > 0,
   });
@@ -131,16 +130,16 @@ export function useUserProfile() {
       const { accessToken: companyToken } = await authApi.switchCompany(companyId);
       const company = companies.find((c) => c.id === companyId);
       // Persist the full company list before entering company context so that
-      // after a page refresh (when isSuperAdmin becomes false and the
-      // all-companies query is disabled) company names are still available.
+      // after a page refresh or in a new tab (when isSuperAdmin becomes false and
+      // the all-companies query is disabled) company names are still available.
       if (companies.length > 0) {
-        sessionStorage.setItem(COMPANIES_SESSION_KEY, JSON.stringify(companies));
+        localStorage.setItem(COMPANIES_CACHE_KEY, JSON.stringify(companies));
       }
       enterCompany(companyId, company?.name ?? companyId, companyToken);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
         queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
-        queryClient.invalidateQueries({ queryKey: ['companies-by-ids'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-org-details'] }),
         queryClient.removeQueries({ queryKey: ['my-org-roles'] }),
         // Workflow data is company-scoped but the query keys don't include companyId,
         // so React Query can't detect staleness automatically on company switch.
@@ -157,13 +156,16 @@ export function useUserProfile() {
 
   const switchToSuperAdmin = useCallback(async () => {
     const restored = await exitCompany();
-    if (!restored) return;
+    if (!restored) {
+      toast.error(t('profile.exitCompanyFailed'));
+      return;
+    }
     // No longer in company context — the cached company list is no longer needed.
-    sessionStorage.removeItem(COMPANIES_SESSION_KEY);
+    localStorage.removeItem(COMPANIES_CACHE_KEY);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
       queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
-      queryClient.invalidateQueries({ queryKey: ['companies-by-ids'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-org-details'] }),
       queryClient.removeQueries({ queryKey: ['my-org-roles'] }),
       queryClient.removeQueries({ queryKey: ['workflows'] }),
       queryClient.removeQueries({ queryKey: ['workflows-my-tasks'] }),
@@ -172,7 +174,7 @@ export function useUserProfile() {
       queryClient.removeQueries({ queryKey: ['workflow'] }),
     ]);
     navigate({ to: '/dashboard/admin' });
-  }, [exitCompany, navigate, queryClient]);
+  }, [exitCompany, navigate, queryClient, t]);
 
   const currentCompany = currentCompanyId
     ? (companies.find((c) => c.id === currentCompanyId) ?? null)

@@ -31,8 +31,8 @@ const TIMELINE_ICON: Record<TimelineEventType, ElementType> = {
 
 export function TimelineDialog({ hook }: { hook: WorkflowsHook }) {
   const { t } = useTranslation();
-  const { timelineWorkflowId, setTimelineWorkflowId, timeline, timelineLoading, orgUsersMap } =
-    hook;
+  const { timelineWorkflowId, setTimelineWorkflowId } = hook.dialogs;
+  const { timeline, timelineLoading, orgUsersMap } = hook.queries;
 
   const userName = (userId: string) => orgUsersMap.get(userId) ?? userId;
 
@@ -93,7 +93,7 @@ function TimelineEventRow({
     <div className="flex gap-3 pl-1">
       <div
         className={`relative z-10 flex items-center justify-center size-6 rounded-full border-2 bg-background shrink-0 ${
-          isNegative ? 'border-brand text-brand' : 'border-green-500 text-green-700'
+          isNegative ? 'border-destructive/40 text-destructive' : 'border-green-500 text-green-700'
         }`}
       >
         <Icon className="size-3" />

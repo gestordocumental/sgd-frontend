@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api/notifications';
 import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
@@ -14,9 +14,9 @@ export function useNotifications() {
   useEffect(() => {
     if (!accessToken) return;
 
-    // BroadcastChannel propagates revocation events to other tabs of the same origin.
-    // BroadcastChannel does NOT deliver messages back to the tab that posted them,
-    // so the current tab handles its own revocation via window.dispatchEvent below.
+    // BroadcastChannel propagates revocation events to all tabs of the same origin,
+    // including this one — use-user-profile's bc.onmessage fires on this tab too
+    // because it holds a different BroadcastChannel instance on the same channel.
     const bc = new BroadcastChannel('sgd-session');
 
     let es: EventSource | null = null;
@@ -39,17 +39,18 @@ export function useNotifications() {
             typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
           const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
           if (payload.orgId && payload.orgId !== currentCompanyId) return;
+          // Only post to BroadcastChannel — use-user-profile's bc.onmessage delivers
+          // the window event on this tab too (BC delivers to all OTHER instances on
+          // the same channel, including the receiver in the same document).
+          // Calling window.dispatchEvent here as well would cause a double-fire.
           bc.postMessage({ type: 'sgd:session-revoked', ...payload });
-          window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: payload }));
         } catch {
           bc.postMessage({ type: 'sgd:session-revoked' });
-          window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: {} }));
         }
       });
 
       sse.addEventListener('super-admin-revoked', () => {
         bc.postMessage({ type: 'sgd:super-admin-revoked' });
-        window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
       });
 
       // Tickets are one-time-use so we manage reconnection ourselves with
@@ -99,9 +100,20 @@ export function useNotifications() {
     staleTime: 60_000,
   });
 
-  const { data: listData, isLoading } = useQuery({
+  const {
+    data: listData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['notifications-list'],
-    queryFn: () => notificationsApi.list(1, 20),
+    queryFn: ({ pageParam }) => notificationsApi.list(pageParam, 20),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const totalPages = Math.ceil(lastPage.total / lastPage.limit);
+      return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
+    },
     staleTime: 60_000,
   });
 
@@ -122,11 +134,16 @@ export function useNotifications() {
     },
   });
 
+  const notifications = listData?.pages.flatMap((p) => p.data) ?? [];
+
   return {
-    notifications: listData?.data ?? [],
-    total: listData?.total ?? 0,
+    notifications,
+    total: listData?.pages.at(-1)?.total ?? 0,
     unreadCount: unreadData?.count ?? 0,
     isLoading,
+    hasMore: hasNextPage,
+    isFetchingMore: isFetchingNextPage,
+    fetchMore: fetchNextPage,
     markAsRead: (id: string) => markAsReadMutation.mutate(id),
     markAllAsRead: () => markAllAsReadMutation.mutate(),
     isMarkingAll: markAllAsReadMutation.isPending,

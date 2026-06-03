@@ -24,6 +24,8 @@ export function useWorkflows(companyId: string) {
 
   const queries = useWorkflowQueries(companyId, {
     statusFilter: dialogs.statusFilter,
+    search: dialogs.search,
+    page: dialogs.page,
     innerTab: dialogs.innerTab,
     detailWorkflowId: dialogs.detailWorkflow?.id,
     timelineWorkflowId: dialogs.timelineWorkflowId,
@@ -150,10 +152,16 @@ export function useWorkflows(companyId: string) {
   // ── Open detail by ID (used from notification bell) ────────────────────────
   // Use a ref to access latest cached data without adding them as deps,
   // avoiding unnecessary recreation of the callback on every poll cycle.
+  // ── Open detail by ID (used from notification bell) ────────────────────────
+  // Everything accessed via ref so the callback is stable across poll cycles.
+  // setDetailWorkflow is a useState setter — stable by contract — but the React
+  // Compiler cannot verify that from dialogs alone, so we store it in the ref
+  // alongside the query snapshots instead of wrapping it in a separate useCallback.
   const cachedRef = useRef({
     paginatedWorkflows: queries.paginatedWorkflows,
     myTasks: queries.myTasks,
     myAvailable: queries.myAvailable,
+    setDetailWorkflow: dialogs.setDetailWorkflow,
   });
 
   useEffect(() => {
@@ -161,25 +169,29 @@ export function useWorkflows(companyId: string) {
       paginatedWorkflows: queries.paginatedWorkflows,
       myTasks: queries.myTasks,
       myAvailable: queries.myAvailable,
+      setDetailWorkflow: dialogs.setDetailWorkflow,
     };
-  }, [queries.paginatedWorkflows, queries.myTasks, queries.myAvailable]);
+  }, [queries.paginatedWorkflows, queries.myTasks, queries.myAvailable, dialogs.setDetailWorkflow]);
 
   const openDetailById = useCallback(async (workflowId: string) => {
-    const { paginatedWorkflows: pw, myTasks: mt, myAvailable: ma } = cachedRef.current;
+    const {
+      paginatedWorkflows: pw,
+      myTasks: mt,
+      myAvailable: ma,
+      setDetailWorkflow,
+    } = cachedRef.current;
     const cached = [...(pw?.data ?? []), ...mt, ...ma].find((w) => w.id === workflowId);
 
     if (cached) {
-      dialogs.setDetailWorkflow(cached);
+      setDetailWorkflow(cached);
     } else {
       try {
         const workflow = await workflowsApi.getById(workflowId);
-        dialogs.setDetailWorkflow(workflow);
+        setDetailWorkflow(workflow);
       } catch {
         /* ignore — detail simply won't open */
       }
     }
-    // dialogs.setDetailWorkflow is stable (dispatch from useState)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Derived data ───────────────────────────────────────────────────────────
@@ -269,58 +281,69 @@ export function useWorkflows(companyId: string) {
   });
 
   return {
-    // ── Dialog state ──────────────────────────────────────────────────────────
-    ...dialogs,
-    // Override: expose the enriched version (with attachments) when available
-    detailWorkflow: queries.detailWorkflowFull ?? dialogs.detailWorkflow,
+    // ── UI state per-dialog ────────────────────────────────────────────────────
+    dialogs: {
+      ...dialogs,
+      // Override: expose the enriched version (with attachments) when available
+      detailWorkflow: queries.detailWorkflowFull ?? dialogs.detailWorkflow,
+    },
 
-    // ── Document extraction ───────────────────────────────────────────────────
-    documentFile: extraction.documentFile,
-    documentExtraction: extraction.documentExtraction,
-    documentExtractionLoading: extraction.documentExtractionLoading,
-    documentExtractionError: extraction.documentExtractionError,
-    handleDocumentFile: extraction.handleDocumentFile,
-    documentComparison,
-    createBlocked,
+    // ── Server data (queries + derived) ───────────────────────────────────────
+    queries: {
+      workflows: queries.paginatedWorkflows?.data ?? [],
+      workflowsTotal: queries.paginatedWorkflows?.total ?? 0,
+      workflowsTotalPages: queries.workflowsTotalPages,
+      workflowsLoading: queries.workflowsLoading,
+      myTasks: queries.myTasks,
+      myTasksLoading: queries.myTasksLoading,
+      myAvailable: queries.myAvailable,
+      myAvailableLoading: queries.myAvailableLoading,
+      isRefreshing: queries.isRefreshing,
+      workflowsDataUpdatedAt: queries.workflowsDataUpdatedAt,
+      invalidateAll: queries.invalidateAll,
+      timeline: queries.timeline,
+      timelineLoading: queries.timelineLoading,
+      activeTypologies: queries.activeTypologies,
+      orgUsersMap: queries.orgUsersMap,
+      activeOrgUsers: queries.activeOrgUsers,
+      approverEligibleUsers: queries.approverEligibleUsers,
+      finalUserEligibleUsers,
+    },
 
-    // ── Queries ───────────────────────────────────────────────────────────────
-    workflows: queries.paginatedWorkflows?.data ?? [],
-    workflowsTotal: queries.paginatedWorkflows?.total ?? 0,
-    workflowsLoading: queries.workflowsLoading,
-    myTasks: queries.myTasks,
-    myTasksLoading: queries.myTasksLoading,
-    myAvailable: queries.myAvailable,
-    myAvailableLoading: queries.myAvailableLoading,
-    isRefreshing: queries.isRefreshing,
-    workflowsDataUpdatedAt: queries.workflowsDataUpdatedAt,
-    invalidateAll: queries.invalidateAll,
-    timeline: queries.timeline,
-    timelineLoading: queries.timelineLoading,
-    activeTypologies: queries.activeTypologies,
-    orgUsersMap: queries.orgUsersMap,
-    activeOrgUsers: queries.activeOrgUsers,
-    approverEligibleUsers: queries.approverEligibleUsers,
-    finalUserEligibleUsers,
+    // ── Server mutations ───────────────────────────────────────────────────────
+    mutations,
 
-    // ── Mutations ─────────────────────────────────────────────────────────────
-    ...mutations,
+    // ── Forms + submit logic ───────────────────────────────────────────────────
+    forms: {
+      createForm: forms.createForm,
+      submitCreate,
+      editForm: forms.editForm,
+      approveForm: forms.approveForm,
+      rejectForm: forms.rejectForm,
+    },
 
-    // ── Forms ─────────────────────────────────────────────────────────────────
-    createForm: forms.createForm,
-    submitCreate,
-    editForm: forms.editForm,
-    approveForm: forms.approveForm,
-    rejectForm: forms.rejectForm,
+    // ── Coordinated open/close actions (combine dialog + form resets) ──────────
+    actions: {
+      openCreate,
+      openDetailById,
+      openApprove,
+      openReject,
+      openTimeline,
+      openEdit,
+      openReviewCycle,
+      openCompleteStep,
+      openForwardStep,
+    },
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    openCreate,
-    openDetailById,
-    openApprove,
-    openReject,
-    openTimeline,
-    openEdit,
-    openReviewCycle,
-    openCompleteStep,
-    openForwardStep,
+    // ── Document extraction + cross-cutting derived state ──────────────────────
+    extraction: {
+      documentFile: extraction.documentFile,
+      documentExtraction: extraction.documentExtraction,
+      documentExtractionLoading: extraction.documentExtractionLoading,
+      documentExtractionError: extraction.documentExtractionError,
+      handleDocumentFile: extraction.handleDocumentFile,
+      documentComparison,
+      createBlocked,
+    },
   };
 }

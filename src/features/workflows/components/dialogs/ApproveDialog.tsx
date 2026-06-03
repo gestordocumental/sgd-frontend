@@ -1,32 +1,42 @@
-import { FileText, XCircle, Paperclip } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import React from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { FormField } from '@/components/ui/form-field'
-import type { WorkflowsHook } from './workflow-dialog.types'
+import { FileText, XCircle, Paperclip } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import type { WorkflowsHook } from './workflow-dialog.types';
 
 export function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
-  const { t } = useTranslation()
-  const {
-    approveWorkflow, setApproveWorkflow,
-    approveForm, approveMutation,
-    approveAttachmentFiles, setApproveAttachmentFiles,
-  } = hook
+  const { t } = useTranslation();
+  const { approveWorkflow, setApproveWorkflow, approveAttachmentFiles, setApproveAttachmentFiles } =
+    hook.dialogs;
+  const { approveMutation } = hook.mutations;
+  const { approveForm } = hook.forms;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files ?? [])
-    if (newFiles.length === 0) return
-    setApproveAttachmentFiles((prev) => [...prev, ...newFiles])
-    e.target.value = ''
-  }
+    const newFiles = Array.from(e.target.files ?? []);
+    if (newFiles.length === 0) return;
+    setApproveAttachmentFiles((prev) => [...prev, ...newFiles]);
+    e.target.value = '';
+  };
 
   const removeFile = (index: number) =>
-    setApproveAttachmentFiles((prev) => prev.filter((_, i) => i !== index))
+    setApproveAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
 
   return (
-    <Dialog open={!!approveWorkflow} onOpenChange={(o) => { if (!o) setApproveWorkflow(null) }}>
+    <Dialog
+      open={!!approveWorkflow}
+      onOpenChange={(o) => {
+        if (!o) setApproveWorkflow(null);
+      }}
+    >
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('workflows.dialogs.approveTitle')}</DialogTitle>
@@ -38,8 +48,8 @@ export function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
         </p>
         <form
           onSubmit={approveForm.handleSubmit((values) => {
-            if (!approveWorkflow) return
-            approveMutation.mutate({ id: approveWorkflow.id, dto: values })
+            if (!approveWorkflow) return;
+            approveMutation.mutate({ id: approveWorkflow.id, dto: values });
           })}
           className="space-y-4"
         >
@@ -59,7 +69,9 @@ export function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
           <div className="space-y-1.5">
             <p className="text-sm font-medium leading-none">
               {t('workflows.dialogs.attachedDocsLabel')}{' '}
-              <span className="text-muted-foreground font-normal">({t('workflows.dialogs.optional')})</span>
+              <span className="text-muted-foreground font-normal">
+                ({t('workflows.dialogs.optional')})
+              </span>
             </p>
 
             {/* Lista de archivos seleccionados */}
@@ -105,11 +117,13 @@ export function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={approveMutation.isPending}>
-              {approveMutation.isPending ? t('common.processing') : t('workflows.dialogs.approveButton')}
+              {approveMutation.isPending
+                ? t('common.processing')
+                : t('workflows.dialogs.approveButton')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

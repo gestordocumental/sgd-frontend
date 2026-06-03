@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { rolesApi, type ApiRole } from "@/lib/api/roles";
-import { usersApi } from "@/lib/api/users";
-import { requiredString } from "@/lib/validations/schemas";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { rolesApi, type ApiRole } from '@/lib/api/roles';
+import { usersApi } from '@/lib/api/users';
+import { requiredString } from '@/lib/validations/schemas';
 
 const roleSchema = z.object({
-  name: requiredString("The role name"),
-  description: requiredString("The description"),
+  name: requiredString(),
+  description: requiredString(),
 });
 
 export type RoleForm = z.infer<typeof roleSchema>;
@@ -25,41 +25,34 @@ export function useRoles(companyId: string) {
     role: ApiRole;
   } | null>(null);
   const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
-  const [expandedPermissions, setExpandedPermissions] = useState<Set<string>>(
-    new Set(),
-  );
+  const [expandedPermissions, setExpandedPermissions] = useState<Set<string>>(new Set());
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ["roles", companyId],
+    queryKey: ['roles', companyId],
     queryFn: () => rolesApi.listRoles(),
     staleTime: 60_000,
     enabled: !!companyId,
   });
 
   const { data: permissions = [] } = useQuery({
-    queryKey: ["permissions"],
+    queryKey: ['permissions'],
     queryFn: () => rolesApi.listPermissions(),
     staleTime: Infinity, // permissions catalog is static
   });
 
-  const invalidateRoles = () =>
-    queryClient.invalidateQueries({ queryKey: ["roles", companyId] });
+  const invalidateRoles = () => queryClient.invalidateQueries({ queryKey: ['roles', companyId] });
 
   const invalidateUsers = () =>
-    queryClient.invalidateQueries({ queryKey: ["company-users", companyId] });
+    queryClient.invalidateQueries({ queryKey: ['company-users', companyId] });
 
   // Removes the permission cache for ALL users — needed when a role assignment
   // changes. Using removeQueries (not invalidateQueries) ensures stale data is
   // not kept if the subsequent fetch fails due to reduced permissions.
-  const invalidateMyOrgRoles = () =>
-    queryClient.removeQueries({ queryKey: ["my-org-roles"] });
+  const invalidateMyOrgRoles = () => queryClient.removeQueries({ queryKey: ['my-org-roles'] });
 
   const createRoleMutation = useMutation({
-    mutationFn: (dto: {
-      name: string;
-      description: string;
-      permissionIds: string[];
-    }) => rolesApi.createRole(dto),
+    mutationFn: (dto: { name: string; description: string; permissionIds: string[] }) =>
+      rolesApi.createRole(dto),
     onSuccess: () => {
       invalidateRoles();
       setCreateRoleOpen(false);
@@ -105,8 +98,7 @@ export function useRoles(companyId: string) {
   });
 
   const removeUserFromRoleMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string }) =>
-      usersApi.removeUserFromOrg(userId, companyId),
+    mutationFn: ({ userId }: { userId: string }) => usersApi.removeUserFromOrg(userId, companyId),
     onSuccess: () => {
       invalidateRoles();
       invalidateMyOrgRoles();
@@ -116,11 +108,11 @@ export function useRoles(companyId: string) {
 
   const createForm = useForm<RoleForm>({
     resolver: zodResolver(roleSchema),
-    mode: "onChange",
+    mode: 'onChange',
   });
   const editForm = useForm<RoleForm>({
     resolver: zodResolver(roleSchema),
-    mode: "onChange",
+    mode: 'onChange',
   });
 
   const openCreate = () => {
@@ -132,15 +124,13 @@ export function useRoles(companyId: string) {
   const openEdit = (role: ApiRole) => {
     setEditRole(role);
     setSelectedPermIds(role.permissions.map((p) => p.id));
-    editForm.reset({ name: role.name, description: role.description ?? "" });
+    editForm.reset({ name: role.name, description: role.description ?? '' });
     editForm.trigger();
   };
 
   const togglePerm = (permId: string) =>
     setSelectedPermIds((prev) =>
-      prev.includes(permId)
-        ? prev.filter((p) => p !== permId)
-        : [...prev, permId],
+      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
     );
 
   return {

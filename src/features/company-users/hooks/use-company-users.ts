@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,8 +25,8 @@ const createUserSchema = z.object({
 });
 
 const editUserSchema = z.object({
-  firstName: requiredString('The first name'),
-  lastName: requiredString('The last name'),
+  firstName: requiredString(),
+  lastName: requiredString(),
   idNumber: optionalString,
   departamentoId: z.string().uuid().optional(),
   areaId: z.string().uuid().optional(),
@@ -93,12 +93,24 @@ export function useCompanyUsers(companyId: string) {
     enabled: createUserOpen && !!selectedDeptId,
   });
 
+  // Department-level cargos for create form (no area required)
+  const { data: deptCargos = [] } = useQuery({
+    queryKey: ['dept-cargos', companyId, selectedDeptId],
+    queryFn: () => orgStructureApi.listDeptCargos(companyId, selectedDeptId),
+    staleTime: 300_000,
+    enabled: createUserOpen && !!selectedDeptId,
+  });
+
+  // Area-level cargos for create form
   const { data: cargos = [] } = useQuery({
     queryKey: ['cargos', companyId, selectedDeptId, selectedAreaId],
     queryFn: () => orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId),
     staleTime: 300_000,
     enabled: createUserOpen && !!selectedAreaId,
   });
+
+  // Combined create cargos: dept-level + area-level (when area selected)
+  const allCreateCargos = useMemo(() => [...deptCargos, ...cargos], [deptCargos, cargos]);
 
   // Areas / cargos for edit form — share the same cache keys as create form
   const { data: editAreas = [] } = useQuery({
@@ -108,6 +120,15 @@ export function useCompanyUsers(companyId: string) {
     enabled: !!editUser && !!editSelectedDeptId,
   });
 
+  // Department-level cargos for edit form (no area required)
+  const { data: editDeptCargos = [] } = useQuery({
+    queryKey: ['dept-cargos', companyId, editSelectedDeptId],
+    queryFn: () => orgStructureApi.listDeptCargos(companyId, editSelectedDeptId),
+    staleTime: 300_000,
+    enabled: !!editUser && !!editSelectedDeptId,
+  });
+
+  // Area-level cargos for edit form
   const { data: editCargos = [] } = useQuery({
     queryKey: ['cargos', companyId, editSelectedDeptId, editSelectedAreaId],
     queryFn: () => orgStructureApi.listCargos(companyId, editSelectedDeptId, editSelectedAreaId),
@@ -115,17 +136,23 @@ export function useCompanyUsers(companyId: string) {
     enabled: !!editUser && !!editSelectedAreaId,
   });
 
-  // When editCargos loads asynchronously after editForm.reset(), the native <select>
+  // Combined edit cargos: dept-level + area-level (when area selected)
+  const allEditCargos = useMemo(
+    () => [...editDeptCargos, ...editCargos],
+    [editDeptCargos, editCargos],
+  );
+
+  // When cargos load asynchronously after editForm.reset(), the native <select>
   // had no matching <option> at reset time and shows the placeholder.
   // Re-apply cargoId once the list arrives, but only if the user hasn't changed it yet.
   useEffect(() => {
-    if (!editUser?.cargoId || editCargos.length === 0) return;
+    if (!editUser?.cargoId || allEditCargos.length === 0) return;
     const current = editForm.getValues('cargoId');
-    if (current === editUser.cargoId && editCargos.some((c) => c.id === editUser.cargoId)) {
+    if (current === editUser.cargoId && allEditCargos.some((c) => c.id === editUser.cargoId)) {
       editForm.setValue('cargoId', editUser.cargoId, { shouldDirty: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editCargos]);
+  }, [allEditCargos]);
 
   const {
     data: usersPage,
@@ -297,13 +324,13 @@ export function useCompanyUsers(companyId: string) {
     cargoMap,
     departamentos,
     areas,
-    cargos,
+    allCreateCargos,
     selectedDeptId,
     setSelectedDeptId,
     selectedAreaId,
     setSelectedAreaId,
     editAreas,
-    editCargos,
+    allEditCargos,
     editSelectedDeptId,
     setEditSelectedDeptId,
     editSelectedAreaId,

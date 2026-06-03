@@ -89,7 +89,7 @@ test.describe('Login page', () => {
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     // axiosRetry will retry 500s, so wait with a longer timeout
-    await expect(page.locator('[role="alert"], .text-destructive')).toBeVisible({
+    await expect(page.locator('[role="alert"], .text-destructive').first()).toBeVisible({
       timeout: 15_000,
     });
     await expect(page).toHaveURL('/login');

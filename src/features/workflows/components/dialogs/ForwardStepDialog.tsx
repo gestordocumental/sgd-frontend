@@ -22,9 +22,9 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
     setForwardStepNotes,
     forwardStepFiles,
     setForwardStepFiles,
-    forwardStepMutation,
-    orgUsersMap,
-  } = hook;
+  } = hook.dialogs;
+  const { forwardStepMutation } = hook.mutations;
+  const { orgUsersMap } = hook.queries;
   const { t } = useTranslation();
 
   if (!forwardStepWorkflow) return null;

@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { timeAgoKey } from '@/lib/formatters';
 import { useNotifications } from '../hooks/use-notifications';
 import type { ApiNotification } from '@/lib/api/notifications';
 
@@ -16,15 +17,9 @@ interface SimpleCompany {
   name: string;
 }
 
-function timeAgo(dateStr: string, t: (k: string) => string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return t('notifications.justNow');
-  if (mins < 60) return t('notifications.minutesAgo').replace('{{n}}', String(mins));
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return t('notifications.hoursAgo').replace('{{n}}', String(hrs));
-  const days = Math.floor(hrs / 24);
-  return t('notifications.daysAgo').replace('{{n}}', String(days));
+function timeAgo(dateStr: string, t: (k: string, vars?: Record<string, number>) => string): string {
+  const { key, vars } = timeAgoKey(dateStr);
+  return t(key, vars);
 }
 
 interface NotificationBellProps {
@@ -34,8 +29,17 @@ interface NotificationBellProps {
 
 export function NotificationBell({ onWorkflowClick, companies = [] }: NotificationBellProps) {
   const { t } = useTranslation();
-  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, isMarkingAll } =
-    useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    hasMore,
+    isFetchingMore,
+    fetchMore,
+    markAsRead,
+    markAllAsRead,
+    isMarkingAll,
+  } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const handleNotificationClick = (n: ApiNotification) => {
@@ -92,48 +96,63 @@ export function NotificationBell({ onWorkflowClick, companies = [] }: Notificati
               {t('notifications.empty')}
             </div>
           ) : (
-            notifications.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => handleNotificationClick(n)}
-                className={`w-full text-left flex gap-2.5 px-3 py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${!n.read ? 'bg-primary/5' : ''}`}
-              >
-                <div className="shrink-0 mt-0.5">
-                  <div
-                    className={`flex items-center justify-center size-7 rounded-full ${!n.read ? 'bg-primary/10' : 'bg-muted'}`}
-                  >
-                    <GitBranch
-                      className={`size-3.5 ${!n.read ? 'text-primary' : 'text-muted-foreground'}`}
-                    />
+            <>
+              {notifications.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => handleNotificationClick(n)}
+                  className={`w-full text-left flex gap-2.5 px-3 py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${!n.read ? 'bg-primary/5' : ''}`}
+                >
+                  <div className="shrink-0 mt-0.5">
+                    <div
+                      className={`flex items-center justify-center size-7 rounded-full ${!n.read ? 'bg-primary/10' : 'bg-muted'}`}
+                    >
+                      <GitBranch
+                        className={`size-3.5 ${!n.read ? 'text-primary' : 'text-muted-foreground'}`}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-xs leading-snug ${!n.read ? 'font-medium' : ''}`}>
-                    {n.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-snug mt-0.5 line-clamp-2">
-                    {n.message}
-                  </p>
-                  {n.workflowTitle && (
-                    <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
-                      {n.workflowTitle}
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-xs leading-snug ${!n.read ? 'font-medium' : ''}`}>
+                      {n.title}
                     </p>
-                  )}
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {n.orgId && (n.orgName || companies.find((c) => c.id === n.orgId)) && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-sky-100 text-sky-700 truncate max-w-[140px]">
-                        {n.orgName ?? companies.find((c) => c.id === n.orgId)?.name}
-                      </span>
+                    <p className="text-xs text-muted-foreground leading-snug mt-0.5 line-clamp-2">
+                      {n.message}
+                    </p>
+                    {n.workflowTitle && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                        {n.workflowTitle}
+                      </p>
                     )}
-                    <p className="text-[10px] text-muted-foreground/60">
-                      {timeAgo(n.createdAt, t)}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {n.orgId && (n.orgName || companies.find((c) => c.id === n.orgId)) && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-sky-100 text-sky-700 truncate max-w-[140px]">
+                          {n.orgName ?? companies.find((c) => c.id === n.orgId)?.name}
+                        </span>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/60">
+                        {timeAgo(n.createdAt, t)}
+                      </p>
+                    </div>
                   </div>
+                  {!n.read && <div className="shrink-0 mt-1.5 size-1.5 rounded-full bg-primary" />}
+                </button>
+              ))}
+              {hasMore && (
+                <div className="px-3 py-2 border-t border-border">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-7 text-xs text-muted-foreground"
+                    onClick={() => void fetchMore()}
+                    disabled={isFetchingMore}
+                  >
+                    {isFetchingMore ? t('common.loading') : t('notifications.loadMore')}
+                  </Button>
                 </div>
-                {!n.read && <div className="shrink-0 mt-1.5 size-1.5 rounded-full bg-primary" />}
-              </button>
-            ))
+              )}
+            </>
           )}
         </div>
       </DropdownMenuContent>

@@ -200,6 +200,7 @@ export interface UpdateWorkflowDto {
 
 export interface ListWorkflowsParams {
   status?: WorkflowStatus;
+  search?: string;
   createdBy?: string;
   page?: number;
   limit?: number;

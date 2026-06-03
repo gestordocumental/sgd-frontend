@@ -19,8 +19,8 @@ export function CompleteReviewStepDialog({ hook }: { hook: WorkflowsHook }) {
     setCompleteStepFiles,
     completeStepNotes,
     setCompleteStepNotes,
-    completeStepMutation,
-  } = hook;
+  } = hook.dialogs;
+  const { completeStepMutation } = hook.mutations;
   const { t } = useTranslation();
 
   if (!completeStepWorkflow) return null;

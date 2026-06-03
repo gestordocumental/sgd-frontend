@@ -7,7 +7,8 @@
     "justNow": "Ahora mismo",
     "minutesAgo": "Hace {{n}} min",
     "hoursAgo": "Hace {{n}} h",
-    "daysAgo": "Hace {{n}} días"
+    "daysAgo": "Hace {{n}} días",
+    "loadMore": "Ver más"
   },
   "validation": {
     "required": "Este campo es requerido",
@@ -81,6 +82,7 @@
     "myProfile": "Mi perfil",
     "switchContext": "Cambiar a",
     "changeAvatar": "Cambiar foto de perfil",
+    "exitCompanyFailed": "No se pudo restaurar la sesión de super-admin. Por favor, inicia sesión nuevamente.",
     "sessionRevoked": {
       "unknownCompany": "la empresa",
       "switchToGlobal": "Fuiste removido de {{company}}. Regresando a la vista global.",

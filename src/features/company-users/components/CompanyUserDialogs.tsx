@@ -42,13 +42,13 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
     roles,
     departamentos,
     areas,
-    cargos,
+    allCreateCargos,
     selectedDeptId,
     setSelectedDeptId,
     selectedAreaId,
     setSelectedAreaId,
     editAreas,
-    editCargos,
+    allEditCargos,
     editSelectedDeptId,
     setEditSelectedDeptId,
     editSelectedAreaId,
@@ -217,12 +217,12 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
               <select
                 id="cu-cargo"
                 className={selectCls}
-                disabled={!selectedAreaId}
+                disabled={!selectedDeptId}
                 {...createForm.register('cargoId')}
                 onChange={(e) => createForm.setValue('cargoId', e.target.value || undefined)}
               >
                 <option value="">{t('orgStructure.selectCargo')}</option>
-                {cargos.map((c) => (
+                {allCreateCargos.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -368,12 +368,12 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
               <select
                 id="eu-cargo"
                 className={selectCls}
-                disabled={!editSelectedAreaId}
+                disabled={!editSelectedDeptId}
                 {...editForm.register('cargoId')}
                 onChange={(e) => editForm.setValue('cargoId', e.target.value || undefined)}
               >
                 <option value="">{t('orgStructure.selectCargo')}</option>
-                {editCargos.map((c) => (
+                {allEditCargos.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>

@@ -6,12 +6,14 @@ export default defineConfig({
   // Prevent accidental `.only` from blocking the CI suite
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // CI=1 (sequential, deterministic). Local=2: parallel enough to be fast,
+  // low enough not to exhaust CPU/RAM with 6 full Chromium instances.
+  workers: process.env.CI ? 1 : 2,
   reporter: process.env.CI
     ? [['github'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
     : [['html', { open: 'on-failure', outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
     // Capture a trace on the first retry so failures are diagnosable
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
@@ -19,22 +21,21 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    // Start the Vite dev server without MSW — Playwright intercepts API calls directly
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    // Always spawn a fresh server so webServer.env (incl. VITE_E2E) is always
-    // injected — reusing a stale local server would leave the overlay active.
+    // Pre-build then preview — serves static files with no on-demand compilation,
+    // so all workers get sub-second page loads regardless of concurrency.
+    // env vars below are embedded at build time by Vite (VITE_* are statically
+    // replaced in the bundle) and remain active when preview serves the dist.
+    command: 'npm run e2e:build && npm run preview -- --port 4173',
+    url: 'http://localhost:4173',
     reuseExistingServer: false,
     env: {
       VITE_USE_MOCKS: 'false',
-      // Ensures API calls use a same-origin path so page.route('/api/v1/**')
-      // intercepts them.  Without this Vite falls back to http://localhost:8000
-      // and the route patterns never match in CI (no backend running).
+      // Same-origin API path so page.route('/api/v1/**') intercepts in CI.
       VITE_API_URL: '/api/v1',
-      // Disable TanStack Router DevTools in e2e so the overlay doesn't
-      // interfere with pointer events during tests.
+      // Disables TanStack Router DevTools overlay during E2E runs.
       VITE_E2E: 'true',
     },
-    timeout: 60_000,
+    // Build step (vite build) can take up to 90 s on a cold machine.
+    timeout: 120_000,
   },
 });

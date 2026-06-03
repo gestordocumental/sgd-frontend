@@ -35,7 +35,7 @@ export function ExtractionComparisonRow({
       ) : (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 shrink-0 border bg-brand-subtle text-brand border-brand-border"
+          className="text-[10px] px-1.5 shrink-0 bg-destructive/10 text-destructive border-destructive/20"
         >
           {t('workflows.dialogs.documentMismatch')}
         </Badge>
@@ -50,7 +50,7 @@ export function ApprovalStepBadge({ status }: { status: string }) {
     WAITING: 'bg-muted text-muted-foreground border-muted-foreground/20',
     PENDING: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     APPROVED: 'bg-green-50 text-green-700 border-green-200',
-    REJECTED: 'bg-brand-subtle text-brand border-brand-border',
+    REJECTED: 'bg-destructive/10 text-destructive border-destructive/20',
   };
   const entry = cfg[status];
   return (

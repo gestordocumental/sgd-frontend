@@ -33,9 +33,21 @@ export function useWorkflowDialogs() {
   );
   const [editFinalUserId, setEditFinalUserId] = useState<string | null>(null);
 
-  // ── List filters ───────────────────────────────────────────────────────────
-  const [statusFilter, setStatusFilter] = useState<WorkflowStatus | undefined>(undefined);
+  // ── List filters + server-side pagination ─────────────────────────────────
+  const [statusFilter, setStatusFilterRaw] = useState<WorkflowStatus | undefined>(undefined);
+  const [search, setSearchRaw] = useState('');
+  const [page, setPage] = useState(1);
   const [innerTab, setInnerTab] = useState<WorkflowsInnerTab>('all');
+
+  const setStatusFilter = useCallback((v: WorkflowStatus | undefined) => {
+    setStatusFilterRaw(v);
+    setPage(1);
+  }, []);
+
+  const setSearch = useCallback((v: string) => {
+    setSearchRaw(v);
+    setPage(1);
+  }, []);
 
   // ── Review cycle dialog ────────────────────────────────────────────────────
   const [reviewCycleWorkflow, setReviewCycleWorkflow] = useState<ApiWorkflow | null>(null);
@@ -120,9 +132,13 @@ export function useWorkflowDialogs() {
     setEditExistingAttachments,
     editFinalUserId,
     setEditFinalUserId,
-    // Filters
+    // Filters + pagination
     statusFilter,
     setStatusFilter,
+    search,
+    setSearch,
+    page,
+    setPage,
     innerTab,
     setInnerTab,
     // Review cycle

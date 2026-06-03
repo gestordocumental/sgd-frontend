@@ -1,5 +1,7 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const WORKFLOWS_PAGE_SIZE = 20;
 import { workflowsApi, type WorkflowStatus } from '@/lib/api/workflows';
 import { typologiesApi } from '@/lib/api/typologies';
 import { usersApi, type ApiUserWithRoles } from '@/lib/api/users';
@@ -8,6 +10,8 @@ import type { WorkflowsInnerTab } from './workflow-schemas';
 
 interface WorkflowQueriesOptions {
   statusFilter: WorkflowStatus | undefined;
+  search: string;
+  page: number;
   innerTab: WorkflowsInnerTab;
   /** Id of the workflow currently shown in the detail dialog (undefined = closed) */
   detailWorkflowId: string | undefined;
@@ -23,6 +27,8 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   const queryClient = useQueryClient();
   const {
     statusFilter,
+    search,
+    page,
     innerTab,
     detailWorkflowId,
     timelineWorkflowId,
@@ -31,18 +37,34 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     reviewCycleOpen,
   } = options;
 
+  // Debounce search: avoid a server request on every keystroke.
+  // Page resets immediately (in useWorkflowDialogs) when search changes.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    if (search === debouncedSearch) return;
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search, debouncedSearch]);
+
   const {
     data: paginatedWorkflows,
     isLoading: workflowsLoading,
     isFetching: workflowsIsFetching,
     dataUpdatedAt: workflowsUpdatedAt,
   } = useQuery({
-    queryKey: ['workflows', statusFilter],
-    queryFn: () => workflowsApi.list({ status: statusFilter, limit: 50 }),
+    queryKey: ['workflows', companyId, statusFilter, debouncedSearch, page],
+    queryFn: () =>
+      workflowsApi.list({
+        status: statusFilter,
+        search: debouncedSearch || undefined,
+        page,
+        limit: WORKFLOWS_PAGE_SIZE,
+      }),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
-    enabled: innerTab === 'all',
+    // Block while debounce is pending so we never fire (oldSearch, page=1).
+    enabled: innerTab === 'all' && search === debouncedSearch,
   });
 
   const {
@@ -113,7 +135,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   // Roles con sus permisos — para filtrar aprobadores elegibles
   const { data: allRoles = [] } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(companyId),
+    queryFn: () => rolesApi.listRoles(),
     staleTime: 60_000,
     enabled: !!companyId && (createOpen || editWorkflowOpen),
   });
@@ -176,6 +198,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     workflowsLoading,
     isRefreshing,
     workflowsDataUpdatedAt,
+    workflowsTotalPages: paginatedWorkflows?.totalPages ?? 1,
     myTasks,
     myTasksLoading,
     myAvailable,

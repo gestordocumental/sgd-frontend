@@ -1,35 +1,49 @@
-import { Trash2, Upload, FileText, Paperclip, GripVertical, User } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { FormField } from '@/components/ui/form-field'
-import { SearchableSelect } from '@/components/ui/searchable-select'
-import type { SelectOption } from '@/components/ui/searchable-select'
-import type { WorkflowsHook } from './workflow-dialog.types'
+import { Trash2, Upload, FileText, Paperclip, GripVertical, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import type { SelectOption } from '@/components/ui/searchable-select';
+import type { WorkflowsHook } from './workflow-dialog.types';
 
 export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
   const {
-    editWorkflow, setEditWorkflow,
-    editForm, updateMutation,
-    editApproverIds, setEditApproverIds,
-    editDocumentFile, setEditDocumentFile,
-    editSupportingFiles, setEditSupportingFiles,
-    editExistingAttachments, setEditExistingAttachments,
-    editFinalUserId, setEditFinalUserId,
-    approverEligibleUsers, finalUserEligibleUsers, activeOrgUsers, orgUsersMap,
-  } = hook
-  const { t } = useTranslation()
+    editWorkflow,
+    setEditWorkflow,
+    editApproverIds,
+    setEditApproverIds,
+    editDocumentFile,
+    setEditDocumentFile,
+    editSupportingFiles,
+    setEditSupportingFiles,
+    editExistingAttachments,
+    setEditExistingAttachments,
+    editFinalUserId,
+    setEditFinalUserId,
+  } = hook.dialogs;
+  const { approverEligibleUsers, finalUserEligibleUsers, activeOrgUsers, orgUsersMap } =
+    hook.queries;
+  const { updateMutation } = hook.mutations;
+  const { editForm } = hook.forms;
+  const { t } = useTranslation();
 
-  if (!editWorkflow) return null
+  if (!editWorkflow) return null;
 
   const addEditApprover = (userId: string) => {
     if (!editApproverIds.includes(userId)) {
-      setEditApproverIds((prev) => [...prev, userId])
+      setEditApproverIds((prev) => [...prev, userId]);
     }
-  }
+  };
   const removeEditApprover = (userId: string) =>
-    setEditApproverIds((prev) => prev.filter((id) => id !== userId))
+    setEditApproverIds((prev) => prev.filter((id) => id !== userId));
 
   const availableApproverOptions: SelectOption[] = approverEligibleUsers
     .filter((u) => !editApproverIds.includes(u.id))
@@ -37,18 +51,18 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
       value: u.id,
       label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
       sublabel: u.position,
-    }))
+    }));
 
   const selectedApproversData = editApproverIds.map((id) => ({
     id,
     user: approverEligibleUsers.find((u) => u.id === id),
-  }))
+  }));
 
   // Usuario final ya asignado (del workflow) o recién seleccionado
   const currentFinalUser = editFinalUserId
-    ? (finalUserEligibleUsers.find((u) => u.id === editFinalUserId)
-        ?? activeOrgUsers.find((u) => u.id === editFinalUserId))
-    : null
+    ? (finalUserEligibleUsers.find((u) => u.id === editFinalUserId) ??
+      activeOrgUsers.find((u) => u.id === editFinalUserId))
+    : null;
 
   const availableFinalUserOptions: SelectOption[] = finalUserEligibleUsers
     .filter((u) => u.id !== editFinalUserId)
@@ -56,47 +70,52 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
       value: u.id,
       label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
       sublabel: u.position,
-    }))
+    }));
 
   // El usuario final ya estaba guardado desde antes (no es recién seleccionado)
-  const finalUserAlreadySaved = !!(editWorkflow.finalUserIds?.[0])
+  const finalUserAlreadySaved = !!editWorkflow.finalUserIds?.[0];
 
   const existingMainDocMeta = editWorkflow.mainDocumentMetadata as {
-    storageKey?: string; originalName?: string
-  } | null
+    storageKey?: string;
+    originalName?: string;
+  } | null;
 
-  const originalAttachmentCount = (editWorkflow.attachments ?? [])
-    .filter((a) => a.attachmentType === 'SUPPORTING').length
+  const originalAttachmentCount = (editWorkflow.attachments ?? []).filter(
+    (a) => a.attachmentType === 'SUPPORTING',
+  ).length;
 
   const handleSubmit = editForm.handleSubmit((values) => {
     // Solo enviar finalUserIds si cambió respecto al guardado
-    const newFinalUserId = editFinalUserId !== (editWorkflow.finalUserIds?.[0] ?? null)
-      ? editFinalUserId
-      : null
+    const newFinalUserId =
+      editFinalUserId !== (editWorkflow.finalUserIds?.[0] ?? null) ? editFinalUserId : null;
 
     updateMutation.mutate({
-      id:                      editWorkflow.id,
+      id: editWorkflow.id,
       dto: {
-        title:     values.title,
+        title: values.title,
         description: values.description || undefined,
         approvers: editApproverIds.map((userId, i) => ({ userId, stepOrder: i + 1 })),
       },
-      mainFile:                editDocumentFile,
+      mainFile: editDocumentFile,
       supportingFilesToUpload: editSupportingFiles,
       newFinalUserId,
-      existingAttachments:     editExistingAttachments,
+      existingAttachments: editExistingAttachments,
       originalAttachmentCount,
-    })
-  })
+    });
+  });
 
   return (
-    <Dialog open={!!editWorkflow} onOpenChange={(o) => { if (!o) setEditWorkflow(null) }}>
+    <Dialog
+      open={!!editWorkflow}
+      onOpenChange={(o) => {
+        if (!o) setEditWorkflow(null);
+      }}
+    >
       <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('workflows.dialogs.editTitle')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-
           {/* Título */}
           <FormField
             id="edit-wf-title"
@@ -119,11 +138,16 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
               {t('workflows.dialogs.editDocLabel')}{' '}
-              <span className="font-normal text-muted-foreground">{t('workflows.dialogs.editDocOptional')}</span>
+              <span className="font-normal text-muted-foreground">
+                {t('workflows.dialogs.editDocOptional')}
+              </span>
             </label>
             {existingMainDocMeta?.storageKey && !editDocumentFile && (
               <p className="text-xs text-muted-foreground">
-                {t('workflows.dialogs.editDocCurrent')} <span className="font-medium text-foreground">{existingMainDocMeta.originalName ?? existingMainDocMeta.storageKey}</span>
+                {t('workflows.dialogs.editDocCurrent')}{' '}
+                <span className="font-medium text-foreground">
+                  {existingMainDocMeta.originalName ?? existingMainDocMeta.storageKey}
+                </span>
               </p>
             )}
             <label
@@ -133,12 +157,16 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
               {editDocumentFile ? (
                 <>
                   <FileText className="size-4 text-primary" />
-                  <span className="text-xs font-medium px-2 truncate max-w-full">{editDocumentFile.name}</span>
+                  <span className="text-xs font-medium px-2 truncate max-w-full">
+                    {editDocumentFile.name}
+                  </span>
                 </>
               ) : (
                 <>
                   <Upload className="size-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{t('workflows.dialogs.editDocDrop')}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('workflows.dialogs.editDocDrop')}
+                  </span>
                 </>
               )}
               <input
@@ -147,9 +175,9 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 className="sr-only"
                 accept=".pdf,.docx,.xlsx"
                 onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setEditDocumentFile(f)
-                  e.target.value = ''
+                  const f = e.target.files?.[0];
+                  if (f) setEditDocumentFile(f);
+                  e.target.value = '';
                 }}
               />
             </label>
@@ -168,7 +196,9 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
 
           {/* Adjuntos de soporte */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">{t('workflows.dialogs.editAttachmentsLabel')}</label>
+            <label className="text-sm font-medium">
+              {t('workflows.dialogs.editAttachmentsLabel')}
+            </label>
 
             {/* Adjuntos existentes guardados */}
             {editExistingAttachments.length > 0 && (
@@ -207,7 +237,9 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       size="icon"
                       aria-label={t('workflows.dialogs.editRemoveFile')}
                       className="size-6 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => setEditSupportingFiles((prev) => prev.filter((_, i) => i !== idx))}
+                      onClick={() =>
+                        setEditSupportingFiles((prev) => prev.filter((_, i) => i !== idx))
+                      }
                     >
                       <Trash2 className="size-3" />
                     </Button>
@@ -217,7 +249,9 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
             )}
 
             {editExistingAttachments.length === 0 && editSupportingFiles.length === 0 && (
-              <p className="text-xs text-muted-foreground italic">{t('workflows.dialogs.editAttachmentsEmpty')}</p>
+              <p className="text-xs text-muted-foreground italic">
+                {t('workflows.dialogs.editAttachmentsEmpty')}
+              </p>
             )}
 
             <label
@@ -232,9 +266,9 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 className="sr-only"
                 accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff"
                 onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setEditSupportingFiles((prev) => [...prev, f])
-                  e.target.value = ''
+                  const f = e.target.files?.[0];
+                  if (f) setEditSupportingFiles((prev) => [...prev, f]);
+                  e.target.value = '';
                 }}
               />
             </label>
@@ -243,8 +277,12 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Aprobadores */}
           <div className="space-y-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">{t('workflows.dialogs.editApproversLabel')}</label>
-              <p className="text-xs text-muted-foreground">{t('workflows.dialogs.editApproversHint')}</p>
+              <label className="text-sm font-medium">
+                {t('workflows.dialogs.editApproversLabel')}
+              </label>
+              <p className="text-xs text-muted-foreground">
+                {t('workflows.dialogs.editApproversHint')}
+              </p>
             </div>
             {selectedApproversData.length > 0 && (
               <div className="rounded-md border border-border divide-y divide-border">
@@ -256,7 +294,9 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : id}
+                        {user
+                          ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
+                          : id}
                       </p>
                       {user?.position && (
                         <p className="text-xs text-muted-foreground truncate">{user.position}</p>
@@ -293,10 +333,16 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {/* Usuario final */}
           <div className="space-y-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">{t('workflows.dialogs.editFinalUserLabel')}</label>
+              <label className="text-sm font-medium">
+                {t('workflows.dialogs.editFinalUserLabel')}
+              </label>
               {finalUserAlreadySaved && (
                 <p className="text-xs text-muted-foreground">
-                  {t('workflows.dialogs.editFinalUserAssigned')} <span className="font-medium text-foreground">{orgUsersMap.get(editWorkflow.finalUserIds![0]) ?? editWorkflow.finalUserIds![0]}</span>
+                  {t('workflows.dialogs.editFinalUserAssigned')}{' '}
+                  <span className="font-medium text-foreground">
+                    {orgUsersMap.get(editWorkflow.finalUserIds![0]) ??
+                      editWorkflow.finalUserIds![0]}
+                  </span>
                 </p>
               )}
             </div>
@@ -305,10 +351,14 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 <User className="size-3.5 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {[currentFinalUser.firstName, currentFinalUser.lastName].filter(Boolean).join(' ') || currentFinalUser.email}
+                    {[currentFinalUser.firstName, currentFinalUser.lastName]
+                      .filter(Boolean)
+                      .join(' ') || currentFinalUser.email}
                   </p>
                   {currentFinalUser.position && (
-                    <p className="text-xs text-muted-foreground truncate">{currentFinalUser.position}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {currentFinalUser.position}
+                    </p>
                   )}
                 </div>
                 <Button
@@ -339,11 +389,13 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? t('workflows.dialogs.editSaving') : t('workflows.dialogs.editSaveChanges')}
+              {updateMutation.isPending
+                ? t('workflows.dialogs.editSaving')
+                : t('workflows.dialogs.editSaveChanges')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
