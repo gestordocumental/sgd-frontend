@@ -51,8 +51,8 @@ export function useRoles(companyId: string) {
   const invalidateMyOrgRoles = () => queryClient.removeQueries({ queryKey: ['my-org-roles'] });
 
   const createRoleMutation = useMutation({
-    mutationFn: (dto: { name: string; description: string; permissionIds: string[] }) =>
-      rolesApi.createRole(dto),
+    mutationFn: (dto: { name: string; description?: string; permissionIds: string[] }) =>
+      rolesApi.createRole({ ...dto, description: dto.description ?? '' }),
     onSuccess: () => {
       invalidateRoles();
       setCreateRoleOpen(false);
@@ -65,10 +65,10 @@ export function useRoles(companyId: string) {
       dto,
     }: {
       id: string;
-      dto: { name: string; description: string; permissionIds: string[] };
+      dto: { name: string; description?: string; permissionIds: string[] };
     }) => {
       const { permissionIds, ...roleData } = dto;
-      await rolesApi.updateRole(id, roleData);
+      await rolesApi.updateRole(id, { ...roleData, description: roleData.description ?? '' });
       return rolesApi.assignPermissions(id, permissionIds);
     },
     onSuccess: () => {
