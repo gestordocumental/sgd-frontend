@@ -9,6 +9,8 @@ import {
   Search,
   RefreshCw,
   UserCheck,
+  Ban,
+  CircleCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +58,8 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
     openEdit,
     setDeleteUser,
     restoreMutation,
+    disableMutation,
+    enableMutation,
     resendInvitationMutation,
     toggleOptionalReviewerMutation,
     cargoMap,
@@ -209,6 +213,8 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
                   onRestore={(user) =>
                     restoreMutation.mutate(user, { onSuccess: () => setStatusFilter('all') })
                   }
+                  onDisable={() => disableMutation.mutate(u.id)}
+                  onEnable={() => enableMutation.mutate(u.id)}
                   onResendInvitation={() => resendInvitationMutation.mutate(u.id)}
                   onToggleOptionalReviewer={() =>
                     toggleOptionalReviewerMutation.mutate({
@@ -246,6 +252,8 @@ interface UserRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onRestore: (u: ApiUserWithRoles) => void;
+  onDisable: () => void;
+  onEnable: () => void;
   onResendInvitation: () => void;
   onToggleOptionalReviewer: () => void;
 }
@@ -257,6 +265,8 @@ function UserRow({
   onEdit,
   onDelete,
   onRestore: onRestoreUser,
+  onDisable,
+  onEnable,
   onResendInvitation,
   onToggleOptionalReviewer,
 }: UserRowProps) {
@@ -355,6 +365,15 @@ function UserRow({
                   <DropdownMenuItem onClick={onEdit}>
                     <Pencil className="size-4" /> {t('users.actions.edit')}
                   </DropdownMenuItem>
+                  {u.isActive ? (
+                    <DropdownMenuItem onClick={onDisable}>
+                      <Ban className="size-4" /> {t('users.actions.disable')}
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={onEnable}>
+                      <CircleCheck className="size-4" /> {t('users.actions.enable')}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={onToggleOptionalReviewer}>
                     <UserCheck className="size-4" />
                     {u.isOptionalReviewer

@@ -63,7 +63,7 @@ export function useAdminUsers() {
   });
 
   // ── Server-side search / filter / pagination state ────────────────────────
-  type SuperAdminStatus = 'all' | 'active' | 'deleted' | 'pending';
+  type SuperAdminStatus = 'all' | 'active' | 'inactive' | 'deleted' | 'pending';
   const PAGE_SIZE = 20;
   const [saSearch, setSaSearchValue] = useState('');
   const [saDebouncedSearch, setSaDebounced] = useState('');
@@ -108,9 +108,23 @@ export function useAdminUsers() {
     placeholderData: (prev) => prev,
   });
 
+  // Queries ligeras (limit=1) solo para obtener totales exactos por estado
+  const { data: saActiveCount } = useQuery({
+    queryKey: ['superAdmins-count', 'active'],
+    queryFn: () => usersApi.listSuperAdmin({ page: 1, limit: 1, status: 'active' }),
+    staleTime: 60_000,
+  });
+  const { data: saInactiveCount } = useQuery({
+    queryKey: ['superAdmins-count', 'inactive'],
+    queryFn: () => usersApi.listSuperAdmin({ page: 1, limit: 1, status: 'inactive' }),
+    staleTime: 60_000,
+  });
+
   const superAdmins = superAdminsResult?.data ?? [];
   const superAdminsTotal = superAdminsResult?.total ?? 0;
   const superAdminsTotalPages = Math.max(1, Math.ceil(superAdminsTotal / PAGE_SIZE));
+  const superAdminsActiveTotal = saActiveCount?.total ?? 0;
+  const superAdminsInactiveTotal = saInactiveCount?.total ?? 0;
 
   const rolesCompanyId =
     createOpen && createUserContext === 'company' ? createCompanyId : editCompanyId;
@@ -267,6 +281,16 @@ export function useAdminUsers() {
     onSuccess: invalidate,
   });
 
+  const disableMutation = useMutation({
+    mutationFn: (id: string) => usersApi.disable(id),
+    onSuccess: invalidate,
+  });
+
+  const enableMutation = useMutation({
+    mutationFn: (id: string) => usersApi.enable(id),
+    onSuccess: invalidate,
+  });
+
   const removeFromOrgMutation = useMutation({
     mutationFn: ({ userId, orgId }: { userId: string; orgId: string }) =>
       usersApi.removeUserFromOrg(userId, orgId),
@@ -370,6 +394,8 @@ export function useAdminUsers() {
     superAdmins,
     superAdminsTotal,
     superAdminsTotalPages,
+    superAdminsActiveTotal,
+    superAdminsInactiveTotal,
     superAdminsLoading,
     superAdminsIsFetching,
     superAdminsDataUpdatedAt,
@@ -409,6 +435,8 @@ export function useAdminUsers() {
     editMutation,
     deleteMutation,
     restoreMutation,
+    disableMutation,
+    enableMutation,
     removeFromOrgMutation,
     restoreToOrgMutation,
     toggleSuperAdminMutation,
