@@ -222,8 +222,8 @@ apiClient.interceptors.response.use(
       original.headers.Authorization = `Bearer ${finalAccessToken}`;
       return apiClient(original);
     } catch (refreshError) {
-      const status = (refreshError as { response?: { status?: number } })?.response?.status;
-      console.error('[auth:refresh] Silent refresh failed', { status });
+      const refreshStatus = (refreshError as { response?: { status?: number } })?.response?.status;
+      console.error('[auth:refresh] Silent refresh failed', { status: refreshStatus });
       flushQueue(refreshError, null);
       useAuthStore.getState().clearAuth();
       void router.navigate({ to: '/login', replace: true });

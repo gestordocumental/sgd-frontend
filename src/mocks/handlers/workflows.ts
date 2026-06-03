@@ -55,7 +55,15 @@ const PENDING_WORKFLOW: ApiWorkflow = {
   updatedAt: '2025-01-20T11:00:00Z',
 };
 
-const MOCK_WORKFLOWS = [BASE_WORKFLOW, PENDING_WORKFLOW];
+const SEED_WORKFLOWS = [BASE_WORKFLOW, PENDING_WORKFLOW];
+
+const createWorkflowsDb = () => SEED_WORKFLOWS.map((w) => ({ ...w }));
+
+export function resetWorkflowsDb() {
+  workflowsDb = createWorkflowsDb();
+}
+
+let workflowsDb = createWorkflowsDb();
 
 // ── Handlers — order matters: specific static paths before :id patterns ───────
 
@@ -175,7 +183,7 @@ export const workflowsHandlers = [
 
   // Get single workflow by ID
   http.get('*/workflows/:id', ({ params }) => {
-    const workflow = MOCK_WORKFLOWS.find((w) => w.id === params['id']);
+    const workflow = workflowsDb.find((w) => w.id === params['id']);
     if (!workflow) {
       return HttpResponse.json({ message: 'Workflow not found' }, { status: 404 });
     }
@@ -190,7 +198,7 @@ export const workflowsHandlers = [
     const search = url.searchParams.get('search') ?? '';
     const status = url.searchParams.get('status') ?? '';
 
-    const filtered = MOCK_WORKFLOWS.filter((w) => {
+    const filtered = workflowsDb.filter((w) => {
       if (status && w.status !== status) return false;
       if (search && !w.title.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -211,37 +219,41 @@ export const workflowsHandlers = [
   // Create workflow
   http.post('*/workflows', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json<ApiWorkflow>(
-      {
-        ...BASE_WORKFLOW,
-        id: `wf-${Date.now()}`,
-        title: (body['title'] as string | undefined) ?? 'Nuevo workflow',
-        description: (body['description'] as string | undefined) ?? null,
-        typologyId: (body['typologyId'] as string | undefined) ?? 'typ-001',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      { status: 201 },
-    );
+    const created: ApiWorkflow = {
+      ...BASE_WORKFLOW,
+      id: `wf-${Date.now()}`,
+      title: (body['title'] as string | undefined) ?? 'Nuevo workflow',
+      description: (body['description'] as string | undefined) ?? null,
+      typologyId: (body['typologyId'] as string | undefined) ?? 'typ-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    workflowsDb = [...workflowsDb, created];
+    return HttpResponse.json<ApiWorkflow>(created, { status: 201 });
   }),
 
   // Update workflow
   http.patch('*/workflows/:id', async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    const existing = MOCK_WORKFLOWS.find((w) => w.id === params['id']);
+    const existing = workflowsDb.find((w) => w.id === params['id']);
     if (!existing) {
       return HttpResponse.json({ message: 'Workflow not found' }, { status: 404 });
     }
-    return HttpResponse.json<ApiWorkflow>({
+    const updated: ApiWorkflow = {
       ...existing,
       ...(body['title'] !== undefined && { title: body['title'] as string }),
       ...(body['description'] !== undefined && {
         description: body['description'] as string | null,
       }),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    workflowsDb = workflowsDb.map((w) => (w.id === updated.id ? updated : w));
+    return HttpResponse.json<ApiWorkflow>(updated);
   }),
 
   // Delete workflow (soft delete)
-  http.delete('*/workflows/:id', () => new HttpResponse(null, { status: 204 })),
+  http.delete('*/workflows/:id', ({ params }) => {
+    workflowsDb = workflowsDb.filter((w) => w.id !== params['id']);
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];
