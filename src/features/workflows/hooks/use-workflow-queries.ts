@@ -135,7 +135,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   // Roles con sus permisos — para filtrar aprobadores elegibles
   const { data: allRoles = [] } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(companyId),
+    queryFn: () => rolesApi.listRoles(),
     staleTime: 60_000,
     enabled: !!companyId && (createOpen || editWorkflowOpen),
   });

@@ -29,7 +29,7 @@ export function useRoles(companyId: string) {
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(companyId),
+    queryFn: () => rolesApi.listRoles(),
     staleTime: 60_000,
     enabled: !!companyId,
   });

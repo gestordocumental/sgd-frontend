@@ -174,11 +174,12 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ json: { data: [MOCK_APPROVER, MOCK_FINAL_USER], total: 2 } }),
   );
 
-  // Org-structure endpoints — useCompanyUsers calls listAllCargos on mount (always
-  // enabled). Without this mock the fallback returns a paginated object instead of
-  // an array, causing allCargos.map() to throw and crash CompanyDashboard before
-  // the Workflows tab ever renders.
+  // Org-structure endpoints — useCompanyUsers fetches cargos and departamentos on
+  // every mount (always enabled). Without plain-array mocks the fallback returns a
+  // paginated object, causing allCargos.map() / departamentos.map() in
+  // CompanyUserDialogs to throw and crash the dashboard.
   await page.route(`${API}/org/${ORG_ID}/cargos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/org/${ORG_ID}/departamentos`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
 });
 

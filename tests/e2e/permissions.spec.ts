@@ -76,7 +76,10 @@ test.beforeEach(async ({ page }) => {
   await mockAuthRefresh(page, ORG_ID);
 
   // useCompanyUsers always fetches these on mount regardless of permissions.
+  // Must return plain arrays — mockApiFallback returns paginated objects which
+  // cause CompanyUserDialogs to crash on departamentos.map() / allCargos.map().
   await page.route(`${API}/org/${ORG_ID}/cargos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/org/${ORG_ID}/departamentos`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
 });
 
