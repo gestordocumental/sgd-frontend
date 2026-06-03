@@ -21,12 +21,14 @@ export const workflowFilesApi = {
   getSignedUrl: (
     orgId: string,
     storageKey: string,
+    originalName?: string,
+    mimeType?: string,
   ): Promise<{ signedUrl: string; expiresAt: string }> =>
     apiClient
       .post<{
         signedUrl: string;
         expiresAt: string;
-      }>(`/documents/${orgId}/workflow-files/signed-url`, { storageKey })
+      }>(`/documents/${orgId}/workflow-files/signed-url`, { storageKey, originalName, mimeType })
       .then((r) => r.data),
 
   downloadZip: (

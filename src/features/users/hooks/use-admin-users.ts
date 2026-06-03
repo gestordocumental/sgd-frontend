@@ -210,9 +210,7 @@ export function useAdminUsers() {
         }
         throw err;
       }
-      if (orgId) {
-        await usersApi.assignUserToOrg(userId, orgId, roleId);
-      }
+      // create() already assigns the user to the org via dto.orgId/dto.roleId — no duplicate call needed.
       return created;
     },
     onSuccess: (created) => {
@@ -339,6 +337,7 @@ export function useAdminUsers() {
     const orgId = createUserContext === 'company' ? (createCompanyId ?? undefined) : undefined;
     const dto: CreateUserDto = {
       ...rest,
+      roleId: roleId || undefined,
       isSuperAdmin: createUserContext === 'super-admin',
       orgId,
       departamentoId: rest.departamentoId || undefined,

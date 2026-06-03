@@ -1,9 +1,9 @@
-import { useTranslation } from 'react-i18next'
-import { FormField } from '@/components/ui/form-field'
-import { selectClass, type TypologiesHook } from './typology-dialog-shared'
+import { useTranslation } from 'react-i18next';
+import { FormField } from '@/components/ui/form-field';
+import { selectClass, type TypologiesHook } from './typology-dialog-shared';
 
 export function OrgStructureSelectors({ hook }: { hook: TypologiesHook }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const {
     form,
     departamentos,
@@ -13,7 +13,7 @@ export function OrgStructureSelectors({ hook }: { hook: TypologiesHook }) {
     formAreaId,
     handleFormDeptChange,
     handleFormAreaChange,
-  } = hook
+  } = hook;
   return (
     <>
       <FormField
@@ -30,7 +30,9 @@ export function OrgStructureSelectors({ hook }: { hook: TypologiesHook }) {
         >
           <option value="">{t('docGovernance.form.selectDepartment')}</option>
           {departamentos.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
       </FormField>
@@ -46,7 +48,9 @@ export function OrgStructureSelectors({ hook }: { hook: TypologiesHook }) {
         >
           <option value="">{t('docGovernance.form.noArea')}</option>
           {formAreas.map((a) => (
-            <option key={a.id} value={a.id}>{a.name}</option>
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
           ))}
         </select>
       </FormField>
@@ -58,15 +62,17 @@ export function OrgStructureSelectors({ hook }: { hook: TypologiesHook }) {
           id="typo-cargo"
           aria-label={t('docGovernance.form.positionLabel')}
           className={selectClass}
-          disabled={!formAreaId}
+          disabled={!formDeptId}
           {...form.register('cargoId')}
         >
           <option value="">{t('docGovernance.form.noPosition')}</option>
           {formCargos.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
         </select>
       </FormField>
     </>
-  )
+  );
 }

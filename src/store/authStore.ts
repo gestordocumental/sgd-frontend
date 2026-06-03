@@ -9,6 +9,16 @@ function sentryUser(user: AuthUser): Parameters<typeof Sentry.setUser>[0] {
 }
 
 const AUTH_KEY = 'sgd-auth';
+const COMPANIES_CACHE_KEY = 'sgd-companies-cache';
+const CSRF_STORAGE_KEY = 'sgd_csrf';
+const CSRF_COOKIE_NAME = 'sgd_csrf_token';
+
+function readCsrfToken(): string | null {
+  const stored = sessionStorage.getItem(CSRF_STORAGE_KEY);
+  if (stored) return stored;
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME}=([^;]+)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 // ── In-memory token storage ────────────────────────────────────────────────
 // Access tokens are NOT written to localStorage.  If an XSS payload runs
@@ -127,6 +137,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
 
     clearAuth: () => {
       localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(COMPANIES_CACHE_KEY);
       _superAdminToken = null;
       Sentry.setUser(null);
       set({
@@ -142,12 +153,22 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       const stored = readPersistedAuth();
       if (!stored) return;
       // Capture the current in-memory access token before it is replaced
-      const { accessToken: currentToken } = get();
-      if (currentToken && !_superAdminToken) {
+      const {
+        accessToken: currentToken,
+        isSuperAdmin: wasAdmin,
+        hasSuperAdminContext: hadContext,
+      } = get();
+      // Only preserve the global super-admin token if the user actually is a super admin.
+      // Regular users switching between their companies must not pollute _superAdminToken.
+      if (currentToken && !_superAdminToken && wasAdmin) {
         _superAdminToken = currentToken;
       }
       const decoded = decodeJwt(companyToken);
       const isSuperAdmin = decoded?.isSuperAdmin === true;
+      // Only carry the super-admin context forward if the user actually had it.
+      // Regular users switching between their own companies must NOT get this flag,
+      // otherwise they would see the "Switch to Super Admin" option in the profile.
+      const hasSuperAdminContext = wasAdmin || hadContext || !!_superAdminToken;
       const updatedUser: AuthUser = { ...stored.user, companyId, companyName };
       localStorage.setItem(
         AUTH_KEY,
@@ -155,7 +176,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
           user: updatedUser,
           isAuthenticated: true,
           isSuperAdmin,
-          hasSuperAdminContext: true,
+          hasSuperAdminContext,
         } satisfies PersistedAuth),
       );
       Sentry.setUser(sentryUser(updatedUser));
@@ -163,7 +184,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
         user: updatedUser,
         accessToken: companyToken,
         isSuperAdmin,
-        hasSuperAdminContext: true,
+        hasSuperAdminContext,
       });
     },
 
@@ -189,12 +210,19 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       }
 
       // Step 2: call exit-company (cookie carries the company refresh token).
+      // The endpoint enforces double-submit CSRF, so we must include the token
+      // from sessionStorage or the non-httpOnly cookie (same value, cross-tab).
       if (!globalToken) {
         try {
+          const csrfToken = readCsrfToken();
           const { data } = await axios.post<{ accessToken: string }>(
             `${_baseURL()}/auth/exit-company`,
             undefined,
-            { timeout: 15000, withCredentials: true },
+            {
+              timeout: 15000,
+              withCredentials: true,
+              headers: { ...(csrfToken && { 'x-csrf-token': csrfToken }) },
+            },
           );
           globalToken = data.accessToken;
           _superAdminToken = data.accessToken;

@@ -82,6 +82,7 @@
     "myProfile": "Mi perfil",
     "switchContext": "Cambiar a",
     "changeAvatar": "Cambiar foto de perfil",
+    "exitCompanyFailed": "No se pudo restaurar la sesión de super-admin. Por favor, inicia sesión nuevamente.",
     "sessionRevoked": {
       "unknownCompany": "la empresa",
       "switchToGlobal": "Fuiste removido de {{company}}. Regresando a la vista global.",

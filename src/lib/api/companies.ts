@@ -56,6 +56,11 @@ export const companiesApi = {
 
   restore: (id: string): Promise<ApiCompany> =>
     apiClient.post<ApiCompany>(`/org/${id}/restore`).then((r) => r.data),
+
+  getMyOrgs: (ids: string[]): Promise<ApiCompany[]> =>
+    apiClient
+      .get<ApiCompany[]>('/org/mine', { params: { ids: ids.join(',') } })
+      .then((r) => r.data),
 };
 
 // Fetches every page and returns a flat array.
