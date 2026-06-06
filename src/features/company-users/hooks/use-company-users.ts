@@ -16,22 +16,27 @@ import { orgStructureApi } from '@/lib/api/org-structure';
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas';
 import { ROLE_NAMES } from '@/lib/constants/roles';
 
+// Native <select> elements send "" when the placeholder option is selected.
+// z.string().uuid() rejects "" (not a UUID, not undefined), so accept "" explicitly.
+// Submit handlers must coerce "" → undefined before calling the API.
+const optionalUuid = z.union([z.literal(''), z.string().uuid()]).optional();
+
 const createUserSchema = z.object({
   email: emailField,
   roleId: z.string().uuid(),
-  departamentoId: z.string().uuid().optional(),
-  areaId: z.string().uuid().optional(),
-  cargoId: z.string().uuid().optional(),
+  departamentoId: optionalUuid,
+  areaId: optionalUuid,
+  cargoId: optionalUuid,
 });
 
 const editUserSchema = z.object({
   firstName: requiredString(),
   lastName: requiredString(),
   idNumber: optionalString,
-  departamentoId: z.string().uuid().optional(),
-  areaId: z.string().uuid().optional(),
-  cargoId: z.string().uuid().optional(),
-  roleId: z.string().uuid().optional(),
+  departamentoId: optionalUuid,
+  areaId: optionalUuid,
+  cargoId: optionalUuid,
+  roleId: optionalUuid,
 });
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;

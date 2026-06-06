@@ -1,81 +1,117 @@
-import { memo, useMemo, type ElementType } from 'react'
-import { useTranslation } from 'react-i18next'
-import { FileText, GitBranch, HardDrive, CheckCircle, ClipboardList, Users } from 'lucide-react'
-import type { TypologyStats } from '@/lib/api/typologies'
-import type { WorkflowStats } from '@/lib/api/workflows'
-import type { ApiUser } from '@/lib/api/users'
+import { memo, useMemo, type ElementType } from 'react';
+import { useTranslation } from 'react-i18next';
+import { FileText, GitBranch, HardDrive, CheckCircle, ClipboardList, Users } from 'lucide-react';
+import type { TypologyStats } from '@/lib/api/typologies';
+import type { WorkflowStats } from '@/lib/api/workflows';
+import type { ApiUser } from '@/lib/api/users';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  if (bytes === 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function formatBytesToGB(bytes: number): string {
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb < 0.001) return '< 0.001 GB';
+  return `${gb.toFixed(3)} GB`;
 }
 
 const WORKFLOW_STATUS_COLORS: Record<string, string> = {
-  DRAFT:                     '#94a3b8',
-  PENDING_APPROVAL:          '#f59e0b',
-  RETURNED_TO_CREATOR:       '#ef4444', // legacy
-  REJECTED:                  '#dc2626',
-  PENDING_REVIEW_CYCLE:      '#8b5cf6',
+  DRAFT: '#94a3b8',
+  PENDING_APPROVAL: '#f59e0b',
+  RETURNED_TO_CREATOR: '#ef4444', // legacy
+  REJECTED: '#dc2626',
+  PENDING_REVIEW_CYCLE: '#8b5cf6',
   AVAILABLE_FOR_FINAL_USERS: '#10b981',
-  ADMIN_CYCLE_IN_PROGRESS:   '#3b82f6',
-  CLOSED:                    '#6b7280',
-  CANCELLED:                 '#6b7280',
-}
+  ADMIN_CYCLE_IN_PROGRESS: '#3b82f6',
+  CLOSED: '#6b7280',
+  CANCELLED: '#6b7280',
+};
 
 const WORKFLOW_STATUS_LABEL_KEYS: Record<string, string> = {
-  DRAFT:                     'workflows.status.DRAFT',
-  PENDING_APPROVAL:          'workflows.status.PENDING_APPROVAL',
-  RETURNED_TO_CREATOR:       'workflows.status.RETURNED_TO_CREATOR',
-  REJECTED:                  'workflows.status.REJECTED',
-  PENDING_REVIEW_CYCLE:      'workflows.status.PENDING_REVIEW_CYCLE',
+  DRAFT: 'workflows.status.DRAFT',
+  PENDING_APPROVAL: 'workflows.status.PENDING_APPROVAL',
+  RETURNED_TO_CREATOR: 'workflows.status.RETURNED_TO_CREATOR',
+  REJECTED: 'workflows.status.REJECTED',
+  PENDING_REVIEW_CYCLE: 'workflows.status.PENDING_REVIEW_CYCLE',
   AVAILABLE_FOR_FINAL_USERS: 'workflows.status.AVAILABLE_FOR_FINAL_USERS',
-  ADMIN_CYCLE_IN_PROGRESS:   'workflows.status.ADMIN_CYCLE_IN_PROGRESS',
-  CLOSED:                    'workflows.status.CLOSED',
-  CANCELLED:                 'workflows.status.CANCELLED',
-}
+  ADMIN_CYCLE_IN_PROGRESS: 'workflows.status.ADMIN_CYCLE_IN_PROGRESS',
+  CLOSED: 'workflows.status.CLOSED',
+  CANCELLED: 'workflows.status.CANCELLED',
+};
 
 const EXTRACTION_STATUS_COLORS: Record<string, string> = {
-  NOT_UPLOADED:         '#e2e8f0',
-  PROCESSING:           '#fbbf24',
-  COMPLETED:            '#34d399',
-  DISCREPANCY:          '#f87171',
+  NOT_UPLOADED: '#e2e8f0',
+  PROCESSING: '#fbbf24',
+  COMPLETED: '#34d399',
+  DISCREPANCY: '#f87171',
   PENDING_CONFIRMATION: '#a78bfa',
-  CONFIRMED:            '#10b981',
-  FAILED:               '#dc2626',
-}
+  CONFIRMED: '#10b981',
+  FAILED: '#dc2626',
+};
 
 const EXTRACTION_STATUS_LABEL_KEYS: Record<string, string> = {
-  NOT_UPLOADED:         'docGovernance.extractionStatus.NOT_UPLOADED',
-  PROCESSING:           'docGovernance.extractionStatus.PROCESSING',
-  COMPLETED:            'docGovernance.extractionStatus.COMPLETED',
-  DISCREPANCY:          'docGovernance.extractionStatus.DISCREPANCY',
+  NOT_UPLOADED: 'docGovernance.extractionStatus.NOT_UPLOADED',
+  PROCESSING: 'docGovernance.extractionStatus.PROCESSING',
+  COMPLETED: 'docGovernance.extractionStatus.COMPLETED',
+  DISCREPANCY: 'docGovernance.extractionStatus.DISCREPANCY',
   PENDING_CONFIRMATION: 'docGovernance.extractionStatus.PENDING_CONFIRMATION',
-  CONFIRMED:            'docGovernance.extractionStatus.CONFIRMED',
-  FAILED:               'docGovernance.extractionStatus.FAILED',
-}
+  CONFIRMED: 'docGovernance.extractionStatus.CONFIRMED',
+  FAILED: 'docGovernance.extractionStatus.FAILED',
+};
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 
 interface KpiColor {
-  bg: string
-  iconBg: string
-  icon: string
-  accent: string
+  bg: string;
+  iconBg: string;
+  icon: string;
+  accent: string;
 }
 
 const KPI_COLORS: KpiColor[] = [
-  { bg: 'bg-emerald-50 dark:bg-emerald-950/40',  iconBg: 'bg-emerald-100 dark:bg-emerald-900/60', icon: 'text-emerald-600 dark:text-emerald-400', accent: 'text-emerald-700 dark:text-emerald-300' },
-  { bg: 'bg-blue-50 dark:bg-blue-950/40',        iconBg: 'bg-blue-100 dark:bg-blue-900/60',       icon: 'text-blue-600 dark:text-blue-400',       accent: 'text-blue-700 dark:text-blue-300'       },
-  { bg: 'bg-violet-50 dark:bg-violet-950/40',    iconBg: 'bg-violet-100 dark:bg-violet-900/60',   icon: 'text-violet-600 dark:text-violet-400',   accent: 'text-violet-700 dark:text-violet-300'   },
-  { bg: 'bg-amber-50 dark:bg-amber-950/40',      iconBg: 'bg-amber-100 dark:bg-amber-900/60',     icon: 'text-amber-600 dark:text-amber-400',     accent: 'text-amber-700 dark:text-amber-300'     },
-  { bg: 'bg-rose-50 dark:bg-rose-950/40',        iconBg: 'bg-rose-100 dark:bg-rose-900/60',       icon: 'text-rose-600 dark:text-rose-400',       accent: 'text-rose-700 dark:text-rose-300'       },
-  { bg: 'bg-indigo-50 dark:bg-indigo-950/40',    iconBg: 'bg-indigo-100 dark:bg-indigo-900/60',   icon: 'text-indigo-600 dark:text-indigo-400',   accent: 'text-indigo-700 dark:text-indigo-300'   },
-]
+  {
+    bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900/60',
+    icon: 'text-emerald-600 dark:text-emerald-400',
+    accent: 'text-emerald-700 dark:text-emerald-300',
+  },
+  {
+    bg: 'bg-blue-50 dark:bg-blue-950/40',
+    iconBg: 'bg-blue-100 dark:bg-blue-900/60',
+    icon: 'text-blue-600 dark:text-blue-400',
+    accent: 'text-blue-700 dark:text-blue-300',
+  },
+  {
+    bg: 'bg-violet-50 dark:bg-violet-950/40',
+    iconBg: 'bg-violet-100 dark:bg-violet-900/60',
+    icon: 'text-violet-600 dark:text-violet-400',
+    accent: 'text-violet-700 dark:text-violet-300',
+  },
+  {
+    bg: 'bg-amber-50 dark:bg-amber-950/40',
+    iconBg: 'bg-amber-100 dark:bg-amber-900/60',
+    icon: 'text-amber-600 dark:text-amber-400',
+    accent: 'text-amber-700 dark:text-amber-300',
+  },
+  {
+    bg: 'bg-rose-50 dark:bg-rose-950/40',
+    iconBg: 'bg-rose-100 dark:bg-rose-900/60',
+    icon: 'text-rose-600 dark:text-rose-400',
+    accent: 'text-rose-700 dark:text-rose-300',
+  },
+  {
+    bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+    iconBg: 'bg-indigo-100 dark:bg-indigo-900/60',
+    icon: 'text-indigo-600 dark:text-indigo-400',
+    accent: 'text-indigo-700 dark:text-indigo-300',
+  },
+];
 
 const KpiCard = memo(function KpiCard({
   icon: Icon,
@@ -85,14 +121,14 @@ const KpiCard = memo(function KpiCard({
   loading,
   colorIdx = 0,
 }: {
-  icon: ElementType
-  label: string
-  value: string | number
-  sub?: string
-  loading?: boolean
-  colorIdx?: number
+  icon: ElementType;
+  label: string;
+  value: string | number;
+  sub?: string;
+  loading?: boolean;
+  colorIdx?: number;
 }) {
-  const c = KPI_COLORS[colorIdx % KPI_COLORS.length]
+  const c = KPI_COLORS[colorIdx % KPI_COLORS.length];
   return (
     <div className={`rounded-xl border border-border ${c.bg} p-4 flex items-start gap-3`}>
       <div className={`flex items-center justify-center size-11 rounded-xl ${c.iconBg} shrink-0`}>
@@ -108,8 +144,8 @@ const KpiCard = memo(function KpiCard({
         {sub && <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{sub}</p>}
       </div>
     </div>
-  )
-})
+  );
+});
 
 // ── Donut Chart (SVG) ─────────────────────────────────────────────────────────
 
@@ -119,29 +155,32 @@ function DonutChart({
   centerLabel,
   noDataLabel,
 }: {
-  slices: { label: string; value: number; color: string }[]
-  title: string
-  centerLabel?: string
-  noDataLabel: string
+  slices: { label: string; value: number; color: string }[];
+  title: string;
+  centerLabel?: string;
+  noDataLabel: string;
 }) {
-  const visible = slices.filter((s) => s.value > 0)
-  const total = visible.reduce((s, sl) => s + sl.value, 0)
-  const cx = 64; const cy = 64; const r = 52; const innerR = 33
-  const gap = 0.03
+  const visible = slices.filter((s) => s.value > 0);
+  const total = visible.reduce((s, sl) => s + sl.value, 0);
+  const cx = 64;
+  const cy = 64;
+  const r = 52;
+  const innerR = 33;
+  const gap = 0.03;
 
-  type PathEntry = { label: string; value: number; color: string; path: string; _endAngle: number }
+  type PathEntry = { label: string; value: number; color: string; path: string; _endAngle: number };
   const paths = visible.reduce<PathEntry[]>((acc, sl) => {
-    const prevAngle = acc.length === 0 ? -Math.PI / 2 : acc[acc.length - 1]._endAngle
-    const angle = (sl.value / total) * 2 * Math.PI - gap
-    const startA = prevAngle + gap / 2
-    const endA = startA + angle
-    const large = angle > Math.PI ? 1 : 0
+    const prevAngle = acc.length === 0 ? -Math.PI / 2 : acc[acc.length - 1]._endAngle;
+    const angle = (sl.value / total) * 2 * Math.PI - gap;
+    const startA = prevAngle + gap / 2;
+    const endA = startA + angle;
+    const large = angle > Math.PI ? 1 : 0;
     const path = `M ${cx + r * Math.cos(startA)} ${cy + r * Math.sin(startA)}
       A ${r} ${r} 0 ${large} 1 ${cx + r * Math.cos(endA)} ${cy + r * Math.sin(endA)}
       L ${cx + innerR * Math.cos(endA)} ${cy + innerR * Math.sin(endA)}
-      A ${innerR} ${innerR} 0 ${large} 0 ${cx + innerR * Math.cos(startA)} ${cy + innerR * Math.sin(startA)} Z`
-    return [...acc, { ...sl, path, _endAngle: prevAngle + (sl.value / total) * 2 * Math.PI }]
-  }, [])
+      A ${innerR} ${innerR} 0 ${large} 0 ${cx + innerR * Math.cos(startA)} ${cy + innerR * Math.sin(startA)} Z`;
+    return [...acc, { ...sl, path, _endAngle: prevAngle + (sl.value / total) * 2 * Math.PI }];
+  }, []);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -154,8 +193,26 @@ function DonutChart({
             {paths.map((p) => (
               <path key={p.label} d={p.path} fill={p.color} />
             ))}
-            <text x={cx} y={cy - 4} textAnchor="middle" fontSize={18} fontWeight="bold" fill="currentColor">{total}</text>
-            <text x={cx} y={cy + 13} textAnchor="middle" fontSize={9} fill="currentColor" opacity={0.5}>{centerLabel ?? 'total'}</text>
+            <text
+              x={cx}
+              y={cy - 4}
+              textAnchor="middle"
+              fontSize={18}
+              fontWeight="bold"
+              fill="currentColor"
+            >
+              {total}
+            </text>
+            <text
+              x={cx}
+              y={cy + 13}
+              textAnchor="middle"
+              fontSize={9}
+              fill="currentColor"
+              opacity={0.5}
+            >
+              {centerLabel ?? 'total'}
+            </text>
           </svg>
           <ul className="space-y-2.5 min-w-0 flex-1">
             {paths.map((p) => (
@@ -172,7 +229,7 @@ function DonutChart({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── Status donut (from Record<string,number>) ─────────────────────────────────
@@ -184,24 +241,25 @@ function StatusDonutChart({
   title,
   noDataLabel,
 }: {
-  data: Record<string, number>
-  colorMap: Record<string, string>
-  labelKeyMap: Record<string, string>
-  title: string
-  noDataLabel: string
+  data: Record<string, number>;
+  colorMap: Record<string, string>;
+  labelKeyMap: Record<string, string>;
+  title: string;
+  noDataLabel: string;
 }) {
-  const { t } = useTranslation()
-  const slices = useMemo(() =>
-    Object.entries(data)
-      .filter(([, v]) => v > 0)
-      .map(([key, value]) => ({
-        label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
-        value,
-        color: colorMap[key] ?? '#cbd5e1',
-      })),
+  const { t } = useTranslation();
+  const slices = useMemo(
+    () =>
+      Object.entries(data)
+        .filter(([, v]) => v > 0)
+        .map(([key, value]) => ({
+          label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
+          value,
+          color: colorMap[key] ?? '#cbd5e1',
+        })),
     [data, colorMap, labelKeyMap, t],
-  )
-  return <DonutChart slices={slices} title={title} noDataLabel={noDataLabel} />
+  );
+  return <DonutChart slices={slices} title={title} noDataLabel={noDataLabel} />;
 }
 
 // ── Weekly bar chart ──────────────────────────────────────────────────────────
@@ -211,16 +269,16 @@ function WeeklyBarChart({
   title,
   noDataLabel,
 }: {
-  data: { week: string; count: number }[]
-  title: string
-  noDataLabel: string
+  data: { week: string; count: number }[];
+  title: string;
+  noDataLabel: string;
 }) {
-  const hasData = data.length > 0
-  const maxCount = hasData ? Math.max(...data.map((d) => d.count), 1) : 0
-  const chartH = 100
-  const chartW = 320
-  const cols = data.length || 1
-  const barW = Math.floor(chartW / cols) - 5
+  const hasData = data.length > 0;
+  const maxCount = hasData ? Math.max(...data.map((d) => d.count), 1) : 0;
+  const chartH = 100;
+  const chartW = 320;
+  const cols = data.length || 1;
+  const barW = Math.floor(chartW / cols) - 5;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -236,52 +294,77 @@ function WeeklyBarChart({
             </linearGradient>
           </defs>
           {data.map((d, i) => {
-            const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0)
-            const x = i * (chartW / cols) + 2
-            const y = chartH - barH
+            const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0);
+            const x = i * (chartW / cols) + 2;
+            const y = chartH - barH;
             return (
               <g key={d.week}>
                 <rect x={x} y={y} width={barW} height={barH} rx={4} fill="url(#orgBarGrad)" />
-                <text x={x + barW / 2} y={chartH + 17} textAnchor="middle" fontSize={9} fill="currentColor" opacity={0.6}>
+                <text
+                  x={x + barW / 2}
+                  y={chartH + 17}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fill="currentColor"
+                  opacity={0.6}
+                >
                   {d.week}
                 </text>
                 {d.count > 0 && (
-                  <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize={10} fill="#6366f1" fontWeight="bold">
+                  <text
+                    x={x + barW / 2}
+                    y={y - 5}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="#6366f1"
+                    fontWeight="bold"
+                  >
                     {d.count}
                   </text>
                 )}
               </g>
-            )
+            );
           })}
         </svg>
       )}
     </div>
-  )
+  );
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface OrgDashboardProps {
-  typologyStats: TypologyStats | undefined
-  workflowStats:  WorkflowStats | undefined
-  isLoading: boolean
-  users: ApiUser[]
-  usersLoading: boolean
+  typologyStats: TypologyStats | undefined;
+  workflowStats: WorkflowStats | undefined;
+  isLoading: boolean;
+  users: ApiUser[];
+  usersLoading: boolean;
 }
 
-export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, usersLoading }: OrgDashboardProps) {
-  const { t } = useTranslation()
-  const noData = t('dashboard.noData')
+export function OrgDashboard({
+  typologyStats,
+  workflowStats,
+  isLoading,
+  users,
+  usersLoading,
+}: OrgDashboardProps) {
+  const { t } = useTranslation();
+  const noData = t('dashboard.noData');
 
   const totalStorageBytes =
-    (typologyStats?.storageTotalBytes ?? 0) + (workflowStats?.storageTotalBytes ?? 0)
+    (typologyStats?.storageTotalBytes ?? 0) + (workflowStats?.storageTotalBytes ?? 0);
   const totalAttachments =
-    (typologyStats?.uploadedDocuments ?? 0) + (workflowStats?.totalAttachments ?? 0)
+    (typologyStats?.uploadedDocuments ?? 0) + (workflowStats?.totalAttachments ?? 0);
 
-  const { activeUsers, inactiveUsers } = useMemo(() => ({
-    activeUsers:   users.filter((u) => u.isActive && !u.deletedAt).length,
-    inactiveUsers: users.filter((u) => !u.isActive || !!u.deletedAt).length,
-  }), [users])
+  const { activeUsers, inactiveUsers, registeredUsers, pendingUsers } = useMemo(
+    () => ({
+      activeUsers: users.filter((u) => u.isActive && !u.deletedAt).length,
+      inactiveUsers: users.filter((u) => !u.isActive || !!u.deletedAt).length,
+      registeredUsers: users.filter((u) => u.registrationStatus === 'active').length,
+      pendingUsers: users.filter((u) => u.registrationStatus === 'pending_credentials').length,
+    }),
+    [users],
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -299,7 +382,10 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
           icon={CheckCircle}
           label={t('dashboard.kpi.uploadedDocuments')}
           value={isLoading ? '—' : totalAttachments}
-          sub={t('dashboard.kpi.docsBreakdown', { typologies: typologyStats?.uploadedDocuments ?? 0, workflows: workflowStats?.totalAttachments ?? 0 })}
+          sub={t('dashboard.kpi.docsBreakdown', {
+            typologies: typologyStats?.uploadedDocuments ?? 0,
+            workflows: workflowStats?.totalAttachments ?? 0,
+          })}
           loading={isLoading}
           colorIdx={1}
         />
@@ -307,7 +393,12 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
           icon={HardDrive}
           label={t('dashboard.kpi.storageUsed')}
           value={isLoading ? '—' : formatBytes(totalStorageBytes)}
-          sub={t('dashboard.kpi.storageBreakdown', { typologies: formatBytes(typologyStats?.storageTotalBytes ?? 0), workflows: formatBytes(workflowStats?.storageTotalBytes ?? 0) })}
+          valueSize="text-lg"
+          valueNote={isLoading ? undefined : formatBytesToGB(totalStorageBytes)}
+          sub={t('dashboard.kpi.storageBreakdown', {
+            typologies: formatBytes(typologyStats?.storageTotalBytes ?? 0),
+            workflows: formatBytes(workflowStats?.storageTotalBytes ?? 0),
+          })}
           loading={isLoading}
           colorIdx={2}
         />
@@ -329,7 +420,11 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
           icon={Users}
           label={t('dashboard.kpi.users')}
           value={usersLoading ? '—' : users.length}
-          sub={usersLoading ? undefined : t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })}
+          sub={
+            usersLoading
+              ? undefined
+              : t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })
+          }
           loading={usersLoading}
           colorIdx={5}
         />
@@ -362,26 +457,27 @@ export function OrgDashboard({ typologyStats, workflowStats, isLoading, users, u
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <DonutChart
           slices={[
-            { label: t('dashboard.charts.usersActive'),   value: activeUsers,   color: '#6366f1' },
+            { label: t('dashboard.charts.usersActive'), value: activeUsers, color: '#6366f1' },
             { label: t('dashboard.charts.usersInactive'), value: inactiveUsers, color: '#f87171' },
           ]}
           title={t('dashboard.charts.usersActiveTitle')}
           centerLabel={t('dashboard.charts.usersCenterLabel')}
           noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
         />
-        {/* placeholder card so the row doesn't feel empty when only one chart */}
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-center items-center text-muted-foreground gap-2">
-          <Users className="size-10 opacity-20" />
-          <p className="text-sm font-medium">
-            {usersLoading ? t('dashboard.kpi.loadingUsers') : t('dashboard.kpi.usersInOrg', { count: users.length })}
-          </p>
-          {!usersLoading && (
-            <p className="text-xs opacity-60">
-              {t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })}
-            </p>
-          )}
-        </div>
+        <DonutChart
+          slices={[
+            {
+              label: t('dashboard.charts.usersRegistered'),
+              value: registeredUsers,
+              color: '#10b981',
+            },
+            { label: t('dashboard.charts.usersPending'), value: pendingUsers, color: '#f59e0b' },
+          ]}
+          title={t('dashboard.charts.usersRegistrationTitle')}
+          centerLabel={t('dashboard.charts.usersCenterLabel')}
+          noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
+        />
       </div>
     </div>
-  )
+  );
 }

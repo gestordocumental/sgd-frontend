@@ -1,4 +1,6 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { workflowsApi, type ApiWorkflow } from '@/lib/api/workflows';
 import { useWorkflowDialogs } from './use-workflow-dialogs';
 import { useDocumentExtraction } from './use-document-extraction';
@@ -18,6 +20,7 @@ export type {
 } from './workflow-schemas';
 
 export function useWorkflows(companyId: string) {
+  const { t } = useTranslation();
   const dialogs = useWorkflowDialogs();
   const extraction = useDocumentExtraction(companyId);
   const forms = useWorkflowForms();
@@ -75,6 +78,11 @@ export function useWorkflows(companyId: string) {
     },
     onSkipCycleSuccess: () => {
       dialogs.setReviewCycleWorkflow(null);
+      dialogs.setReviewCycleReviewerIds([]);
+      dialogs.setReviewCycleOptionalIds(new Set());
+    },
+    onSkipCycleError: () => {
+      toast.error(t('workflows.dialogs.skipCycleError'));
     },
     onCompleteStepSuccess: () => {
       dialogs.setCompleteStepWorkflow(null);

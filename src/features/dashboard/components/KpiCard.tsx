@@ -44,12 +44,23 @@ interface KpiCardProps {
   icon: ElementType;
   label: string;
   value: string | number;
+  valueNote?: string;
+  valueSize?: string;
   sub?: string;
   loading?: boolean;
   colorIdx?: number;
 }
 
-export function KpiCard({ icon: Icon, label, value, sub, loading, colorIdx = 0 }: KpiCardProps) {
+export function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  valueNote,
+  valueSize = 'text-3xl',
+  sub,
+  loading,
+  colorIdx = 0,
+}: KpiCardProps) {
   const c = KPI_COLORS[colorIdx % KPI_COLORS.length];
   return (
     <div className={`rounded-xl border border-border ${c.bg} p-4 flex items-start gap-3`}>
@@ -61,7 +72,12 @@ export function KpiCard({ icon: Icon, label, value, sub, loading, colorIdx = 0 }
         {loading ? (
           <div className="h-8 w-20 rounded bg-muted/60 animate-pulse mt-1" />
         ) : (
-          <p className={`text-3xl font-bold leading-tight ${c.accent}`}>{value}</p>
+          <p className={`${valueSize} font-bold leading-tight whitespace-nowrap ${c.accent}`}>
+            {value}
+          </p>
+        )}
+        {valueNote && !loading && (
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">{valueNote}</p>
         )}
         {sub && <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{sub}</p>}
       </div>

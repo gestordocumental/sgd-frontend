@@ -15,6 +15,7 @@ export interface WorkflowMutationDeps {
   onRejectSuccess: () => void;
   onAdminCycleSuccess: () => void;
   onSkipCycleSuccess: () => void;
+  onSkipCycleError: () => void;
   onCompleteStepSuccess: () => void;
   onForwardStepSuccess: () => void;
 }
@@ -212,9 +213,13 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
 
   const skipReviewCycleMutation = useMutation({
     mutationFn: (id: string) => workflowsApi.skipReviewCycle(id, crypto.randomUUID()),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       depsRef.current.invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ['workflow', id] });
       depsRef.current.onSkipCycleSuccess();
+    },
+    onError: () => {
+      depsRef.current.onSkipCycleError();
     },
   });
 

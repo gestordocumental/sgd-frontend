@@ -14,19 +14,14 @@ import {
   Ban,
   CircleCheck,
 } from 'lucide-react';
+import { useRef, useEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +67,18 @@ export function UsersTable({ hook }: UsersTableProps) {
     setSaPage,
   } = hook;
   const { t } = useTranslation();
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: superAdmins.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60,
+    overscan: 5,
+  });
+
+  useEffect(() => {
+    parentRef.current?.scrollTo({ top: 0 });
+  }, [saPage, saSearch, saStatus]);
 
   const STATUS_LABELS: Record<StatusFilter, string> = {
     all: t('common.all'),
@@ -160,34 +167,65 @@ export function UsersTable({ hook }: UsersTableProps) {
             {saSearch || saStatus !== 'all' ? t('common.noResults') : t('users.empty')}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('users.userColumn')}</TableHead>
-                <TableHead>{t('users.roleColumn')}</TableHead>
-                <TableHead>{t('users.registrationColumn')}</TableHead>
-                <TableHead>{t('users.statusColumn')}</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {superAdmins.map((u) => (
-                <UserRow
-                  key={u.id}
-                  user={u}
-                  onEdit={() => openEdit(u)}
-                  onDelete={() => setDeleteUser(u)}
-                  onRestore={() => restoreMutation.mutate(u.id)}
-                  onDisable={() => disableMutation.mutate(u.id)}
-                  onEnable={() => enableMutation.mutate(u.id)}
-                  onToggleSuperAdmin={() =>
-                    toggleSuperAdminMutation.mutate({ id: u.id, isSuperAdmin: !u.isSuperAdmin })
-                  }
-                  onResendInvitation={() => resendInvitationMutation.mutate(u.id)}
-                />
-              ))}
-            </TableBody>
-          </Table>
+          (() => {
+            const virtualItems = rowVirtualizer.getVirtualItems();
+            const totalSize = rowVirtualizer.getTotalSize();
+            const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+            const paddingBottom =
+              virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1].end : 0;
+            return (
+              <div
+                ref={parentRef}
+                className="overflow-y-auto overflow-x-auto"
+                style={{ maxHeight: 'calc(100vh - 360px)' }}
+              >
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="sticky top-0 z-10 bg-card [&_tr]:border-b">
+                    <TableRow>
+                      <TableHead>{t('users.userColumn')}</TableHead>
+                      <TableHead>{t('users.roleColumn')}</TableHead>
+                      <TableHead>{t('users.registrationColumn')}</TableHead>
+                      <TableHead>{t('users.statusColumn')}</TableHead>
+                      <TableHead className="w-10" />
+                    </TableRow>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {paddingTop > 0 && (
+                      <tr style={{ height: paddingTop }}>
+                        <td colSpan={5} style={{ padding: 0, border: 'none' }} />
+                      </tr>
+                    )}
+                    {virtualItems.map((vr) => {
+                      const u = superAdmins[vr.index];
+                      return (
+                        <UserRow
+                          key={u.id}
+                          user={u}
+                          onEdit={() => openEdit(u)}
+                          onDelete={() => setDeleteUser(u)}
+                          onRestore={() => restoreMutation.mutate(u.id)}
+                          onDisable={() => disableMutation.mutate(u.id)}
+                          onEnable={() => enableMutation.mutate(u.id)}
+                          onToggleSuperAdmin={() =>
+                            toggleSuperAdminMutation.mutate({
+                              id: u.id,
+                              isSuperAdmin: !u.isSuperAdmin,
+                            })
+                          }
+                          onResendInvitation={() => resendInvitationMutation.mutate(u.id)}
+                        />
+                      );
+                    })}
+                    {paddingBottom > 0 && (
+                      <tr style={{ height: paddingBottom }}>
+                        <td colSpan={5} style={{ padding: 0, border: 'none' }} />
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()
         )}
 
         {superAdminsTotalPages > 1 && (

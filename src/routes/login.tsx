@@ -80,10 +80,11 @@ function LoginPage() {
         return;
       }
 
-      // For company users: resolve their company and get a company-scoped token.
-      // setAuth is intentionally deferred until the full token is resolved so that
-      // a failure in getMyCompanies/switchCompany never leaves a partial session
-      // (authenticated store with no companyId) while the user stays on /login.
+      // Set auth immediately so the subsequent API calls (getMyCompanies, switchCompany)
+      // include a valid Authorization header. Without this the requests go out without
+      // auth, triggering the silent-refresh interceptor which may use stale cookies
+      // from a previous session. On failure we roll back with clearAuth().
+      setAuth(baseUser, token, false);
       setIsSwitchingCompany(true);
       try {
         const companies = await authApi.getMyCompanies();
@@ -91,10 +92,9 @@ function LoginPage() {
           const companyId = companies[0];
           const { accessToken: companyToken } = await authApi.switchCompany(companyId);
           setAuth({ ...baseUser, companyId }, companyToken, false);
-        } else {
-          setAuth(baseUser, token, false);
         }
       } catch {
+        useAuthStore.getState().clearAuth();
         setServerError(t('auth.serverErrorFallback'));
         return;
       } finally {

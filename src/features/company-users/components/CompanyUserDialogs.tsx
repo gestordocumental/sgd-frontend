@@ -147,9 +147,13 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
           <form
             onSubmit={createForm.handleSubmit((values) =>
               createMutation.mutate({
-                ...values,
+                email: values.email,
+                roleId: values.roleId,
                 isSuperAdmin: false,
                 orgId: companyId,
+                departamentoId: values.departamentoId || undefined,
+                areaId: values.areaId || undefined,
+                cargoId: values.cargoId || undefined,
               }),
             )}
             className="space-y-4 pt-2"
@@ -274,11 +278,16 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
           <form
             onSubmit={editForm.handleSubmit((values) => {
               if (!editUser) return;
-              const { roleId, ...dto } = values;
+              const { roleId, departamentoId, areaId, cargoId, ...rest } = values;
               editMutation.mutate({
                 id: editUser.id,
-                dto,
-                roleId,
+                dto: {
+                  ...rest,
+                  departamentoId: departamentoId || undefined,
+                  areaId: areaId || undefined,
+                  cargoId: cargoId || undefined,
+                },
+                roleId: roleId || undefined,
                 currentRoleId: editUser.roles[0]?.roleId,
               });
             })}

@@ -212,6 +212,9 @@
       "usersCenterLabel": "usuarios",
       "usersActive": "Activos",
       "usersInactive": "Inactivos",
+      "usersRegistrationTitle": "Estado de registro",
+      "usersRegistered": "Registrados",
+      "usersPending": "Pendientes",
       "orgStatus": "Estado de organizaciones",
       "orgsCenterLabel": "orgs",
       "orgsActive": "Activas",
@@ -570,11 +573,11 @@
     "direct": "Directo",
     "revokeDirectPermissionTitle": "Revocar permiso directo",
     "systemDescriptions": {
-      "SUPER_ADMIN": "Acceso completo a la plataforma",
       "ADMIN": "Administrador de la organización",
       "MANAGER": "Gestor con permisos de aprobación",
       "EDITOR": "Puede crear y editar documentos",
-      "VIEWER": "Solo lectura"
+      "VIEWER": "Solo lectura",
+      "AUDITOR": "Acceso de solo lectura al registro de auditoría"
     },
     "actions": {
       "menuLabel": "Acciones para el rol {{name}}",
@@ -751,7 +754,8 @@
       "zipFolderMain": "documento-principal",
       "zipFolderAttachments": "adjuntos",
       "zipFolderApproval": "adjuntos-aprobacion",
-      "zipFolderCycles": "ciclos-revision"
+      "zipFolderCycles": "ciclos-revision",
+      "downloadError": "No se pudo descargar el archivo. Intenta de nuevo."
     },
     "actions": {
       "viewDetail": "Ver detalle",
@@ -881,6 +885,7 @@
       "addReviewer": "Agregar revisor...",
       "noUsersAvailable": "No hay usuarios disponibles",
       "skipReviewCycle": "Ir a Disponible sin revisión",
+      "skipCycleError": "No se pudo omitir el ciclo de revisión. Intenta de nuevo.",
       "startingReview": "Iniciando...",
       "completeStepTitle": "Completar paso de revisión",
       "completeStepDescPre": "Añade comentarios y/o adjuntos para el paso",
@@ -911,8 +916,7 @@
       "USERS": "Usuarios",
       "ORGS": "Organizaciones",
       "ORG_STRUCTURE": "Estructura organizacional",
-      "AUDIT": "Auditoría",
-      "PLATFORM": "Plataforma"
+      "AUDIT": "Auditoría"
     },
     "actions": {
       "READ": "Ver",
@@ -953,13 +957,10 @@
       "ORG_STRUCTURE": {
         "READ": "Consultar estructura organizacional",
         "WRITE": "Editar estructura organizacional",
-        "MANAGE": "Gestión completa de estructura organizacional"
+        "DELETE": "Eliminar elementos de la estructura organizacional"
       },
       "AUDIT": {
         "READ": "Consultar registros de auditoría"
-      },
-      "PLATFORM": {
-        "MANAGE": "Gestión completa de la plataforma"
       }
     }
   }

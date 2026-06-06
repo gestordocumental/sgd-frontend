@@ -108,10 +108,11 @@ export function useUserProfile() {
     [allCompanies, companyIds, isSuperAdmin, myCompanies, sessionCompanies],
   );
 
-  // Fetch full profile of the logged-in user using the ID from the JWT sub claim
+  // Fetch full profile of the logged-in user. Uses /users/me (no USERS:READ
+  // required) so any role (VIEWER, EDITOR, etc.) can load their own profile.
   const { data: userDetails } = useQuery({
     queryKey: ['user-profile', userId],
-    queryFn: () => usersApi.getById(userId!),
+    queryFn: () => usersApi.getMe(),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     enabled: !!userId,

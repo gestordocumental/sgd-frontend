@@ -66,6 +66,7 @@ const NO_OP_DEPS = {
   onRejectSuccess: vi.fn(),
   onAdminCycleSuccess: vi.fn(),
   onSkipCycleSuccess: vi.fn(),
+  onSkipCycleError: vi.fn(),
   onCompleteStepSuccess: vi.fn(),
   onForwardStepSuccess: vi.fn(),
 };

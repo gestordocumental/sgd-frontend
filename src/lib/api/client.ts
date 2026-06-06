@@ -55,6 +55,7 @@ const SKIP_REFRESH_PATHS = [
   '/auth/refresh',
   '/auth/exit-company',
   '/auth/login',
+  '/auth/logout',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/users/complete-registration',
