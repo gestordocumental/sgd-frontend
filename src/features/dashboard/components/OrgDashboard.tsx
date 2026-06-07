@@ -117,6 +117,8 @@ const KpiCard = memo(function KpiCard({
   icon: Icon,
   label,
   value,
+  valueSize = 'text-3xl',
+  valueNote,
   sub,
   loading,
   colorIdx = 0,
@@ -124,6 +126,8 @@ const KpiCard = memo(function KpiCard({
   icon: ElementType;
   label: string;
   value: string | number;
+  valueSize?: string;
+  valueNote?: string;
   sub?: string;
   loading?: boolean;
   colorIdx?: number;
@@ -139,7 +143,12 @@ const KpiCard = memo(function KpiCard({
         {loading ? (
           <div className="h-8 w-20 rounded bg-muted/60 animate-pulse mt-1" />
         ) : (
-          <p className={`text-3xl font-bold leading-tight ${c.accent}`}>{value}</p>
+          <p className={`${valueSize} font-bold leading-tight whitespace-nowrap ${c.accent}`}>
+            {value}
+          </p>
+        )}
+        {valueNote && !loading && (
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">{valueNote}</p>
         )}
         {sub && <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{sub}</p>}
       </div>
