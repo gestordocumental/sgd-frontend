@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { ChevronDown, Search, Check } from 'lucide-react';
 import { Input } from './input';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,7 @@ export function SearchableSelect({
   disabled = false,
   onOpenChange,
 }: SearchableSelectProps) {
+  const listboxId = useId();
   const [open, setOpen] = useState(false);
 
   const setOpenWithCallback = useCallback(
@@ -73,7 +74,16 @@ export function SearchableSelect({
       <button
         type="button"
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         onClick={() => !disabled && setOpenWithCallback(!open)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setOpenWithCallback(false);
+            setSearch('');
+          }
+        }}
         className={cn(
           'flex items-center justify-between w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors',
           'hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
@@ -101,7 +111,11 @@ export function SearchableSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md">
+        <div
+          id={listboxId}
+          role="listbox"
+          className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md"
+        >
           {/* Search */}
           <div className="p-2 border-b border-border">
             <div className="relative">
@@ -125,6 +139,8 @@ export function SearchableSelect({
                 <button
                   key={option.value}
                   type="button"
+                  role="option"
+                  aria-selected={option.value === value}
                   onClick={() => handleSelect(option)}
                   className={cn(
                     'flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-accent transition-colors',

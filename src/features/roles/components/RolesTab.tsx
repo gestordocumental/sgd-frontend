@@ -372,19 +372,23 @@ function ByPermissionView({
   const getModuleLabel = (module: string) =>
     t(`permissions.modules.${module}`, { defaultValue: module });
 
-  const getUsersForPermission = (permissionId: string) => {
-    const map = new Map<string, { user: ApiUserWithRoles; viaRoles: ApiRole[] }>();
+  const usersByPermission = useMemo(() => {
+    const result = new Map<string, Array<{ user: ApiUserWithRoles; viaRoles: ApiRole[] }>>();
     for (const role of roles) {
-      if (!role.permissions.some((p) => p.id === permissionId)) continue;
-      for (const u of users) {
-        if (!u.roles.some((r) => r.roleId === role.id)) continue;
-        const existing = map.get(u.id);
-        if (existing) existing.viaRoles.push(role);
-        else map.set(u.id, { user: u, viaRoles: [role] });
+      const roleUsers = users.filter((u) => u.roles.some((r) => r.roleId === role.id));
+      for (const perm of role.permissions) {
+        const current = result.get(perm.id) ?? [];
+        const byUser = new Map(current.map((x) => [x.user.id, x]));
+        for (const user of roleUsers) {
+          const existing = byUser.get(user.id);
+          if (existing) existing.viaRoles.push(role);
+          else byUser.set(user.id, { user, viaRoles: [role] });
+        }
+        result.set(perm.id, Array.from(byUser.values()));
       }
     }
-    return Array.from(map.values());
-  };
+    return result;
+  }, [roles, users]);
 
   return (
     <div className="space-y-6">
@@ -401,7 +405,7 @@ function ByPermissionView({
                 const rolesWithPerm = roles.filter((r) =>
                   r.permissions.some((p) => p.id === perm.id),
                 );
-                const usersWithPerm = getUsersForPermission(perm.id);
+                const usersWithPerm = usersByPermission.get(perm.id) ?? [];
 
                 return (
                   <div key={perm.id}>

@@ -62,10 +62,10 @@ export function useAdminCompanies() {
     isFetching: companiesIsFetching,
     dataUpdatedAt: companiesDataUpdatedAt,
   } = useQuery({
-    queryKey: ['companies', { page, search: debouncedSearch, status: statusFilter }],
+    queryKey: ['companies', { page: effectivePage, search: debouncedSearch, status: statusFilter }],
     queryFn: () =>
       companiesApi.list({
-        page,
+        page: effectivePage,
         limit: PAGE_SIZE,
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,

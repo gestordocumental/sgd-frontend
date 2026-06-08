@@ -19,9 +19,16 @@ import {
 // Fields in audit changes that hold org-structure UUIDs
 const ORG_STRUCTURE_FIELDS = new Set(['departamentoId', 'areaId', 'cargoId']);
 
-function hasOrgStructureChanges(
-  changes: Record<string, { from: unknown; to: unknown }> | null,
-): boolean {
+type AuditChanges = Record<string, { from: unknown; to: unknown }>;
+
+function isAuditChanges(value: unknown): value is AuditChanges {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value).every(
+    (entry) => entry && typeof entry === 'object' && 'from' in entry && 'to' in entry,
+  );
+}
+
+function hasOrgStructureChanges(changes: AuditChanges | null): boolean {
   if (!changes) return false;
   return Object.keys(changes).some((k) => ORG_STRUCTURE_FIELDS.has(k));
 }
@@ -44,10 +51,8 @@ export function AuditDetailModal({
   companyId,
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
-  const changes = (log.metadata?.['changes'] ?? null) as Record<
-    string,
-    { from: unknown; to: unknown }
-  > | null;
+  const rawChanges = log.metadata?.['changes'];
+  const changes: AuditChanges | null = isAuditChanges(rawChanges) ? rawChanges : null;
 
   const orgId = companyId ?? log.orgId;
   const needsOrgLookup = !!orgId && hasOrgStructureChanges(changes);
@@ -155,7 +160,10 @@ export function AuditDetailModal({
                     size="sm"
                     className="h-5 w-5 p-0 shrink-0"
                     title={t('audit.detail.copy')}
-                    onClick={() => navigator.clipboard.writeText(log.correlationId!)}
+                    onClick={() => {
+                      if (!navigator.clipboard?.writeText) return;
+                      void navigator.clipboard.writeText(log.correlationId!).catch(() => undefined);
+                    }}
                   >
                     <Copy className="size-3" />
                   </Button>

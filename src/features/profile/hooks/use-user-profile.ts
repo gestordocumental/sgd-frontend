@@ -254,7 +254,8 @@ export function useUserProfile() {
       }
 
       // Case 2: belongs to other companies → auto-switch
-      const otherId = ids.find((id) => id !== orgId);
+      const revokedOrgId = orgId ?? company?.id;
+      const otherId = revokedOrgId ? ids.find((id) => id !== revokedOrgId) : undefined;
       if (otherId) {
         const otherName = allCompanies.find((c) => c.id === otherId)?.name;
         const msg = otherName

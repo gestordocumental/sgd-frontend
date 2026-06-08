@@ -146,6 +146,7 @@ export function CompanyUsersRow({
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
                     <input
+                      aria-label={t('common.search')}
                       value={search}
                       onChange={(e) => handleSearch(e.target.value)}
                       placeholder={t('common.search')}
@@ -153,6 +154,7 @@ export function CompanyUsersRow({
                     />
                   </div>
                   <select
+                    aria-label={t('common.status')}
                     value={statusFilter}
                     onChange={(e) => handleStatus(e.target.value as UserStatusFilter)}
                     className="h-7 rounded-md border border-input bg-transparent px-2 py-0.5 text-xs outline-none focus-visible:border-ring"

@@ -47,6 +47,7 @@ export function UserDialogs({ hook }: UserDialogsProps) {
   const invitationUrl = invitedUser?.invitationUrl ?? '';
 
   const handleCopy = () => {
+    if (!navigator.clipboard?.writeText) return;
     void navigator.clipboard
       .writeText(invitationUrl)
       .then(() => {

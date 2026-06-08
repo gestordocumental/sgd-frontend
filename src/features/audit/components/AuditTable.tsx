@@ -211,8 +211,11 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">{t('audit.filters.from')}</label>
+          <label htmlFor="audit-filter-from" className="text-xs text-muted-foreground">
+            {t('audit.filters.from')}
+          </label>
           <Input
+            id="audit-filter-from"
             className="h-8 w-40 text-xs"
             type="datetime-local"
             value={draft.from}
@@ -220,8 +223,11 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">{t('audit.filters.to')}</label>
+          <label htmlFor="audit-filter-to" className="text-xs text-muted-foreground">
+            {t('audit.filters.to')}
+          </label>
           <Input
+            id="audit-filter-to"
             className="h-8 w-40 text-xs"
             type="datetime-local"
             value={draft.to}
@@ -333,7 +339,13 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   size="sm"
                                   className="h-5 w-5 p-0 shrink-0"
                                   title={t('audit.detail.copy')}
-                                  onClick={() => navigator.clipboard.writeText(log.correlationId!)}
+                                  aria-label={t('audit.detail.copy')}
+                                  onClick={() => {
+                                    if (!navigator.clipboard?.writeText) return;
+                                    void navigator.clipboard
+                                      .writeText(log.correlationId!)
+                                      .catch(() => undefined);
+                                  }}
                                 >
                                   <Copy className="size-3" />
                                 </Button>
@@ -342,6 +354,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   size="sm"
                                   className="h-5 w-5 p-0 shrink-0"
                                   title={t('audit.detail.filterByCorrelation')}
+                                  aria-label={t('audit.detail.filterByCorrelation')}
                                   onClick={() => {
                                     setDraft((d) => ({ ...d, correlationId: log.correlationId! }));
                                     applyFilters({ ...filters, correlationId: log.correlationId! });
@@ -361,6 +374,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                               className="h-7 w-7 p-0"
                               onClick={() => setSelectedLog(log)}
                               title={t('audit.detail.view')}
+                              aria-label={t('audit.detail.view')}
                             >
                               <Eye className="size-3.5" />
                             </Button>
@@ -392,6 +406,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
             size="sm"
             className="h-7 w-7 p-0"
             disabled={page <= 1}
+            aria-label={t('common.previous')}
             onClick={() => setPage((p) => p - 1)}
           >
             <ChevronLeft className="size-3.5" />
@@ -404,6 +419,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
             size="sm"
             className="h-7 w-7 p-0"
             disabled={page >= totalPages}
+            aria-label={t('common.next')}
             onClick={() => setPage((p) => p + 1)}
           >
             <ChevronRight className="size-3.5" />

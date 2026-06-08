@@ -237,9 +237,11 @@ export function useCompanyUsers(companyId: string) {
       }
     },
     onSuccess: () => {
+      setEditUser(null);
+    },
+    onSettled: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['all-cargos', companyId] });
-      setEditUser(null);
     },
   });
 

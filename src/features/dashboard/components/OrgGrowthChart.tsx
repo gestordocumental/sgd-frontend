@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface OrgGrowthChartProps {
   title: string;
   data: { label: string; count: number }[];
@@ -5,6 +7,7 @@ interface OrgGrowthChartProps {
 }
 
 export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps) {
+  const gradientId = useId();
   const hasData = data.length > 0 && data.some((d) => d.count > 0);
   const maxCount = Math.max(...data.map((d) => d.count), 1);
   const chartH = 100;
@@ -20,7 +23,7 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
       ) : (
         <svg viewBox={`0 0 ${chartW} ${chartH + 26}`} className="w-full">
           <defs>
-            <linearGradient id="adminBarGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#10b981" />
               <stop offset="100%" stopColor="#059669" stopOpacity="0.6" />
             </linearGradient>
@@ -31,7 +34,7 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
             const y = chartH - barH;
             return (
               <g key={d.label}>
-                <rect x={x} y={y} width={barW} height={barH} rx={4} fill="url(#adminBarGrad)" />
+                <rect x={x} y={y} width={barW} height={barH} rx={4} fill={`url(#${gradientId})`} />
                 <text
                   x={x + barW / 2}
                   y={chartH + 18}

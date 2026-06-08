@@ -1,20 +1,20 @@
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { FormField } from '@/components/ui/form-field'
-import { isExactlyOneIncrement } from '@/features/doc-governance/hooks/use-typologies'
-import { type TypologiesHook } from './typology-dialog-shared'
-import { FilePicker } from './FilePicker'
+} from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import { isExactlyOneIncrement } from '@/features/doc-governance/hooks/use-typologies';
+import { type TypologiesHook } from './typology-dialog-shared';
+import { FilePicker } from './FilePicker';
 
 export function UploadDocumentDialog({ hook }: { hook: TypologiesHook }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const {
     uploadDocTypology,
     setUploadDocTypology,
@@ -22,37 +22,42 @@ export function UploadDocumentDialog({ hook }: { hook: TypologiesHook }) {
     setUploadDocFile,
     uploadDocForm,
     uploadDocMutation,
-  } = hook
+  } = hook;
 
-  const typo            = uploadDocTypology
-  const open            = !!typo
-  const pending         = uploadDocMutation.isPending
-  const existingVersion = typo?.datosDeclarados.version ?? null
+  const typo = uploadDocTypology;
+  const open = !!typo;
+  const pending = uploadDocMutation.isPending;
+  const existingVersion = typo?.datosDeclarados.version ?? null;
 
   const handleSubmit = uploadDocForm.handleSubmit((values) => {
     if (!uploadDocFile) {
-      uploadDocForm.setError('root', { message: t('docGovernance.upload.selectFileError') })
-      return
+      uploadDocForm.setError('root', { message: t('docGovernance.upload.selectFileError') });
+      return;
     }
     if (existingVersion && values.version) {
       if (!isExactlyOneIncrement(values.version, existingVersion)) {
         uploadDocForm.setError('version', {
           message: t('docGovernance.upload.versionIncrementError', { version: existingVersion }),
-        })
-        return
+        });
+        return;
       }
     }
-    uploadDocMutation.mutate({ values, file: uploadDocFile })
-  })
+    uploadDocMutation.mutate({ values, file: uploadDocFile });
+  });
 
   const close = () => {
-    setUploadDocTypology(null)
-    setUploadDocFile(null)
-    uploadDocForm.reset()
-  }
+    setUploadDocTypology(null);
+    setUploadDocFile(null);
+    uploadDocForm.reset();
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) close() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) close();
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('docGovernance.upload.title')}</DialogTitle>
@@ -96,8 +101,14 @@ export function UploadDocumentDialog({ hook }: { hook: TypologiesHook }) {
           <FormField id="upload-file" label={t('docGovernance.upload.fileLabel')}>
             <FilePicker
               file={uploadDocFile}
-              onChange={setUploadDocFile}
-              onClear={() => setUploadDocFile(null)}
+              onChange={(file) => {
+                setUploadDocFile(file);
+                uploadDocForm.clearErrors('root');
+              }}
+              onClear={() => {
+                setUploadDocFile(null);
+                uploadDocForm.clearErrors('root');
+              }}
             />
           </FormField>
 
@@ -112,11 +123,13 @@ export function UploadDocumentDialog({ hook }: { hook: TypologiesHook }) {
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={pending || !uploadDocFile}>
-              {pending ? t('docGovernance.upload.uploading') : t('docGovernance.upload.uploadButton')}
+              {pending
+                ? t('docGovernance.upload.uploading')
+                : t('docGovernance.upload.uploadButton')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

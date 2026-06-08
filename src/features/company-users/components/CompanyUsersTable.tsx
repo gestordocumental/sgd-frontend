@@ -151,6 +151,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
               <Input
+                aria-label={t('common.search')}
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={t('common.search')}
@@ -160,6 +161,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
 
             {/* Status filter */}
             <select
+              aria-label={t('common.status')}
               value={statusFilter}
               onChange={(e) => handleStatus(e.target.value as StatusFilter)}
               className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"

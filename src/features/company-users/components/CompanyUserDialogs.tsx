@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Copy, Check, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,14 +56,26 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
   } = hook;
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const invitationUrl = invitedUser?.invitationUrl ?? '';
 
   const handleCopy = () => {
-    void navigator.clipboard.writeText(invitationUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    if (!navigator.clipboard?.writeText) return;
+    void navigator.clipboard
+      .writeText(invitationUrl)
+      .then(() => {
+        setCopied(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => undefined);
   };
 
   return (

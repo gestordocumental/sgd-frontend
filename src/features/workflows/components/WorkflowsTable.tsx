@@ -79,6 +79,7 @@ export function WorkflowsTable({
       { value: 'all', label: t('common.all') },
       { value: 'DRAFT', label: t('workflows.status.DRAFT') },
       { value: 'PENDING_APPROVAL', label: t('workflows.status.PENDING_APPROVAL') },
+      { value: 'RETURNED_TO_CREATOR', label: t('workflows.status.RETURNED_TO_CREATOR') },
       { value: 'REJECTED', label: t('workflows.status.REJECTED') },
       { value: 'PENDING_REVIEW_CYCLE', label: t('workflows.status.PENDING_REVIEW_CYCLE') },
       {

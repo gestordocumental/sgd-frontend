@@ -167,7 +167,7 @@ export function DetailWorkflowDialog({
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // silently fail
+      toast.error(t('workflows.detail.downloadError'));
     } finally {
       setIsDownloadingZip(false);
     }

@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { typologiesApi, type ApiTypology } from '@/lib/api/typologies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { useAuthStore } from '@/store/authStore';
@@ -77,6 +79,7 @@ export type UploadDocForm = z.infer<typeof uploadDocSchema>;
 // ── Hook ───────────────────────────────────────────────────────────────────
 
 export function useTypologies(orgId: string, enabled = true) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const companyName = useAuthStore((s) => s.user?.companyName);
 
@@ -197,7 +200,8 @@ export function useTypologies(orgId: string, enabled = true) {
   const uploadMutation = useMutation({
     mutationFn: ({ typologyId, file }: { typologyId: string; file: File }) =>
       typologiesApi.uploadDocument(orgId, typologyId, file, companyName ?? undefined),
-    onSuccess: () => invalidate(),
+    onSettled: () => invalidate(),
+    onError: () => toast.error(t('docGovernance.upload.uploadError')),
   });
 
   // ── Create mutation ────────────────────────────────────────────────────
