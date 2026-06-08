@@ -7,6 +7,26 @@ import type { ApiWorkflow } from '@/lib/api/workflows';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
+// jsdom has zero-height elements — the virtualizer renders 0 items unless we
+// make it believe all items are visible regardless of scroll position.
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count, estimateSize }: { count: number; estimateSize: () => number }) => {
+    const size = estimateSize();
+    return {
+      getVirtualItems: () =>
+        Array.from({ length: count }, (_, i) => ({
+          index: i,
+          key: i,
+          start: i * size,
+          end: (i + 1) * size,
+          lane: 0,
+          size,
+        })),
+      getTotalSize: () => count * size,
+    };
+  },
+}));
+
 vi.mock('@/router', () => ({
   router: { navigate: vi.fn(), update: vi.fn() },
 }));

@@ -5,6 +5,26 @@ import { UsersTable } from '../UsersTable';
 import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users';
 import type { ApiUser } from '@/lib/api/users';
 
+// jsdom has zero-height elements — the virtualizer renders 0 items unless we
+// make it believe all items are visible regardless of scroll position.
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count, estimateSize }: { count: number; estimateSize: () => number }) => {
+    const size = estimateSize();
+    return {
+      getVirtualItems: () =>
+        Array.from({ length: count }, (_, i) => ({
+          index: i,
+          key: i,
+          start: i * size,
+          end: (i + 1) * size,
+          lane: 0,
+          size,
+        })),
+      getTotalSize: () => count * size,
+    };
+  },
+}));
+
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function makeUser(overrides: Partial<ApiUser> = {}): ApiUser {
@@ -35,6 +55,8 @@ function makeHook(overrides: Partial<AdminUsersHook> = {}): AdminUsersHook {
     superAdmins: [],
     superAdminsTotal: 0,
     superAdminsTotalPages: 1,
+    superAdminsActiveTotal: 0,
+    superAdminsInactiveTotal: 0,
     superAdminsLoading: false,
     superAdminsIsFetching: false,
     superAdminsDataUpdatedAt: Date.now(),
@@ -84,6 +106,14 @@ function makeHook(overrides: Partial<AdminUsersHook> = {}): AdminUsersHook {
       mutate: vi.fn(),
       isPending: false,
     } as unknown as AdminUsersHook['restoreMutation'],
+    disableMutation: {
+      mutate: vi.fn(),
+      isPending: false,
+    } as unknown as AdminUsersHook['disableMutation'],
+    enableMutation: {
+      mutate: vi.fn(),
+      isPending: false,
+    } as unknown as AdminUsersHook['enableMutation'],
     toggleSuperAdminMutation: {
       mutate: vi.fn(),
       isPending: false,
