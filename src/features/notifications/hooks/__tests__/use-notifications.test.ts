@@ -10,9 +10,11 @@ class MockEventSource {
   static instances: MockEventSource[] = [];
 
   onerror: EventHandler | null = null;
+  readonly url: string;
   private listeners = new Map<string, EventHandler[]>();
 
-  constructor(public readonly url: string) {
+  constructor(url: string) {
+    this.url = url;
     MockEventSource.instances.push(this);
   }
 
