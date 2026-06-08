@@ -99,6 +99,8 @@ export const usersApi = {
   countsByOrg: () =>
     apiClient.get<OrgUserCount[]>('/users/admin/counts-by-org').then((r) => r.data),
 
+  getMe: () => apiClient.get<ApiUser>('/users/me').then((r) => r.data),
+
   getById: (id: string) => apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
 
   listSuperAdmin: (params?: {

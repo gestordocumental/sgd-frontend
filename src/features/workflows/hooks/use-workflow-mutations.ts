@@ -15,6 +15,7 @@ export interface WorkflowMutationDeps {
   onRejectSuccess: () => void;
   onAdminCycleSuccess: () => void;
   onSkipCycleSuccess: () => void;
+  onSkipCycleError: () => void;
   onCompleteStepSuccess: () => void;
   onForwardStepSuccess: () => void;
 }
@@ -212,9 +213,13 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
 
   const skipReviewCycleMutation = useMutation({
     mutationFn: (id: string) => workflowsApi.skipReviewCycle(id, crypto.randomUUID()),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       depsRef.current.invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ['workflow', id] });
       depsRef.current.onSkipCycleSuccess();
+    },
+    onError: () => {
+      depsRef.current.onSkipCycleError();
     },
   });
 
@@ -230,7 +235,9 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     }) => {
       const cycle = workflow.activeAdminCycle;
       if (!cycle) throw new Error('No hay ciclo de revisión activo');
-      const currentStep = cycle.steps.find((s) => s.status === 'PENDING');
+      const currentStep =
+        cycle.steps.find((s) => s.stepOrder === cycle.currentStepOrder && s.status === 'PENDING') ??
+        cycle.steps.find((s) => s.status === 'PENDING');
       if (!currentStep) throw new Error('No hay paso pendiente en el ciclo');
       const uploadedAttachments = await Promise.all(
         files.map((f) => workflowFilesApi.upload(workflow.orgId, f)),
@@ -274,7 +281,9 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     }) => {
       const cycle = workflow.activeAdminCycle;
       if (!cycle) throw new Error('No hay ciclo de revisión activo');
-      const currentStep = cycle.steps.find((s) => s.status === 'PENDING');
+      const currentStep =
+        cycle.steps.find((s) => s.stepOrder === cycle.currentStepOrder && s.status === 'PENDING') ??
+        cycle.steps.find((s) => s.status === 'PENDING');
       if (!currentStep) throw new Error('No hay paso pendiente en el ciclo');
       const uploadedAttachments = await Promise.all(
         files.map((f) => workflowFilesApi.upload(workflow.orgId, f)),

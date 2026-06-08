@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Copy, Check, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,14 +56,26 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
   } = hook;
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const invitationUrl = invitedUser?.invitationUrl ?? '';
 
   const handleCopy = () => {
-    void navigator.clipboard.writeText(invitationUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    if (!navigator.clipboard?.writeText) return;
+    void navigator.clipboard
+      .writeText(invitationUrl)
+      .then(() => {
+        setCopied(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => undefined);
   };
 
   return (
@@ -147,9 +159,13 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
           <form
             onSubmit={createForm.handleSubmit((values) =>
               createMutation.mutate({
-                ...values,
+                email: values.email,
+                roleId: values.roleId,
                 isSuperAdmin: false,
                 orgId: companyId,
+                departamentoId: values.departamentoId || undefined,
+                areaId: values.areaId || undefined,
+                cargoId: values.cargoId || undefined,
               }),
             )}
             className="space-y-4 pt-2"
@@ -274,11 +290,16 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
           <form
             onSubmit={editForm.handleSubmit((values) => {
               if (!editUser) return;
-              const { roleId, ...dto } = values;
+              const { roleId, departamentoId, areaId, cargoId, ...rest } = values;
               editMutation.mutate({
                 id: editUser.id,
-                dto,
-                roleId,
+                dto: {
+                  ...rest,
+                  departamentoId: departamentoId || undefined,
+                  areaId: areaId || undefined,
+                  cargoId: cargoId || undefined,
+                },
+                roleId: roleId || undefined,
                 currentRoleId: editUser.roles[0]?.roleId,
               });
             })}

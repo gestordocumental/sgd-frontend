@@ -42,6 +42,12 @@ const MOCK_PERMISSIONS: ApiPermission[] = [
     action: 'WRITE',
     description: 'Editar estructura organizacional',
   },
+  {
+    id: 'perm-19',
+    module: 'ORG_STRUCTURE',
+    action: 'DELETE',
+    description: 'Eliminar elementos de la estructura organizacional',
+  },
 ];
 
 const MOCK_ROLES: ApiRole[] = [

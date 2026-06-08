@@ -8,6 +8,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -92,7 +93,7 @@ export function DetailWorkflowDialog({
       );
       window.open(signedUrl, '_blank', 'noopener,noreferrer');
     } catch {
-      // silently fail — user can retry
+      toast.error(t('workflows.detail.downloadError'));
     }
   };
 
@@ -166,7 +167,7 @@ export function DetailWorkflowDialog({
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // silently fail
+      toast.error(t('workflows.detail.downloadError'));
     } finally {
       setIsDownloadingZip(false);
     }

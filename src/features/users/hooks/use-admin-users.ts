@@ -162,6 +162,7 @@ export function useAdminUsers() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['users'] });
     queryClient.invalidateQueries({ queryKey: ['superAdmins'] });
+    queryClient.invalidateQueries({ queryKey: ['superAdmins-count'] });
   };
 
   const invalidateAllUserTables = () => {

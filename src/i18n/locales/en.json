@@ -212,6 +212,9 @@
       "usersCenterLabel": "users",
       "usersActive": "Active",
       "usersInactive": "Inactive",
+      "usersRegistrationTitle": "Registration status",
+      "usersRegistered": "Registered",
+      "usersPending": "Pending",
       "orgStatus": "Organization status",
       "orgsCenterLabel": "orgs",
       "orgsActive": "Active",
@@ -570,11 +573,11 @@
     "direct": "Direct",
     "revokeDirectPermissionTitle": "Revoke direct permission",
     "systemDescriptions": {
-      "SUPER_ADMIN": "Full platform access",
       "ADMIN": "Organization administrator",
       "MANAGER": "Manager with approval permissions",
       "EDITOR": "Can create and edit documents",
-      "VIEWER": "Read-only"
+      "VIEWER": "Read-only",
+      "AUDITOR": "Read-only access to the audit log"
     },
     "actions": {
       "menuLabel": "Actions for role {{name}}",
@@ -751,7 +754,8 @@
       "zipFolderMain": "main-document",
       "zipFolderAttachments": "attachments",
       "zipFolderApproval": "approval-attachments",
-      "zipFolderCycles": "review-cycles"
+      "zipFolderCycles": "review-cycles",
+      "downloadError": "Failed to download the file. Please try again."
     },
     "actions": {
       "viewDetail": "View details",
@@ -881,6 +885,7 @@
       "addReviewer": "Add reviewer...",
       "noUsersAvailable": "No users available",
       "skipReviewCycle": "Go to Available without review",
+      "skipCycleError": "Failed to skip the review cycle. Please try again.",
       "startingReview": "Starting...",
       "completeStepTitle": "Complete review step",
       "completeStepDescPre": "Add comments and/or attachments for step",
@@ -911,8 +916,7 @@
       "USERS": "Users",
       "ORGS": "Organizations",
       "ORG_STRUCTURE": "Organizational structure",
-      "AUDIT": "Audit",
-      "PLATFORM": "Platform"
+      "AUDIT": "Audit"
     },
     "actions": {
       "READ": "View",
@@ -953,13 +957,10 @@
       "ORG_STRUCTURE": {
         "READ": "View organizational structure",
         "WRITE": "Edit organizational structure",
-        "MANAGE": "Full organizational structure management"
+        "DELETE": "Delete organizational structure elements"
       },
       "AUDIT": {
         "READ": "View audit records"
-      },
-      "PLATFORM": {
-        "MANAGE": "Full platform management"
       }
     }
   }

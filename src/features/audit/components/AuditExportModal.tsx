@@ -57,8 +57,10 @@ export function AuditExportModal({
     }
   }, [open, defaultCorrelationId, defaultFrom, defaultTo]);
 
+  const trimmedCorrelationId = correlationId.trim();
+  const byCorrelation = !!trimmedCorrelationId;
   // When a correlation ID is set, force max limit to get all events
-  const effectiveLimit = correlationId.trim() ? 5000 : limit;
+  const effectiveLimit = byCorrelation ? 5000 : limit;
 
   function isoToLocal(iso: string): string {
     if (!iso) return '';
@@ -73,9 +75,9 @@ export function AuditExportModal({
     setLoading(true);
     try {
       const data = await auditApi.exportLogs({
-        correlationId: correlationId.trim() || undefined,
-        from: from ? new Date(from).toISOString() : undefined,
-        to: to ? new Date(to).toISOString() : undefined,
+        correlationId: trimmedCorrelationId || undefined,
+        from: !byCorrelation && from ? new Date(from).toISOString() : undefined,
+        to: !byCorrelation && to ? new Date(to).toISOString() : undefined,
         limit: effectiveLimit,
       });
 
@@ -143,8 +145,6 @@ export function AuditExportModal({
       setLoading(false);
     }
   }
-
-  const byCorrelation = !!correlationId.trim();
 
   return (
     <Dialog

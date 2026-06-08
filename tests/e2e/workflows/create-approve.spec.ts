@@ -261,12 +261,12 @@ test.describe('Workflow creation', () => {
     // Select typology — click trigger, type to filter, pick option
     await page.getByRole('button', { name: /Select a typology/i }).click();
     await page.getByPlaceholder('Search typology...').fill('Security');
-    await page.getByRole('button', { name: /Security Policy/i }).click();
+    await page.getByRole('option', { name: /Security Policy/i }).click();
 
     // Add an approver
     await page.getByRole('button', { name: /Add approver/i }).click();
     await page.getByPlaceholder('Search user...').fill('Ana');
-    await page.getByRole('button', { name: /Ana Approver/i }).click();
+    await page.getByRole('option', { name: /Ana Approver/i }).click();
 
     // Select final user (eligible because departamentoId matches the typology's estructuraOrg).
     // The final-user SearchableSelect uses "Search user…" (U+2026 ellipsis) as its
@@ -274,7 +274,7 @@ test.describe('Workflow creation', () => {
     // so the exact-string locator is unambiguous without needing .last() or a container scope.
     await page.getByRole('button', { name: /Select end user/i }).click();
     await page.getByPlaceholder('Search user…').fill('Carlos');
-    await page.getByRole('button', { name: /Carlos Final/i }).click();
+    await page.getByRole('option', { name: /Carlos Final/i }).click();
 
     await page.getByRole('button', { name: 'Create workflow' }).click();
 

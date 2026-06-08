@@ -1,4 +1,5 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ElementType, CSSProperties } from 'react';
 import {
   Clock,
@@ -78,6 +79,7 @@ export function WorkflowsTable({
       { value: 'all', label: t('common.all') },
       { value: 'DRAFT', label: t('workflows.status.DRAFT') },
       { value: 'PENDING_APPROVAL', label: t('workflows.status.PENDING_APPROVAL') },
+      { value: 'RETURNED_TO_CREATOR', label: t('workflows.status.RETURNED_TO_CREATOR') },
       { value: 'REJECTED', label: t('workflows.status.REJECTED') },
       { value: 'PENDING_REVIEW_CYCLE', label: t('workflows.status.PENDING_REVIEW_CYCLE') },
       {
@@ -255,6 +257,19 @@ function WorkflowList({
   emptyKey,
 }: WorkflowListProps) {
   const { t } = useTranslation();
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: workflows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 65,
+    overscan: 5,
+  });
+
+  // Reset scroll position when the dataset changes (page navigation, filter change)
+  useEffect(() => {
+    parentRef.current?.scrollTo({ top: 0 });
+  }, [workflows]);
 
   if (isLoading) {
     return (
@@ -281,10 +296,12 @@ function WorkflowList({
     );
   }
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 bg-muted/40">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Sticky column header */}
+      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 bg-muted/40 border-b border-border">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {t('workflows.table.title')}
         </span>
@@ -299,15 +316,30 @@ function WorkflowList({
         </span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-8" />
       </div>
-      {workflows.map((wf) => (
-        <WorkflowRow
-          key={wf.id}
-          workflow={wf}
-          hook={hook}
-          canWrite={canWrite}
-          canApprove={canApprove}
-        />
-      ))}
+      {/* Virtualized rows */}
+      <div ref={parentRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+          {virtualItems.map((vr) => (
+            <div
+              key={workflows[vr.index].id}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${vr.start}px)`,
+              }}
+            >
+              <WorkflowRow
+                workflow={workflows[vr.index]}
+                hook={hook}
+                canWrite={canWrite}
+                canApprove={canApprove}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -336,7 +368,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
   } = getWorkflowActions(workflow, { userId: user?.id, canWrite, canApprove });
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors border-b border-border">
       {/* Title + description */}
       <div className="min-w-0">
         <button
