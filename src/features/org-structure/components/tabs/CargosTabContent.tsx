@@ -230,7 +230,7 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
                 page={cargoSafePage}
                 totalPages={cargoTotalPages}
                 total={filteredCargos.length}
-                onChange={(cargoPage) => setCargoPage(cargoPage)}
+                onChange={(newPage) => setCargoPage(newPage)}
               />
             )}
           </>

@@ -307,7 +307,7 @@ export function useTypologies(orgId: string, enabled = true) {
       if (Object.keys(patchDto).length > 0) {
         await typologiesApi.update(orgId, typo.id, patchDto);
       }
-      return typologiesApi.uploadDocument(orgId, typo.id, file);
+      return typologiesApi.uploadDocument(orgId, typo.id, file, companyName ?? undefined);
     },
     onSuccess: () => {
       invalidate();
