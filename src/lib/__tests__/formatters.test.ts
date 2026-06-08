@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // i18n must be mocked before importing formatters because formatters.ts
 // calls i18n.language at module import time via a top-level reference.
@@ -6,7 +6,14 @@ vi.mock('@/i18n', () => ({
   default: { language: 'es' },
 }));
 
-import { initials, isDeleted, formatDate, formatBytes, buildMonthlyOrgData } from '../formatters';
+import {
+  initials,
+  isDeleted,
+  formatDate,
+  formatBytes,
+  buildMonthlyOrgData,
+  timeAgoKey,
+} from '../formatters';
 import type { ApiUser } from '@/lib/api/users';
 import i18n from '@/i18n';
 
@@ -23,6 +30,10 @@ function makeUser(overrides: Partial<ApiUser> = {}): ApiUser {
     ...overrides,
   } as ApiUser;
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('initials', () => {
   it('returns ? for null', () => {
@@ -65,6 +76,15 @@ describe('isDeleted', () => {
 });
 
 describe('formatBytes', () => {
+  it('returns "0 B" for negative byte counts', () => {
+    expect(formatBytes(-1)).toBe('0 B');
+  });
+
+  it('returns "0 B" for non-finite byte counts', () => {
+    expect(formatBytes(Number.POSITIVE_INFINITY)).toBe('0 B');
+    expect(formatBytes(Number.NaN)).toBe('0 B');
+  });
+
   it('returns "0 B" for zero bytes', () => {
     expect(formatBytes(0)).toBe('0 B');
   });
@@ -114,9 +134,63 @@ describe('buildMonthlyOrgData', () => {
     expect(result[5].count).toBe(2);
   });
 
+  it('uses English month labels when the language is not Spanish', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 15));
+    vi.mocked(i18n).language = 'en';
+
+    const result = buildMonthlyOrgData([]);
+
+    expect(result.map((entry) => entry.label)).toEqual(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']);
+  });
+
   it('returns zero counts when no companies exist', () => {
     const result = buildMonthlyOrgData([]);
     expect(result.every((e) => e.count === 0)).toBe(true);
+  });
+});
+
+describe('timeAgoKey', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-06-01T12:00:00.000Z'));
+  });
+
+  it('returns justNow for invalid dates', () => {
+    expect(timeAgoKey('not-a-date')).toEqual({ key: 'notifications.justNow' });
+  });
+
+  it('returns justNow for dates less than one minute ago', () => {
+    expect(timeAgoKey('2024-06-01T11:59:45.000Z')).toEqual({
+      key: 'notifications.justNow',
+    });
+  });
+
+  it('returns minutesAgo with the elapsed minute count', () => {
+    expect(timeAgoKey('2024-06-01T11:35:00.000Z')).toEqual({
+      key: 'notifications.minutesAgo',
+      vars: { n: 25 },
+    });
+  });
+
+  it('returns hoursAgo with the elapsed hour count', () => {
+    expect(timeAgoKey('2024-06-01T09:00:00.000Z')).toEqual({
+      key: 'notifications.hoursAgo',
+      vars: { n: 3 },
+    });
+  });
+
+  it('returns daysAgo with the elapsed day count', () => {
+    expect(timeAgoKey('2024-05-29T12:00:00.000Z')).toEqual({
+      key: 'notifications.daysAgo',
+      vars: { n: 3 },
+    });
+  });
+
+  it('clamps future dates to justNow', () => {
+    expect(timeAgoKey('2024-06-01T12:01:00.000Z')).toEqual({
+      key: 'notifications.justNow',
+    });
   });
 });
 

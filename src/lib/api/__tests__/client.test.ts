@@ -9,6 +9,7 @@ import axiosRetry from 'axios-retry';
 
 const mockAuthState = {
   accessToken: null as string | null,
+  user: null as { companyId?: string | null } | null,
   updateAccessToken: vi.fn(),
   clearAuth: vi.fn(),
 };
@@ -29,7 +30,7 @@ vi.mock('@/router', () => ({
 
 // ── Import after mocks ────────────────────────────────────────────────────────
 
-import { apiClient } from '../client';
+import { apiClient, storeCsrfToken } from '../client';
 
 // ── Spy on the plain axios.post used by the silent-refresh call ───────────────
 // client.ts calls `axios.post(baseURL + '/auth/refresh', ...)` — not
@@ -45,17 +46,23 @@ beforeEach(() => {
   mock.reset();
   vi.resetAllMocks(); // clears call history + implementations
   localStorage.clear();
+  sessionStorage.clear();
 
   // Re-initialise mock state after resetAllMocks
   mockAuthState.accessToken = null;
+  mockAuthState.user = null;
   mockAuthState.updateAccessToken = vi.fn();
   mockAuthState.clearAuth = vi.fn();
 });
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
-function makeRefreshResponse(accessToken = 'new-access') {
-  return Promise.resolve({ data: { accessToken } });
+function makeRefreshResponse(accessToken = 'new-access', csrfToken?: string) {
+  return Promise.resolve({ data: { accessToken, csrfToken } });
+}
+
+function makeJwt(payload: Record<string, unknown>) {
+  return `${btoa(JSON.stringify({ alg: 'none' }))}.${btoa(JSON.stringify(payload))}.sig`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,6 +114,15 @@ describe('request interceptor', () => {
     await apiClient.get('/api/users');
 
     expect(mock.history.get[0].headers?.Authorization).toBeUndefined();
+  });
+
+  it('attaches the CSRF token from sessionStorage on protected state-changing requests', async () => {
+    sessionStorage.setItem('sgd_csrf', 'stored-csrf');
+    mock.onPost('/api/users').reply(200, {});
+
+    await apiClient.post('/api/users', {});
+
+    expect(mock.history.post[0].headers?.['x-csrf-token']).toBe('stored-csrf');
   });
 });
 
@@ -192,6 +208,37 @@ describe('response interceptor — silent refresh succeeds', () => {
     // history[0] = original attempt (401), history[1] = retry
     const retryHeaders = mock.history.get[1]?.headers;
     expect(retryHeaders?.Authorization).toBe('Bearer new-access');
+  });
+
+  it('stores the CSRF token returned by silent refresh', async () => {
+    axiosPostSpy.mockImplementation(() => makeRefreshResponse('new-access', 'fresh-csrf'));
+
+    await apiClient.get('/api/protected');
+
+    expect(sessionStorage.getItem('sgd_csrf')).toBe('fresh-csrf');
+  });
+
+  it('switches back to the active company when refresh returns an unscoped token', async () => {
+    const unscopedToken = makeJwt({ sub: 'user-1' });
+    const scopedToken = makeJwt({ sub: 'user-1', companyId: 'company-1' });
+    mockAuthState.user = { companyId: 'company-1' };
+    storeCsrfToken('csrf-before-refresh');
+    axiosPostSpy
+      .mockImplementationOnce(() => makeRefreshResponse(unscopedToken, 'csrf-after-refresh'))
+      .mockImplementationOnce(() => makeRefreshResponse(scopedToken, 'csrf-after-switch'));
+
+    await apiClient.get('/api/protected');
+
+    expect(axiosPostSpy).toHaveBeenCalledTimes(2);
+    const [switchUrl, switchBody, switchConfig] = axiosPostSpy.mock.calls[1];
+    expect(String(switchUrl)).toMatch(/\/auth\/switch-company$/);
+    expect(switchBody).toEqual({ companyId: 'company-1' });
+    expect(switchConfig?.headers).toMatchObject({
+      Authorization: `Bearer ${unscopedToken}`,
+      'x-csrf-token': 'csrf-before-refresh',
+    });
+    expect(mockAuthState.updateAccessToken).toHaveBeenCalledWith(scopedToken);
+    expect(sessionStorage.getItem('sgd_csrf')).toBe('csrf-after-switch');
   });
 });
 

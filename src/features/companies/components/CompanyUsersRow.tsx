@@ -309,10 +309,10 @@ export function CompanyUsersRow({
                 </Table>
                 {totalPages > 1 && (
                   <Pager
-                    page={safePage}
-                    totalPages={totalPages}
-                    total={filtered.length}
-                    onChange={setPage}
+                    hasPrev={safePage > 1}
+                    hasNext={safePage < totalPages}
+                    onPrev={() => setPage((p) => p - 1)}
+                    onNext={() => setPage((p) => p + 1)}
                     className="px-4 py-2 border-t border-border"
                   />
                 )}

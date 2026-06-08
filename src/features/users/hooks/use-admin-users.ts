@@ -62,23 +62,38 @@ export function useAdminUsers() {
     staleTime: 60_000,
   });
 
-  // ── Server-side search / filter / pagination state ────────────────────────
+  // ── Server-side search / filter / cursor pagination state ─────────────────
   type SuperAdminStatus = 'all' | 'active' | 'inactive' | 'deleted' | 'pending';
   const PAGE_SIZE = 20;
   const [saSearch, setSaSearchValue] = useState('');
   const [saDebouncedSearch, setSaDebounced] = useState('');
   const [saStatus, setSaStatusValue] = useState<SuperAdminStatus>('all');
-  const [saPage, setSaPage] = useState(1);
 
-  const setSaSearch = useCallback((value: string) => {
-    setSaSearchValue(value);
-    setSaPage(1);
+  // cursor stack: [null, cursor1, cursor2, ...] — null = first page
+  const [saCursors, setSaCursors] = useState<(string | null)[]>([null]);
+  const [saCursorIdx, setSaCursorIdx] = useState(0);
+  const saCurrentCursor = saCursors[saCursorIdx] ?? undefined;
+
+  const resetSaCursor = useCallback(() => {
+    setSaCursors([null]);
+    setSaCursorIdx(0);
   }, []);
 
-  const setSaStatus = useCallback((value: SuperAdminStatus) => {
-    setSaStatusValue(value);
-    setSaPage(1);
-  }, []);
+  const setSaSearch = useCallback(
+    (value: string) => {
+      setSaSearchValue(value);
+      resetSaCursor();
+    },
+    [resetSaCursor],
+  );
+
+  const setSaStatus = useCallback(
+    (value: SuperAdminStatus) => {
+      setSaStatusValue(value);
+      resetSaCursor();
+    },
+    [resetSaCursor],
+  );
 
   // Update debounced value 400 ms after the user stops typing
   const saSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,10 +111,13 @@ export function useAdminUsers() {
     isFetching: superAdminsIsFetching,
     dataUpdatedAt: superAdminsDataUpdatedAt,
   } = useQuery({
-    queryKey: ['superAdmins', { page: saPage, search: saDebouncedSearch, status: saStatus }],
+    queryKey: [
+      'superAdmins',
+      { cursor: saCurrentCursor, search: saDebouncedSearch, status: saStatus },
+    ],
     queryFn: () =>
       usersApi.listSuperAdmin({
-        page: saPage,
+        cursor: saCurrentCursor,
         limit: PAGE_SIZE,
         search: saDebouncedSearch || undefined,
         status: saStatus !== 'all' ? saStatus : undefined,
@@ -108,23 +126,20 @@ export function useAdminUsers() {
     placeholderData: (prev) => prev,
   });
 
-  // Queries ligeras (limit=1) solo para obtener totales exactos por estado
-  const { data: saActiveCount } = useQuery({
-    queryKey: ['superAdmins-count', 'active'],
-    queryFn: () => usersApi.listSuperAdmin({ page: 1, limit: 1, status: 'active' }),
-    staleTime: 60_000,
-  });
-  const { data: saInactiveCount } = useQuery({
-    queryKey: ['superAdmins-count', 'inactive'],
-    queryFn: () => usersApi.listSuperAdmin({ page: 1, limit: 1, status: 'inactive' }),
-    staleTime: 60_000,
-  });
-
   const superAdmins = superAdminsResult?.data ?? [];
-  const superAdminsTotal = superAdminsResult?.total ?? 0;
-  const superAdminsTotalPages = Math.max(1, Math.ceil(superAdminsTotal / PAGE_SIZE));
-  const superAdminsActiveTotal = saActiveCount?.total ?? 0;
-  const superAdminsInactiveTotal = saInactiveCount?.total ?? 0;
+  const saHasPrevPage = saCursorIdx > 0;
+  const saHasNextPage = superAdminsResult?.hasMore ?? false;
+
+  const saGoNextPage = useCallback(() => {
+    const next = superAdminsResult?.nextCursor;
+    if (!next) return;
+    setSaCursors((prev) => [...prev.slice(0, saCursorIdx + 1), next]);
+    setSaCursorIdx((prev) => prev + 1);
+  }, [superAdminsResult?.nextCursor, saCursorIdx]);
+
+  const saGoPrevPage = useCallback(() => {
+    if (saCursorIdx > 0) setSaCursorIdx((prev) => prev - 1);
+  }, [saCursorIdx]);
 
   const rolesCompanyId =
     createOpen && createUserContext === 'company' ? createCompanyId : editCompanyId;
@@ -162,7 +177,6 @@ export function useAdminUsers() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['users'] });
     queryClient.invalidateQueries({ queryKey: ['superAdmins'] });
-    queryClient.invalidateQueries({ queryKey: ['superAdmins-count'] });
   };
 
   const invalidateAllUserTables = () => {
@@ -171,8 +185,9 @@ export function useAdminUsers() {
   };
 
   const refreshSuperAdmins = useCallback(() => {
+    resetSaCursor();
     queryClient.invalidateQueries({ queryKey: ['superAdmins'] });
-  }, [queryClient]);
+  }, [queryClient, resetSaCursor]);
 
   const createForm = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -393,10 +408,6 @@ export function useAdminUsers() {
   return {
     users,
     superAdmins,
-    superAdminsTotal,
-    superAdminsTotalPages,
-    superAdminsActiveTotal,
-    superAdminsInactiveTotal,
     superAdminsLoading,
     superAdminsIsFetching,
     superAdminsDataUpdatedAt,
@@ -406,8 +417,23 @@ export function useAdminUsers() {
     setSaSearch,
     saStatus,
     setSaStatus,
-    saPage,
-    setSaPage,
+    // Cursor internals (kept for internal use; prefer page-based fields below)
+    saCursorIdx,
+    saHasPrevPage,
+    saHasNextPage,
+    saGoNextPage,
+    saGoPrevPage,
+    // Page-number facade over the cursor stack
+    saPage: saCursorIdx + 1,
+    setSaPage: (page: number) => {
+      const idx = page - 1;
+      if (idx === saCursorIdx + 1) saGoNextPage();
+      else if (idx >= 0 && idx < saCursorIdx) setSaCursorIdx(idx);
+    },
+    superAdminsTotal: superAdmins.length,
+    superAdminsActiveTotal: superAdmins.filter((u) => !u.deletedAt && u.isActive).length,
+    superAdminsInactiveTotal: superAdmins.filter((u) => !u.deletedAt && !u.isActive).length,
+    superAdminsTotalPages: saHasNextPage ? saCursorIdx + 2 : Math.max(1, saCursorIdx + 1),
     createOpen,
     setCreateOpen,
     invitedUser,

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +16,7 @@ import { companiesApi } from '@/lib/api/companies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas';
 import { ROLE_NAMES } from '@/lib/constants/roles';
+import { resolveApiError } from '@/lib/utils/api-error';
 
 // Native <select> elements send "" when the placeholder option is selected.
 // z.string().uuid() rejects "" (not a UUID, not undefined), so accept "" explicitly.
@@ -44,6 +46,7 @@ export type EditUserForm = z.infer<typeof editUserSchema>;
 
 export function useCompanyUsers(companyId: string) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [invitedUser, setInvitedUser] = useState<InvitedUserInfo | null>(null);
@@ -213,8 +216,8 @@ export function useCompanyUsers(companyId: string) {
         invitationResent: created.invitationResent,
       });
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const msg = error.response?.data?.message;
+    onError: (error: unknown) => {
+      const msg = resolveApiError(error, t);
       if (msg) createForm.setError('email', { message: msg });
     },
   });

@@ -104,34 +104,38 @@ export const usersApi = {
   getById: (id: string) => apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
 
   listSuperAdmin: (params?: {
-    page?: number;
+    cursor?: string;
     limit?: number;
     search?: string;
     status?: 'active' | 'inactive' | 'deleted' | 'pending';
-  }) =>
+  }): Promise<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean }> =>
     apiClient
-      .get<{ data: ApiUser[]; total: number }>('/users/super-admins', { params })
+      .get<{
+        data: ApiUser[];
+        nextCursor: string | null;
+        hasMore: boolean;
+      }>('/users/super-admins', { params })
       .then((r) => r.data),
 
   listUsersByOrg: (
     orgId: string,
-    page = 1,
-    limit = 500,
-  ): Promise<{ data: ApiUserWithRoles[]; total: number }> =>
+    limit = 200,
+    cursor?: string,
+  ): Promise<{ data: ApiUserWithRoles[]; nextCursor: string | null; hasMore: boolean }> =>
     apiClient
       .get<{
         data: ApiUserWithRoles[];
-        total: number;
-      }>(`/users/by-org/${orgId}`, { params: { page, limit } })
+        nextCursor: string | null;
+        hasMore: boolean;
+      }>(`/users/by-org/${orgId}`, { params: { limit, cursor } })
       .then((r) => {
-        const result = r.data;
-        if (result.total > limit) {
+        if (r.data.hasMore) {
           Sentry.captureMessage(
-            `listUsersByOrg truncated: ${result.total} > ${limit} for org ${orgId}`,
+            `listUsersByOrg truncated: more than ${limit} users for org ${orgId}`,
             { level: 'warning' },
           );
         }
-        return result;
+        return r.data;
       }),
 
   create: (dto: CreateUserDto) => apiClient.post<ApiUserCreated>('/users', dto).then((r) => r.data),

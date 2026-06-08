@@ -683,7 +683,8 @@
       "uploading": "Subiendo…",
       "uploadButton": "Subir documento",
       "selectFileError": "Seleccione un archivo para subir",
-      "versionIncrementError": "La versión debe incrementarse en exactamente una unidad respecto a la versión actual ({{version}})"
+      "versionIncrementError": "La versión debe incrementarse en exactamente una unidad respecto a la versión actual ({{version}})",
+      "uploadError": "No se pudo cargar el documento. Verifique el archivo e intente de nuevo."
     },
     "delete": {
       "title": "Eliminar tipología",
@@ -963,5 +964,8 @@
         "READ": "Consultar registros de auditoría"
       }
     }
+  },
+  "errors": {
+    "FILE_CONTENT_MISMATCH": "El contenido del archivo no coincide con el formato declarado. Verifique que el archivo sea realmente un PDF, DOCX, XLSX o imagen válida."
   }
 }
