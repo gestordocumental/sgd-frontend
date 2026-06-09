@@ -6,15 +6,13 @@ import { Pager } from '../pager';
 // ── development-mode prop validation ──────────────────────────────────────────
 
 describe('Pager — development prop validation', () => {
-  const originalEnv = process.env.NODE_ENV;
-
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('DEV', 'true'); // enables import.meta.env.DEV in the component
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
