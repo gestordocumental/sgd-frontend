@@ -8,7 +8,7 @@ import { Pager } from '../pager';
 describe('Pager — development prop validation', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    vi.stubEnv('DEV', 'true'); // enables import.meta.env.DEV in the component
+    vi.stubEnv('DEV', true); // enables import.meta.env.DEV in the component
   });
 
   afterEach(() => {
