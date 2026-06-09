@@ -33,6 +33,16 @@ export function Pager(props: PagerProps) {
 
   if (typeof props.onChange === 'function') {
     const { page, totalPages, total, onChange, className } = props;
+
+    if (process.env.NODE_ENV === 'development') {
+      if (page < 1 || page > totalPages || totalPages < 1) {
+        console.warn(
+          `[Pager] Invalid props: page=${page}, totalPages=${totalPages}. ` +
+            `Expected page between 1 and totalPages, with totalPages >= 1.`,
+        );
+      }
+    }
+
     return (
       <div
         className={`flex items-center gap-1 text-sm text-muted-foreground ${

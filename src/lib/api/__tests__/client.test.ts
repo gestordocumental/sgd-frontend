@@ -430,3 +430,14 @@ describe('axiosRetry retryCondition', () => {
     expect(retryCondition(err)).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. storeCsrfToken export
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('storeCsrfToken', () => {
+  it('writes the token to sessionStorage under the sgd_csrf key', () => {
+    storeCsrfToken('explicit-csrf');
+    expect(sessionStorage.getItem('sgd_csrf')).toBe('explicit-csrf');
+  });
+});
