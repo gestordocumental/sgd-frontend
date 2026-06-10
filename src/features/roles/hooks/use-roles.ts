@@ -29,14 +29,14 @@ export function useRoles(companyId: string) {
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(),
+    queryFn: ({ signal }) => rolesApi.listRoles(undefined, signal),
     staleTime: 60_000,
     enabled: !!companyId,
   });
 
   const { data: permissions = [] } = useQuery({
     queryKey: ['permissions'],
-    queryFn: () => rolesApi.listPermissions(),
+    queryFn: ({ signal }) => rolesApi.listPermissions(signal),
     staleTime: Infinity, // permissions catalog is static
   });
 

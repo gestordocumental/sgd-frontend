@@ -81,13 +81,16 @@ export function useAdminCompanies() {
       'companies',
       { cursor: currentCursor, search: debouncedSearch, status: statusFilter },
     ],
-    queryFn: () =>
-      companiesApi.list({
-        cursor: currentCursor,
-        limit: PAGE_SIZE,
-        search: debouncedSearch || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-      }),
+    queryFn: ({ signal }) =>
+      companiesApi.list(
+        {
+          cursor: currentCursor,
+          limit: PAGE_SIZE,
+          search: debouncedSearch || undefined,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+        },
+        signal,
+      ),
     staleTime: 60_000,
     placeholderData: (prev) => prev,
   });

@@ -142,11 +142,11 @@ export function useNotifications() {
     };
   }, [accessToken, queryClient]);
 
-  // ── Queries — stale time longer since SSE handles freshness ───────────────
+  // ── Queries ────────────────────────────────────────────────────────────────
   const { data: unreadData } = useQuery({
     queryKey: ['notifications-unread-count'],
-    queryFn: notificationsApi.unreadCount,
-    staleTime: 60_000,
+    queryFn: ({ signal }) => notificationsApi.unreadCount(signal),
+    staleTime: 0,
   });
 
   const {
@@ -157,13 +157,13 @@ export function useNotifications() {
     isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ['notifications-list'],
-    queryFn: ({ pageParam }) => notificationsApi.list(pageParam, 20),
+    queryFn: ({ pageParam, signal }) => notificationsApi.list(pageParam, 20, signal),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const totalPages = Math.ceil(lastPage.total / lastPage.limit);
       return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
   // ── Mutations ─────────────────────────────────────────────────────────────

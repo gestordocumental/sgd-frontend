@@ -59,21 +59,21 @@ export function AuditDetailModal({
 
   const { data: depts = [] } = useQuery({
     queryKey: ['departamentos', orgId],
-    queryFn: () => orgStructureApi.listDepartamentos(orgId!),
+    queryFn: ({ signal }) => orgStructureApi.listDepartamentos(orgId!, signal),
     staleTime: 300_000,
     enabled: needsOrgLookup,
   });
 
   const { data: allAreas = [] } = useQuery({
     queryKey: ['all-areas', orgId],
-    queryFn: () => orgStructureApi.listAllAreas(orgId!),
+    queryFn: ({ signal }) => orgStructureApi.listAllAreas(orgId!, signal),
     staleTime: 300_000,
     enabled: needsOrgLookup,
   });
 
   const { data: allCargos = [] } = useQuery({
     queryKey: ['all-cargos', orgId],
-    queryFn: () => orgStructureApi.listAllCargos(orgId!),
+    queryFn: ({ signal }) => orgStructureApi.listAllCargos(orgId!, signal),
     staleTime: 300_000,
     enabled: needsOrgLookup,
   });

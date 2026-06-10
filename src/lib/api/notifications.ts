@@ -24,13 +24,13 @@ export interface PaginatedNotifications {
 }
 
 export const notificationsApi = {
-  list: (page = 1, limit = 20): Promise<PaginatedNotifications> =>
+  list: (page = 1, limit = 20, signal?: AbortSignal): Promise<PaginatedNotifications> =>
     apiClient
-      .get<PaginatedNotifications>('/notifications', { params: { page, limit } })
+      .get<PaginatedNotifications>('/notifications', { params: { page, limit }, signal })
       .then((r) => r.data),
 
-  unreadCount: (): Promise<{ count: number }> =>
-    apiClient.get<{ count: number }>('/notifications/unread-count').then((r) => r.data),
+  unreadCount: (signal?: AbortSignal): Promise<{ count: number }> =>
+    apiClient.get<{ count: number }>('/notifications/unread-count', { signal }).then((r) => r.data),
 
   markAsRead: (id: string): Promise<ApiNotification> =>
     apiClient.patch<ApiNotification>(`/notifications/${id}/read`).then((r) => r.data),

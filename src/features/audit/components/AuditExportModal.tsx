@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 import { Download, Link } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -74,6 +73,7 @@ export function AuditExportModal({
     setError(null);
     setLoading(true);
     try {
+      const XLSX = await import('xlsx');
       const data = await auditApi.exportLogs({
         correlationId: trimmedCorrelationId || undefined,
         from: !byCorrelation && from ? new Date(from).toISOString() : undefined,

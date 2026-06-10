@@ -1,8 +1,26 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import path from 'path';
+
+// Sonner v2 unconditionally calls document.createElement('style') at module
+// load time, which requires CSP 'unsafe-inline' for style-src.  This plugin
+// replaces that function with a no-op so we can ship a strict CSP; the same
+// CSS is imported statically via src/index.css → 'sonner/dist/styles.css'.
+function sonnerNoInjectCSS(): Plugin {
+  return {
+    name: 'sonner-no-inject-css',
+    transform(code, id) {
+      if (!id.includes('node_modules/sonner/') && !id.includes('node_modules\\sonner\\')) return;
+      if (!id.endsWith('index.js') && !id.endsWith('index.mjs')) return;
+      return code.replace(
+        /function __insertCSS\(code\) \{[\s\S]*?\n\}/,
+        'function __insertCSS(_code) {}',
+      );
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
@@ -12,6 +30,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    sonnerNoInjectCSS(),
   ],
   resolve: {
     alias: {

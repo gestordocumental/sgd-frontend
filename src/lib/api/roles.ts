@@ -44,11 +44,12 @@ export interface UpdateRoleDto {
 }
 
 export const rolesApi = {
-  listPermissions: () => apiClient.get<ApiPermission[]>('/permissions').then((r) => r.data),
+  listPermissions: (signal?: AbortSignal) =>
+    apiClient.get<ApiPermission[]>('/permissions', { signal }).then((r) => r.data),
 
-  listRoles: (orgId?: string) =>
+  listRoles: (orgId?: string, signal?: AbortSignal) =>
     apiClient
-      .get<ApiRole[]>('/roles', { params: orgId ? { orgId } : undefined })
+      .get<ApiRole[]>('/roles', { params: orgId ? { orgId } : undefined, signal })
       .then((r) => r.data),
 
   createRole: (dto: CreateRoleDto) => apiClient.post<ApiRole>('/roles', dto).then((r) => r.data),

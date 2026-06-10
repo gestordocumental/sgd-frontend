@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { companyUserJwt, globalUserJwt } from './jwt';
+import { companyUserJwt, globalUserJwt, superAdminJwt } from './jwt';
 
 /**
  * Base path for all API route patterns.
@@ -46,6 +46,27 @@ export async function injectCompanySession(page: Page, orgId = 'org-001') {
   );
 }
 
+/** Inject a super-admin session (no companyId) into localStorage. */
+export async function injectAdminSession(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'sgd-auth',
+      JSON.stringify({
+        user: {
+          id: 'sa-001',
+          email: 'superadmin@sgd.com',
+          name: 'Super Admin',
+          isSuperAdmin: true,
+          companyId: null,
+        },
+        isAuthenticated: true,
+        isSuperAdmin: true,
+        hasSuperAdminContext: false,
+      }),
+    );
+  });
+}
+
 // ── API mock helpers ──────────────────────────────────────────────────────────
 
 /**
@@ -81,6 +102,29 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
   // Company detail — queried by useUserProfile to resolve company name
   await page.route(`${API}/org/${orgId}`, (route) =>
     route.fulfill({ json: { id: orgId, name: 'Test Company', nit: '000000', isActive: true } }),
+  );
+}
+
+/** Mock token refresh for a super-admin session (no company context needed). */
+export async function mockAdminAuthRefresh(page: Page) {
+  const adminJwt = superAdminJwt();
+
+  await page.route(`${API}/auth/refresh`, (route) =>
+    route.fulfill({ json: { accessToken: adminJwt, refreshToken: 'rt-admin-mock' } }),
+  );
+
+  await page.route(`${API}/users/sa-001`, (route) =>
+    route.fulfill({
+      json: {
+        id: 'sa-001',
+        email: 'superadmin@sgd.com',
+        firstName: 'Super',
+        lastName: 'Admin',
+        isActive: true,
+        isSuperAdmin: true,
+        avatarUrl: null,
+      },
+    }),
   );
 }
 

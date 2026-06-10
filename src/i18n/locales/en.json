@@ -75,6 +75,9 @@
     "resultsCount_one": "{{count}} result",
     "resultsCount_other": "{{count}} results",
     "refresh": "Refresh",
+    "remove": "Remove",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "prevPage": "Previous page",
     "nextPage": "Next page"
   },
@@ -909,6 +912,11 @@
     "title": "Something went wrong",
     "description": "An unexpected error occurred. You can try reloading the page.",
     "reload": "Reload page"
+  },
+  "featureError": {
+    "title": "Error in {{feature}}",
+    "description": "Something went wrong loading this section. The rest of the app is still working.",
+    "retry": "Retry"
   },
   "permissions": {
     "modules": {

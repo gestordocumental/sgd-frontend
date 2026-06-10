@@ -11,7 +11,6 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,7 +34,8 @@ import { PAGE_SIZE, Pager, SearchInput, EmptyState, Stat } from '../org-structur
 
 type OrgStructureHook = ReturnType<typeof useOrgStructure>;
 
-function downloadTemplate() {
+async function downloadTemplate() {
+  const XLSX = await import('xlsx');
   const headers = [
     'Departamento',
     'Descripción Departamento',

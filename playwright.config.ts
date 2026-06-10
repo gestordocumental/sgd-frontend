@@ -10,8 +10,15 @@ export default defineConfig({
   // low enough not to exhaust CPU/RAM with 6 full Chromium instances.
   workers: process.env.CI ? 1 : 2,
   reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
-    : [['html', { open: 'on-failure', outputFolder: 'playwright-report' }]],
+    ? [
+        ['github'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['@argos-ci/playwright/reporter'],
+      ]
+    : [
+        ['html', { open: 'on-failure', outputFolder: 'playwright-report' }],
+        ['@argos-ci/playwright/reporter'],
+      ],
   use: {
     baseURL: 'http://localhost:4173',
     // Capture a trace on the first retry so failures are diagnosable

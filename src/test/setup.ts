@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import 'vitest-axe/extend-expect';
 import { beforeEach, vi } from 'vitest';
 
 // jsdom does not implement Element.prototype.scrollTo — stub it globally so

@@ -44,6 +44,8 @@ const editUserSchema = z.object({
 export type CreateUserForm = z.infer<typeof createUserSchema>;
 export type EditUserForm = z.infer<typeof editUserSchema>;
 
+type UsersCache = { data: ApiUserWithRoles[]; nextCursor: string | null; hasMore: boolean };
+
 export function useCompanyUsers(companyId: string) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -63,14 +65,14 @@ export function useCompanyUsers(companyId: string) {
 
   const { data: company } = useQuery({
     queryKey: ['company', companyId],
-    queryFn: () => companiesApi.getById(companyId),
+    queryFn: ({ signal }) => companiesApi.getById(companyId, signal),
     staleTime: 60_000,
     enabled: !!companyId,
   });
 
   const { data: roles = [] } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(),
+    queryFn: ({ signal }) => rolesApi.listRoles(undefined, signal),
     staleTime: 300_000,
     enabled: createUserOpen || !!editUser,
   });
@@ -78,7 +80,7 @@ export function useCompanyUsers(companyId: string) {
   // Flat cargo list for the table display
   const { data: allCargos = [] } = useQuery({
     queryKey: ['all-cargos', companyId],
-    queryFn: () => orgStructureApi.listAllCargos(companyId),
+    queryFn: ({ signal }) => orgStructureApi.listAllCargos(companyId, signal),
     staleTime: 300_000,
     enabled: !!companyId,
   });
@@ -88,7 +90,7 @@ export function useCompanyUsers(companyId: string) {
   // Shared departamentos list (used by both create and edit modals)
   const { data: departamentos = [] } = useQuery({
     queryKey: ['departamentos', companyId],
-    queryFn: () => orgStructureApi.listDepartamentos(companyId),
+    queryFn: ({ signal }) => orgStructureApi.listDepartamentos(companyId, signal),
     staleTime: 300_000,
     enabled: (createUserOpen || !!editUser) && !!companyId,
   });
@@ -96,7 +98,7 @@ export function useCompanyUsers(companyId: string) {
   // Areas / cargos for create form
   const { data: areas = [] } = useQuery({
     queryKey: ['areas', companyId, selectedDeptId],
-    queryFn: () => orgStructureApi.listAreas(companyId, selectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listAreas(companyId, selectedDeptId, signal),
     staleTime: 300_000,
     enabled: createUserOpen && !!selectedDeptId,
   });
@@ -104,7 +106,7 @@ export function useCompanyUsers(companyId: string) {
   // Department-level cargos for create form (no area required)
   const { data: deptCargos = [] } = useQuery({
     queryKey: ['dept-cargos', companyId, selectedDeptId],
-    queryFn: () => orgStructureApi.listDeptCargos(companyId, selectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listDeptCargos(companyId, selectedDeptId, signal),
     staleTime: 300_000,
     enabled: createUserOpen && !!selectedDeptId,
   });
@@ -112,7 +114,8 @@ export function useCompanyUsers(companyId: string) {
   // Area-level cargos for create form
   const { data: cargos = [] } = useQuery({
     queryKey: ['cargos', companyId, selectedDeptId, selectedAreaId],
-    queryFn: () => orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId),
+    queryFn: ({ signal }) =>
+      orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId, signal),
     staleTime: 300_000,
     enabled: createUserOpen && !!selectedAreaId,
   });
@@ -123,7 +126,7 @@ export function useCompanyUsers(companyId: string) {
   // Areas / cargos for edit form — share the same cache keys as create form
   const { data: editAreas = [] } = useQuery({
     queryKey: ['areas', companyId, editSelectedDeptId],
-    queryFn: () => orgStructureApi.listAreas(companyId, editSelectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listAreas(companyId, editSelectedDeptId, signal),
     staleTime: 300_000,
     enabled: !!editUser && !!editSelectedDeptId,
   });
@@ -131,7 +134,7 @@ export function useCompanyUsers(companyId: string) {
   // Department-level cargos for edit form (no area required)
   const { data: editDeptCargos = [] } = useQuery({
     queryKey: ['dept-cargos', companyId, editSelectedDeptId],
-    queryFn: () => orgStructureApi.listDeptCargos(companyId, editSelectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listDeptCargos(companyId, editSelectedDeptId, signal),
     staleTime: 300_000,
     enabled: !!editUser && !!editSelectedDeptId,
   });
@@ -139,7 +142,8 @@ export function useCompanyUsers(companyId: string) {
   // Area-level cargos for edit form
   const { data: editCargos = [] } = useQuery({
     queryKey: ['cargos', companyId, editSelectedDeptId, editSelectedAreaId],
-    queryFn: () => orgStructureApi.listCargos(companyId, editSelectedDeptId, editSelectedAreaId),
+    queryFn: ({ signal }) =>
+      orgStructureApi.listCargos(companyId, editSelectedDeptId, editSelectedAreaId, signal),
     staleTime: 300_000,
     enabled: !!editUser && !!editSelectedAreaId,
   });
@@ -169,8 +173,8 @@ export function useCompanyUsers(companyId: string) {
     dataUpdatedAt: usersDataUpdatedAt,
   } = useQuery({
     queryKey: ['company-users', companyId],
-    queryFn: () => usersApi.listUsersByOrg(companyId),
-    staleTime: 60_000,
+    queryFn: ({ signal }) => usersApi.listUsersByOrg(companyId, 200, undefined, signal),
+    staleTime: 120_000,
     refetchOnWindowFocus: false,
     enabled: !!companyId,
   });
@@ -239,6 +243,33 @@ export function useCompanyUsers(companyId: string) {
         await usersApi.assignUserToOrg(id, companyId, roleId);
       }
     },
+    onMutate: async ({ id, dto }) => {
+      await queryClient.cancelQueries({ queryKey: ['company-users', companyId] });
+      const previous = queryClient.getQueryData<UsersCache>(['company-users', companyId]);
+      queryClient.setQueryData<UsersCache>(['company-users', companyId], (old) =>
+        old
+          ? {
+              ...old,
+              data: old.data.map((u) =>
+                u.id === id
+                  ? {
+                      ...u,
+                      firstName: dto.firstName ?? u.firstName,
+                      lastName: dto.lastName ?? u.lastName,
+                      ...(dto.idNumber !== undefined && { idNumber: dto.idNumber || null }),
+                    }
+                  : u,
+              ),
+            }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['company-users', companyId], context.previous);
+      }
+    },
     onSuccess: () => {
       setEditUser(null);
     },
@@ -250,10 +281,30 @@ export function useCompanyUsers(companyId: string) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => usersApi.removeUserFromOrg(id, companyId),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['company-users', companyId] });
+      const previous = queryClient.getQueryData<UsersCache>(['company-users', companyId]);
+      queryClient.setQueryData<UsersCache>(['company-users', companyId], (old) =>
+        old
+          ? {
+              ...old,
+              data: old.data.map((u) =>
+                u.id === id ? { ...u, orgRemovedAt: new Date().toISOString() } : u,
+              ),
+            }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['company-users', companyId], context.previous);
+      }
+    },
     onSuccess: () => {
-      invalidate();
       setDeleteUser(null);
     },
+    onSettled: invalidate,
   });
 
   const restoreMutation = useMutation({
@@ -262,13 +313,34 @@ export function useCompanyUsers(companyId: string) {
         // Globally soft-deleted — restore the account
         await usersApi.restore(user.id);
       }
-
       if (user.orgRemovedAt) {
         // Explicitly removed from this org — re-assign to org (clears removedAt on backend)
         await usersApi.assignUserToOrg(user.id, companyId);
       }
     },
-    onSuccess: invalidateAll,
+    onMutate: async (user) => {
+      await queryClient.cancelQueries({ queryKey: ['company-users', companyId] });
+      const previous = queryClient.getQueryData<UsersCache>(['company-users', companyId]);
+      queryClient.setQueryData<UsersCache>(['company-users', companyId], (old) =>
+        old
+          ? {
+              ...old,
+              data: old.data.map((u) =>
+                u.id === user.id
+                  ? { ...u, deletedAt: null, orgRemovedAt: null, isActive: true }
+                  : u,
+              ),
+            }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['company-users', companyId], context.previous);
+      }
+    },
+    onSettled: invalidateAll,
   });
 
   const toggleOptionalReviewerMutation = useMutation({
@@ -290,12 +362,42 @@ export function useCompanyUsers(companyId: string) {
 
   const disableMutation = useMutation({
     mutationFn: (id: string) => usersApi.disable(id),
-    onSuccess: invalidate,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['company-users', companyId] });
+      const previous = queryClient.getQueryData<UsersCache>(['company-users', companyId]);
+      queryClient.setQueryData<UsersCache>(['company-users', companyId], (old) =>
+        old
+          ? { ...old, data: old.data.map((u) => (u.id === id ? { ...u, isActive: false } : u)) }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['company-users', companyId], context.previous);
+      }
+    },
+    onSettled: invalidate,
   });
 
   const enableMutation = useMutation({
     mutationFn: (id: string) => usersApi.enable(id),
-    onSuccess: invalidate,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['company-users', companyId] });
+      const previous = queryClient.getQueryData<UsersCache>(['company-users', companyId]);
+      queryClient.setQueryData<UsersCache>(['company-users', companyId], (old) =>
+        old
+          ? { ...old, data: old.data.map((u) => (u.id === id ? { ...u, isActive: true } : u)) }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['company-users', companyId], context.previous);
+      }
+    },
+    onSettled: invalidate,
   });
 
   const editForm = useForm<EditUserForm>({

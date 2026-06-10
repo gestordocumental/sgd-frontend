@@ -123,6 +123,7 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
                   className="shrink-0"
                   onClick={handleCopy}
                   title={t('users.dialogs.invitationSent.copyTitle')}
+                  aria-label={t('users.dialogs.invitationSent.copyTitle')}
                 >
                   {copied ? (
                     <Check className="size-4 text-emerald-600" />

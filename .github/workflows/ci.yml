@@ -73,6 +73,11 @@ jobs:
           # so that same-origin route patterns (/api/v1/**) are intercepted correctly.
           VITE_API_URL: /api/v1
           VITE_USE_MOCKS: false
+          # Visual regression: upload screenshots to Argos CI when token is available.
+          # Set ARGOS_TOKEN as a repository secret to enable visual diffing on PRs.
+          # First run establishes the baseline; subsequent runs compare against it.
+          # https://argos-ci.com/docs/quickstart/playwright
+          ARGOS_TOKEN: ${{ secrets.ARGOS_TOKEN }}
 
       - name: Upload Playwright report
         if: failure()

@@ -17,7 +17,7 @@ import { rolesApi, type PermissionModule, type PermissionAction } from '@/lib/ap
 export function useMyPermissions(companyId: string | null, isSuperAdmin: boolean) {
   const { data: myOrgRoles = [], isLoading: orgRolesLoading } = useQuery({
     queryKey: ['my-org-roles', companyId],
-    queryFn: () => usersApi.getMyOrgRoles(),
+    queryFn: ({ signal }) => usersApi.getMyOrgRoles(signal),
     enabled: !!companyId && !isSuperAdmin,
     retry: false,
     staleTime: 60_000,
@@ -30,7 +30,7 @@ export function useMyPermissions(companyId: string | null, isSuperAdmin: boolean
 
   const { data: allRoles = [], isPending: allRolesPending } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(),
+    queryFn: ({ signal }) => rolesApi.listRoles(undefined, signal),
     enabled: !!companyId && myRoleIds.size > 0 && !isSuperAdmin,
     staleTime: 60_000,
   });

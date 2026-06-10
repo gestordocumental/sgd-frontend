@@ -13,12 +13,15 @@ export function useAudit(companyId: string | undefined, enabled: boolean) {
 
   const query = useQuery({
     queryKey,
-    queryFn: () =>
-      auditApi.getLogs({ ...filters, orgId: companyId || undefined, page, limit: PAGE_SIZE }),
+    queryFn: ({ signal }) =>
+      auditApi.getLogs(
+        { ...filters, orgId: companyId || undefined, page, limit: PAGE_SIZE },
+        signal,
+      ),
     // Disable when companyId is an empty string (not yet loaded in org context).
     // When undefined (super admin — all orgs) or a UUID, proceed normally.
     enabled: enabled && companyId !== '',
-    staleTime: 30_000,
+    staleTime: 300_000,
   });
 
   function applyFilters(next: Omit<AuditLogFilters, 'page' | 'limit' | 'orgId'>) {

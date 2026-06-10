@@ -1,4 +1,4 @@
-import { useState, startTransition } from 'react';
+import { lazy, Suspense, useState, startTransition } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { UserProfileCard } from '@/features/profile/components/UserProfileCard';
@@ -11,18 +11,32 @@ import { isDeleted } from '@/lib/formatters';
 import { useAdminUsers } from '@/features/users/hooks/use-admin-users';
 import { usersApi } from '@/lib/api/users';
 import { useAdminCompanies } from '@/features/companies/hooks/use-admin-companies';
-import { UsersTable } from '@/features/users/components/UsersTable';
-import { CompaniesTable } from '@/features/companies/components/CompaniesTable';
 import { UserDialogs } from '@/features/users/components/UserDialogs';
 import { CompanyDialogs } from '@/features/companies/components/CompanyDialogs';
-import {
-  AdminDashboard,
-  type MergedOrgStorage,
-} from '@/features/dashboard/components/AdminDashboard';
-import { AuditTable } from '@/features/audit/components/AuditTable';
+import type { MergedOrgStorage } from '@/features/dashboard/components/AdminDashboard';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const AdminDashboard = lazy(() =>
+  import('@/features/dashboard/components/AdminDashboard').then((m) => ({
+    default: m.AdminDashboard,
+  })),
+);
+const UsersTable = lazy(() =>
+  import('@/features/users/components/UsersTable').then((m) => ({ default: m.UsersTable })),
+);
+const CompaniesTable = lazy(() =>
+  import('@/features/companies/components/CompaniesTable').then((m) => ({
+    default: m.CompaniesTable,
+  })),
+);
+const AuditTable = lazy(() =>
+  import('@/features/audit/components/AuditTable').then((m) => ({ default: m.AuditTable })),
+);
 import { useAudit } from '@/features/audit/hooks/use-audit';
 import { typologiesApi } from '@/lib/api/typologies';
 import { workflowsApi } from '@/lib/api/workflows';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { FeatureErrorFallback } from '@/components/FeatureErrorFallback';
 
 export const Route = createFileRoute('/dashboard/admin')({
   beforeLoad: () => {
@@ -32,6 +46,24 @@ export const Route = createFileRoute('/dashboard/admin')({
   },
   component: AdminDashboardPage,
 });
+
+function TabSkeleton() {
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-7 w-24" />
+      </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <Skeleton className="h-28 rounded-xl" />
+        <Skeleton className="h-28 rounded-xl" />
+        <Skeleton className="h-28 rounded-xl" />
+        <Skeleton className="h-28 rounded-xl" />
+      </div>
+      <Skeleton className="h-72 rounded-xl" />
+    </div>
+  );
+}
 
 function AdminDashboardPage() {
   const { t } = useTranslation();
@@ -151,37 +183,70 @@ function AdminDashboardPage() {
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
-      <TabsContent value="overview" className="flex-1 overflow-auto">
-        <AdminDashboard
-          companies={companies.companies}
-          users={users.users}
-          superAdmins={users.superAdmins}
-          loading={companies.companiesLoading}
-          storageStats={storageStats}
-          storageLoading={storageLoading}
-          orgUserCounts={orgUserCounts}
-          orgUserCountsLoading={orgUserCountsLoading}
-        />
-      </TabsContent>
-      <TabsContent value="users" className="flex-1 overflow-auto">
-        <UsersTable hook={users} />
-      </TabsContent>
-      <TabsContent value="companies" className="flex-1 overflow-auto">
-        <CompaniesTable
-          hook={companies}
-          onCreateUser={(companyId) => users.openCreate('company', companyId)}
-          onEditUser={(u, companyId) => users.openEdit(u, companyId)}
-          onToggleUserStatus={(u, companyId) =>
-            isDeleted(u) || !!u.orgRemovedAt
-              ? users.restoreToOrgMutation.mutate({ user: u, orgId: companyId })
-              : users.removeFromOrgMutation.mutate({ userId: u.id, orgId: companyId })
-          }
-        />
-      </TabsContent>
-
-      <TabsContent value="audit" className="flex-1 overflow-auto">
-        <AuditTable hook={audit} users={users.users} />
-      </TabsContent>
+      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col min-h-0 outline-none">
+        <TabsContent value="overview" className="flex-1 overflow-auto">
+          <ErrorBoundary
+            fallback={(reset) => (
+              <FeatureErrorFallback feature={t('dashboard.overview')} onReset={reset} />
+            )}
+          >
+            <Suspense fallback={<TabSkeleton />}>
+              <AdminDashboard
+                companies={companies.companies}
+                users={users.users}
+                superAdmins={users.superAdmins}
+                loading={companies.companiesLoading}
+                storageStats={storageStats}
+                storageLoading={storageLoading}
+                orgUserCounts={orgUserCounts}
+                orgUserCountsLoading={orgUserCountsLoading}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        </TabsContent>
+        <TabsContent value="users" className="flex-1 overflow-auto">
+          <ErrorBoundary
+            fallback={(reset) => (
+              <FeatureErrorFallback feature={t('common.users')} onReset={reset} />
+            )}
+          >
+            <Suspense fallback={<TabSkeleton />}>
+              <UsersTable hook={users} />
+            </Suspense>
+          </ErrorBoundary>
+        </TabsContent>
+        <TabsContent value="companies" className="flex-1 overflow-auto">
+          <ErrorBoundary
+            fallback={(reset) => (
+              <FeatureErrorFallback feature={t('companies.title')} onReset={reset} />
+            )}
+          >
+            <Suspense fallback={<TabSkeleton />}>
+              <CompaniesTable
+                hook={companies}
+                onCreateUser={(companyId) => users.openCreate('company', companyId)}
+                onEditUser={(u, companyId) => users.openEdit(u, companyId)}
+                onToggleUserStatus={(u, companyId) =>
+                  isDeleted(u) || !!u.orgRemovedAt
+                    ? users.restoreToOrgMutation.mutate({ user: u, orgId: companyId })
+                    : users.removeFromOrgMutation.mutate({ userId: u.id, orgId: companyId })
+                }
+              />
+            </Suspense>
+          </ErrorBoundary>
+        </TabsContent>
+        <TabsContent value="audit" className="flex-1 overflow-auto">
+          <ErrorBoundary
+            fallback={(reset) => (
+              <FeatureErrorFallback feature={t('audit.title')} onReset={reset} />
+            )}
+          >
+            <Suspense fallback={<TabSkeleton />}>
+              <AuditTable hook={audit} users={users.users} />
+            </Suspense>
+          </ErrorBoundary>
+        </TabsContent>
+      </main>
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <UserDialogs hook={users} />

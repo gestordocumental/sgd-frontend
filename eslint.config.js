@@ -25,9 +25,9 @@ export default defineConfig([
     },
   },
   {
-    // UI component files (shadcn pattern) export variants alongside components.
-    // react-refresh/only-export-components is not applicable here.
-    files: ['src/components/ui/**/*.{ts,tsx}'],
+    // UI modules export variants alongside components, and Storybook files export config.
+    // react-refresh/only-export-components is not applicable to either pattern.
+    files: ['src/components/ui/**/*.{ts,tsx}', '.storybook/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

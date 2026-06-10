@@ -75,6 +75,9 @@
     "resultsCount_one": "{{count}} resultado",
     "resultsCount_other": "{{count}} resultados",
     "refresh": "Actualizar",
+    "remove": "Eliminar",
+    "expand": "Expandir",
+    "collapse": "Contraer",
     "prevPage": "Página anterior",
     "nextPage": "Página siguiente"
   },
@@ -909,6 +912,11 @@
     "title": "Algo salió mal",
     "description": "Ocurrió un error inesperado. Puedes intentar recargar la página.",
     "reload": "Recargar página"
+  },
+  "featureError": {
+    "title": "Error en {{feature}}",
+    "description": "Algo salió mal al cargar esta sección. El resto de la aplicación sigue funcionando.",
+    "retry": "Reintentar"
   },
   "permissions": {
     "modules": {

@@ -130,6 +130,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
                 onClick={refreshUsers}
                 disabled={usersIsFetching}
                 title={t('common.refresh')}
+                aria-label={t('common.refresh')}
               >
                 <RefreshCw
                   className={`size-3.5 text-muted-foreground ${usersIsFetching ? 'animate-spin' : ''}`}

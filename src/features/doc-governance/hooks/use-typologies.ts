@@ -129,7 +129,7 @@ export function useTypologies(orgId: string, enabled = true) {
   // ── Queries ────────────────────────────────────────────────────────────
   const { data: typologies = [], isLoading } = useQuery({
     queryKey: ['typologies', orgId],
-    queryFn: () => typologiesApi.list(orgId),
+    queryFn: ({ signal }) => typologiesApi.list(orgId, undefined, signal),
     staleTime: 30_000,
     enabled: enabled && !!orgId,
     // Poll every 3 s while any typology is being processed — stops automatically
@@ -143,14 +143,14 @@ export function useTypologies(orgId: string, enabled = true) {
 
   const { data: departamentos = [] } = useQuery({
     queryKey: ['departamentos', orgId],
-    queryFn: () => orgStructureApi.listDepartamentos(orgId),
+    queryFn: ({ signal }) => orgStructureApi.listDepartamentos(orgId, signal),
     staleTime: 60_000,
     enabled: enabled && !!orgId,
   });
 
   const { data: formAreas = [] } = useQuery({
     queryKey: ['areas', orgId, formDeptId],
-    queryFn: () => orgStructureApi.listAreas(orgId, formDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listAreas(orgId, formDeptId, signal),
     staleTime: 60_000,
     enabled: !!orgId && !!formDeptId,
   });
@@ -158,7 +158,7 @@ export function useTypologies(orgId: string, enabled = true) {
   // Department-level cargos (no area required)
   const { data: formDeptCargos = [] } = useQuery({
     queryKey: ['dept-cargos', orgId, formDeptId],
-    queryFn: () => orgStructureApi.listDeptCargos(orgId, formDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listDeptCargos(orgId, formDeptId, signal),
     staleTime: 60_000,
     enabled: !!orgId && !!formDeptId,
   });
@@ -166,7 +166,7 @@ export function useTypologies(orgId: string, enabled = true) {
   // Area-level cargos
   const { data: formAreaCargos = [] } = useQuery({
     queryKey: ['cargos', orgId, formDeptId, formAreaId],
-    queryFn: () => orgStructureApi.listCargos(orgId, formDeptId, formAreaId),
+    queryFn: ({ signal }) => orgStructureApi.listCargos(orgId, formDeptId, formAreaId, signal),
     staleTime: 60_000,
     enabled: !!orgId && !!formDeptId && !!formAreaId,
   });
@@ -179,7 +179,8 @@ export function useTypologies(orgId: string, enabled = true) {
 
   const { data: historyItems = [], isLoading: historyLoading } = useQuery({
     queryKey: ['typologies-history', orgId, historyTypology?.datosDeclarados.codigo],
-    queryFn: () => typologiesApi.history(orgId, historyTypology!.datosDeclarados.codigo!),
+    queryFn: ({ signal }) =>
+      typologiesApi.history(orgId, historyTypology!.datosDeclarados.codigo!, signal),
     enabled: !!historyTypology?.datosDeclarados.codigo,
     staleTime: 0,
   });

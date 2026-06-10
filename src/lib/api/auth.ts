@@ -7,7 +7,8 @@ export const authApi = {
 
   logout: () => apiClient.post<void>('/auth/logout').then((r) => r.data),
 
-  getMyCompanies: () => apiClient.get<string[]>('/auth/me/companies').then((r) => r.data),
+  getMyCompanies: (signal?: AbortSignal) =>
+    apiClient.get<string[]>('/auth/me/companies', { signal }).then((r) => r.data),
 
   switchCompany: (companyId: string) =>
     apiClient
