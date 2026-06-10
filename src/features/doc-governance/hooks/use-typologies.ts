@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { typologiesApi, type ApiTypology } from '@/lib/api/typologies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { useAuthStore } from '@/store/authStore';
+import { resolveApiError } from '@/lib/utils/api-error';
 
 // ── Version comparison helper ──────────────────────────────────────────────
 
@@ -225,8 +226,8 @@ export function useTypologies(orgId: string, enabled = true) {
         setCreateFile(null);
       }
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) form.setError('root', { message: msg });
     },
   });
@@ -246,8 +247,8 @@ export function useTypologies(orgId: string, enabled = true) {
       invalidate();
       setEditTypology(null);
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) form.setError('root', { message: msg });
     },
   });
@@ -265,8 +266,8 @@ export function useTypologies(orgId: string, enabled = true) {
       setEditTypology(null);
       setEditFile(null);
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) form.setError('root', { message: msg });
     },
   });
@@ -315,8 +316,8 @@ export function useTypologies(orgId: string, enabled = true) {
       setUploadDocFile(null);
       uploadDocForm.reset();
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) uploadDocForm.setError('root', { message: msg });
     },
   });

@@ -39,8 +39,6 @@ export function CompaniesTable({
 }: CompaniesTableProps) {
   const {
     companies,
-    companiesTotal,
-    companiesTotalPages,
     companiesLoading,
     companiesIsFetching,
     companiesDataUpdatedAt,
@@ -56,9 +54,10 @@ export function CompaniesTable({
     setSearch,
     statusFilter,
     setStatusFilter,
-    page,
-    setPage,
-    activeCompaniesTotal,
+    hasPrevPage,
+    hasNextPage,
+    goNextPage,
+    goPrevPage,
   } = hook;
   const { t } = useTranslation();
 
@@ -74,12 +73,12 @@ export function CompaniesTable({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
           title={t('companies.totalCompanies')}
-          value={companiesTotal}
+          value={companies.length}
           icon={<Building2 className="size-5 text-muted-foreground" />}
         />
         <StatCard
           title={t('companies.activeCompanies')}
-          value={activeCompaniesTotal}
+          value={companies.filter((c) => !c.deletedAt && c.status === 'active').length}
           icon={<CheckCircle className="size-5 text-muted-foreground" />}
         />
       </div>
@@ -250,12 +249,12 @@ export function CompaniesTable({
           </Table>
         )}
 
-        {companiesTotalPages > 1 && (
+        {(hasPrevPage || hasNextPage) && (
           <Pager
-            page={page}
-            totalPages={companiesTotalPages}
-            total={companiesTotal}
-            onChange={setPage}
+            hasPrev={hasPrevPage}
+            hasNext={hasNextPage}
+            onPrev={goPrevPage}
+            onNext={goNextPage}
             className="px-5 py-3 border-t border-border"
           />
         )}

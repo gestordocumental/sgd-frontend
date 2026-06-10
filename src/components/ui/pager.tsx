@@ -2,48 +2,108 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface PagerProps {
+interface PageNumberPagerProps {
   page: number;
   totalPages: number;
-  total: number;
-  onChange: (p: number) => void;
-  className?: string;
+  onChange: (page: number) => void;
+  total?: number;
+  hasPrev?: never;
+  hasNext?: never;
+  onPrev?: never;
+  onNext?: never;
 }
 
-export function Pager({ page, totalPages, total, onChange, className }: PagerProps) {
+interface PrevNextPagerProps {
+  hasPrev: boolean;
+  hasNext: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  page?: never;
+  totalPages?: never;
+  total?: never;
+  onChange?: never;
+}
+
+type PagerProps = (PageNumberPagerProps | PrevNextPagerProps) & {
+  className?: string;
+};
+
+export function Pager(props: PagerProps) {
   const { t } = useTranslation();
-  const safeTotalPages = Math.max(totalPages, 1);
-  const safePage = Math.min(Math.max(page, 1), safeTotalPages);
+
+  if (typeof props.onChange === 'function') {
+    const { page, totalPages, total, onChange, className } = props;
+
+    if (import.meta.env.DEV) {
+      if (page < 1 || page > totalPages || totalPages < 1) {
+        console.warn(
+          `[Pager] Invalid props: page=${page}, totalPages=${totalPages}. ` +
+            `Expected page between 1 and totalPages, with totalPages >= 1.`,
+        );
+      }
+    }
+
+    return (
+      <div
+        className={`flex items-center gap-1 text-sm text-muted-foreground ${
+          typeof total === 'number' ? 'justify-between' : 'justify-end'
+        } ${className ?? ''}`}
+      >
+        {typeof total === 'number' && <span>{t('common.resultsCount', { count: total })}</span>}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            disabled={page <= 1}
+            onClick={() => onChange(page - 1)}
+            aria-label={t('common.prevPage')}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="px-1 tabular-nums">
+            {page} / {totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            disabled={page >= totalPages}
+            onClick={() => onChange(page + 1)}
+            aria-label={t('common.nextPage')}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const { hasPrev, hasNext, onPrev, onNext, className } = props;
   return (
     <div
-      className={`flex items-center justify-between text-sm text-muted-foreground ${className ?? ''}`}
+      className={`flex items-center justify-end gap-1 text-sm text-muted-foreground ${className ?? ''}`}
     >
-      <span>{t('common.resultsCount', { count: total })}</span>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          disabled={safePage <= 1}
-          onClick={() => onChange(safePage - 1)}
-          aria-label={t('common.prevPage')}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span className="px-2 text-xs">
-          {safePage} / {safeTotalPages}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          disabled={safePage >= safeTotalPages}
-          onClick={() => onChange(safePage + 1)}
-          aria-label={t('common.nextPage')}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-7"
+        disabled={!hasPrev}
+        onClick={onPrev}
+        aria-label={t('common.prevPage')}
+      >
+        <ChevronLeft className="size-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-7"
+        disabled={!hasNext}
+        onClick={onNext}
+        aria-label={t('common.nextPage')}
+      >
+        <ChevronRight className="size-4" />
+      </Button>
     </div>
   );
 }

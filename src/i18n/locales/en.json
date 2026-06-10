@@ -683,7 +683,8 @@
       "uploading": "Uploading…",
       "uploadButton": "Upload document",
       "selectFileError": "Please select a file to upload",
-      "versionIncrementError": "Version must be incremented by exactly one unit from the current version ({{version}})"
+      "versionIncrementError": "Version must be incremented by exactly one unit from the current version ({{version}})",
+      "uploadError": "Could not upload the document. Please check the file and try again."
     },
     "delete": {
       "title": "Delete typology",
@@ -963,5 +964,8 @@
         "READ": "View audit records"
       }
     }
+  },
+  "errors": {
+    "FILE_CONTENT_MISMATCH": "The file content does not match the declared format. Make sure the file is a valid PDF, DOCX, XLSX or image."
   }
 }

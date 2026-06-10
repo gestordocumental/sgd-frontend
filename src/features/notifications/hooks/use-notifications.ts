@@ -5,6 +5,14 @@ import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 
 const SSE_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const BACKOFF_INITIAL_MS = 1_000;
+const BACKOFF_MAX_MS = 30_000;
+
+// ±25 % randomisation spreads out reconnect storms when a Railway redeploy
+// drops all SSE connections simultaneously (thundering-herd mitigation).
+function withJitter(ms: number): number {
+  return ms * (0.75 + Math.random() * 0.5);
+}
 
 export function useNotifications() {
   const queryClient = useQueryClient();
@@ -21,12 +29,26 @@ export function useNotifications() {
 
     let es: EventSource | null = null;
     let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let retryDelayMs = 1_000;
+    let retryDelayMs = BACKOFF_INITIAL_MS;
     let active = true;
+    // Prevents a second connect() from racing with an in-flight ticket fetch.
+    let isConnecting = false;
+
+    const scheduleRetry = () => {
+      if (!active) return;
+      // Clear any pre-existing timer so onerror firing multiple times never
+      // stacks up duplicate setTimeout calls.
+      if (retryTimeoutId !== null) clearTimeout(retryTimeoutId);
+      retryTimeoutId = setTimeout(() => {
+        retryTimeoutId = null;
+        retryDelayMs = Math.min(retryDelayMs * 2, BACKOFF_MAX_MS);
+        void connect();
+      }, withJitter(retryDelayMs));
+    };
 
     const attach = (sse: EventSource) => {
       sse.addEventListener('notification', () => {
-        retryDelayMs = 1_000; // Reset backoff on a healthy message
+        retryDelayMs = BACKOFF_INITIAL_MS; // reset backoff on a healthy message
         void queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
         void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
       });
@@ -54,42 +76,69 @@ export function useNotifications() {
       });
 
       // Tickets are one-time-use so we manage reconnection ourselves with
-      // exponential backoff (max 30s) instead of relying on EventSource auto-retry.
+      // exponential backoff (max 30 s) instead of relying on EventSource auto-retry.
       sse.onerror = () => {
         sse.close();
         es = null;
-        if (!active) return;
-        retryTimeoutId = setTimeout(() => {
-          retryDelayMs = Math.min(retryDelayMs * 2, 30_000);
-          void connect();
-        }, retryDelayMs);
+        scheduleRetry();
       };
     };
 
     const connect = async () => {
-      if (!active) return;
+      // Guard: skip if unmounted, already connecting, or already connected.
+      if (!active || isConnecting || es) return;
+      isConnecting = true;
       try {
         const { ticket } = await notificationsApi.sseTicket();
         if (!active) return;
-        const url = `${SSE_BASE}/notifications/stream?ticket=${encodeURIComponent(ticket)}`;
-        es = new EventSource(url);
+        es = new EventSource(
+          `${SSE_BASE}/notifications/stream?ticket=${encodeURIComponent(ticket)}`,
+        );
         attach(es);
       } catch {
         if (!active) return;
-        retryTimeoutId = setTimeout(() => {
-          retryDelayMs = Math.min(retryDelayMs * 2, 30_000);
-          void connect();
-        }, retryDelayMs);
+        scheduleRetry();
+      } finally {
+        isConnecting = false;
       }
     };
+
+    // Cancel any pending backoff timer and reconnect immediately when the
+    // browser reports network recovery (e.g. user reconnects to WiFi).
+    const handleOnline = () => {
+      if (!active || es || isConnecting) return;
+      if (retryTimeoutId !== null) {
+        clearTimeout(retryTimeoutId);
+        retryTimeoutId = null;
+      }
+      retryDelayMs = BACKOFF_INITIAL_MS; // reset backoff on network recovery
+      void connect();
+    };
+
+    // When the user returns to a tab where the SSE connection silently died,
+    // reconnect immediately rather than waiting for the next backoff tick.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !active || es || isConnecting) return;
+      if (retryTimeoutId !== null) {
+        clearTimeout(retryTimeoutId);
+        retryTimeoutId = null;
+      }
+      void connect();
+    };
+
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     void connect();
 
     return () => {
       active = false;
       es?.close();
+      es = null;
       bc.close();
       if (retryTimeoutId !== null) clearTimeout(retryTimeoutId);
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [accessToken, queryClient]);
 

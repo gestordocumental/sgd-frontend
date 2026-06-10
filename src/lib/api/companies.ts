@@ -34,14 +34,16 @@ export interface UpdateCompanyDto {
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
+export type CursorPage<T> = { data: T[]; nextCursor: string | null; hasMore: boolean };
+
 export const companiesApi = {
   list: (params?: {
-    page?: number;
+    cursor?: string;
     limit?: number;
     search?: string;
     status?: 'active' | 'inactive' | 'deleted';
-  }): Promise<{ data: ApiCompany[]; total: number }> =>
-    apiClient.get<{ data: ApiCompany[]; total: number }>('/org', { params }).then((r) => r.data),
+  }): Promise<CursorPage<ApiCompany>> =>
+    apiClient.get<CursorPage<ApiCompany>>('/org', { params }).then((r) => r.data),
 
   getById: (id: string): Promise<ApiCompany> =>
     apiClient.get<ApiCompany>(`/org/${id}`).then((r) => r.data),
@@ -63,23 +65,20 @@ export const companiesApi = {
       .then((r) => r.data),
 };
 
-// Fetches every page and returns a flat array.
-// Used by the super-admin context-switcher so it never silently truncates when
-// there are more than PAGE_SIZE organisations.
+// Fetches every page sequentially and returns a flat array.
+// Used by the super-admin context-switcher so it never silently truncates.
 const FETCH_ALL_PAGE_SIZE = 100;
 
 export async function fetchAllCompanies(): Promise<ApiCompany[]> {
   try {
-    const first = await companiesApi.list({ page: 1, limit: FETCH_ALL_PAGE_SIZE });
-    if (first.total <= FETCH_ALL_PAGE_SIZE) return first.data;
-
-    const totalPages = Math.ceil(first.total / FETCH_ALL_PAGE_SIZE);
-    const rest = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) =>
-        companiesApi.list({ page: i + 2, limit: FETCH_ALL_PAGE_SIZE }),
-      ),
-    );
-    return [...first.data, ...rest.flatMap((r) => r.data)];
+    const all: ApiCompany[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await companiesApi.list({ cursor, limit: FETCH_ALL_PAGE_SIZE });
+      all.push(...page.data);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor !== undefined);
+    return all;
   } catch (error) {
     Sentry.captureException(error, { tags: { context: 'fetchAllCompanies' } });
     throw error;

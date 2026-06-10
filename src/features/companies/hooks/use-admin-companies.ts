@@ -29,23 +29,38 @@ export function useAdminCompanies() {
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [selectedCompany, setSelectedCompany] = useState<ApiCompany | null>(null);
 
-  // ── Server-side search / filter / pagination state ────────────────────────
+  // ── Server-side search / filter / cursor pagination state ─────────────────
   type CompanyStatus = 'all' | 'active' | 'inactive' | 'deleted';
   const PAGE_SIZE = 20;
   const [search, setSearchValue] = useState('');
   const [debouncedSearch, setDebounced] = useState('');
   const [statusFilter, setStatusFilterValue] = useState<CompanyStatus>('all');
-  const [page, setPage] = useState(1);
 
-  const setSearch = useCallback((value: string) => {
-    setSearchValue(value);
-    setPage(1);
+  // cursor stack: [null, cursor1, cursor2, ...]  — null = first page
+  const [cursors, setCursors] = useState<(string | null)[]>([null]);
+  const [cursorIdx, setCursorIdx] = useState(0);
+  const currentCursor = cursors[cursorIdx] ?? undefined;
+
+  const resetCursor = useCallback(() => {
+    setCursors([null]);
+    setCursorIdx(0);
   }, []);
 
-  const setStatusFilter = useCallback((value: CompanyStatus) => {
-    setStatusFilterValue(value);
-    setPage(1);
-  }, []);
+  const setSearch = useCallback(
+    (value: string) => {
+      setSearchValue(value);
+      resetCursor();
+    },
+    [resetCursor],
+  );
+
+  const setStatusFilter = useCallback(
+    (value: CompanyStatus) => {
+      setStatusFilterValue(value);
+      resetCursor();
+    },
+    [resetCursor],
+  );
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -62,10 +77,13 @@ export function useAdminCompanies() {
     isFetching: companiesIsFetching,
     dataUpdatedAt: companiesDataUpdatedAt,
   } = useQuery({
-    queryKey: ['companies', { page, search: debouncedSearch, status: statusFilter }],
+    queryKey: [
+      'companies',
+      { cursor: currentCursor, search: debouncedSearch, status: statusFilter },
+    ],
     queryFn: () =>
       companiesApi.list({
-        page,
+        cursor: currentCursor,
         limit: PAGE_SIZE,
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -74,22 +92,25 @@ export function useAdminCompanies() {
     placeholderData: (prev) => prev,
   });
 
-  const { data: activeResult } = useQuery({
-    queryKey: ['companies-active-total'],
-    queryFn: () => companiesApi.list({ status: 'active', limit: 1 }),
-    staleTime: 60_000,
-  });
-
   const companies = companiesResult?.data ?? [];
-  const companiesTotal = companiesResult?.total ?? 0;
-  const activeCompaniesTotal = activeResult?.total ?? 0;
-  const companiesTotalPages = Math.max(1, Math.ceil(companiesTotal / PAGE_SIZE));
-  const effectivePage = Math.min(page, companiesTotalPages);
+  const hasPrevPage = cursorIdx > 0;
+  const hasNextPage = companiesResult?.hasMore ?? false;
+
+  const goNextPage = useCallback(() => {
+    const next = companiesResult?.nextCursor;
+    if (!next) return;
+    setCursors((prev) => [...prev.slice(0, cursorIdx + 1), next]);
+    setCursorIdx((prev) => prev + 1);
+  }, [companiesResult?.nextCursor, cursorIdx]);
+
+  const goPrevPage = useCallback(() => {
+    if (cursorIdx > 0) setCursorIdx((prev) => prev - 1);
+  }, [cursorIdx]);
 
   const refreshCompanies = useCallback(() => {
+    resetCursor();
     queryClient.invalidateQueries({ queryKey: ['companies'] });
-    queryClient.invalidateQueries({ queryKey: ['companies-active-total'] });
-  }, [queryClient]);
+  }, [queryClient, resetCursor]);
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateCompanyDto) => companiesApi.create(dto),
@@ -179,20 +200,19 @@ export function useAdminCompanies() {
 
   return {
     companies,
-    companiesTotal,
-    activeCompaniesTotal,
-    companiesTotalPages,
     companiesLoading,
     companiesIsFetching,
     companiesDataUpdatedAt,
     refreshCompanies,
-    // Search / filter / pagination
+    // Search / filter / cursor pagination
     search,
     setSearch,
     statusFilter,
     setStatusFilter,
-    page: effectivePage,
-    setPage,
+    hasPrevPage,
+    hasNextPage,
+    goNextPage,
+    goPrevPage,
     createOpen,
     setCreateOpen,
     editCompany,

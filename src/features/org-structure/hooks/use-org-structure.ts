@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +11,7 @@ import {
   type ApiCargo,
 } from '@/lib/api/org-structure';
 import { requiredString, optionalString } from '@/lib/validations/schemas';
+import { resolveApiError } from '@/lib/utils/api-error';
 
 const structureSchema = z.object({
   name: requiredString(),
@@ -20,6 +22,7 @@ export type StructureForm = z.infer<typeof structureSchema>;
 
 export function useOrgStructure(companyId: string, enabled = true) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // ── Filter selection (cascade) ─────────────────────────────────
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
@@ -110,8 +113,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       setCreateDeptOpen(false);
       deptForm.reset();
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) deptForm.setError('name', { message: msg });
     },
   });
@@ -123,8 +126,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       invalidateDepts();
       setEditDept(null);
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) deptForm.setError('name', { message: msg });
     },
   });
@@ -150,8 +153,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       setCreateAreaOpen(false);
       areaForm.reset();
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) areaForm.setError('name', { message: msg });
     },
   });
@@ -163,8 +166,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       invalidateAreas();
       setEditArea(null);
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) areaForm.setError('name', { message: msg });
     },
   });
@@ -187,8 +190,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       setCreateCargoOpen(false);
       cargoForm.reset();
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) cargoForm.setError('name', { message: msg });
     },
   });
@@ -206,8 +209,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       invalidateCargos();
       setEditCargo(null);
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) cargoForm.setError('name', { message: msg });
     },
   });
@@ -230,8 +233,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       setCreateDeptCargoOpen(false);
       deptCargoForm.reset();
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) deptCargoForm.setError('name', { message: msg });
     },
   });
@@ -248,8 +251,8 @@ export function useOrgStructure(companyId: string, enabled = true) {
       invalidateCargos();
       setEditDeptCargo(null);
     },
-    onError: (e: { response?: { data?: { message?: string } } }) => {
-      const msg = e.response?.data?.message;
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
       if (msg) deptCargoForm.setError('name', { message: msg });
     },
   });

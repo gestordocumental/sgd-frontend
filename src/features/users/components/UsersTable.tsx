@@ -8,8 +8,6 @@ import {
   MoreHorizontal,
   MailCheck,
   Search,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   Ban,
   CircleCheck,
@@ -29,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Pager } from '@/components/ui/pager';
 import { StatCard } from '@/components/ui/stat-card';
 import { RefreshCountdown } from '@/components/ui/refresh-countdown';
 import { initials, isDeleted } from '@/lib/formatters';
@@ -44,10 +43,6 @@ interface UsersTableProps {
 export function UsersTable({ hook }: UsersTableProps) {
   const {
     superAdmins,
-    superAdminsTotal,
-    superAdminsTotalPages,
-    superAdminsActiveTotal,
-    superAdminsInactiveTotal,
     superAdminsLoading,
     superAdminsIsFetching,
     superAdminsDataUpdatedAt,
@@ -65,10 +60,12 @@ export function UsersTable({ hook }: UsersTableProps) {
     setSaStatus,
     saPage,
     setSaPage,
+    superAdminsTotalPages,
   } = hook;
   const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: superAdmins.length,
     getScrollElement: () => parentRef.current,
@@ -93,17 +90,17 @@ export function UsersTable({ hook }: UsersTableProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title={t('users.totalUsers')}
-          value={superAdminsTotal}
+          value={superAdmins.length}
           icon={<Users className="size-5 text-muted-foreground" />}
         />
         <StatCard
           title={t('users.activeUsers')}
-          value={superAdminsActiveTotal}
+          value={superAdmins.filter((u) => !u.deletedAt && u.isActive).length}
           icon={<ShieldCheck className="size-5 text-muted-foreground" />}
         />
         <StatCard
           title={t('users.inactiveUsers')}
-          value={superAdminsInactiveTotal}
+          value={superAdmins.filter((u) => !u.deletedAt && !u.isActive).length}
           icon={<ShieldOff className="size-5 text-muted-foreground" />}
         />
       </div>
@@ -232,58 +229,12 @@ export function UsersTable({ hook }: UsersTableProps) {
           <Pager
             page={saPage}
             totalPages={superAdminsTotalPages}
-            total={superAdminsTotal}
             onChange={setSaPage}
+            className="px-5 py-3 border-t border-border"
           />
         )}
       </div>
     </main>
-  );
-}
-
-// ── Pager ─────────────────────────────────────────────────────────────────────
-
-function Pager({
-  page,
-  totalPages,
-  total,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  total: number;
-  onChange: (p: number) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-border text-sm text-muted-foreground">
-      <span>{t('common.resultsCount', { count: total })}</span>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          aria-label={t('common.prevPage')}
-          disabled={page <= 1}
-          onClick={() => onChange(page - 1)}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <span className="px-2 text-xs">
-          {page} / {totalPages}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          aria-label={t('common.nextPage')}
-          disabled={page >= totalPages}
-          onClick={() => onChange(page + 1)}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
-    </div>
   );
 }
 
