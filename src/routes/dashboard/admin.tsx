@@ -77,13 +77,13 @@ function AdminDashboardPage() {
 
   const { data: typologyStorage = [], isLoading: typologyStorageLoading } = useQuery({
     queryKey: ['admin-storage-per-org'],
-    queryFn: typologiesApi.storagePerOrg,
+    queryFn: ({ signal }) => typologiesApi.storagePerOrg(signal),
     staleTime: 120_000,
   });
 
   const { data: workflowStorage = [], isLoading: workflowStorageLoading } = useQuery({
     queryKey: ['admin-workflow-storage-per-org'],
-    queryFn: workflowsApi.storagePerOrg,
+    queryFn: ({ signal }) => workflowsApi.storagePerOrg(signal),
     staleTime: 120_000,
   });
 
@@ -119,7 +119,7 @@ function AdminDashboardPage() {
 
   const { data: orgUserCounts = [], isLoading: orgUserCountsLoading } = useQuery({
     queryKey: ['admin-counts-by-org'],
-    queryFn: usersApi.countsByOrg,
+    queryFn: ({ signal }) => usersApi.countsByOrg(signal),
     staleTime: 120_000,
   });
 
