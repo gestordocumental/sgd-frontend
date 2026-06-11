@@ -110,6 +110,7 @@ const flushMicrotasks = () =>
 describe('useNotifications — SSE lifecycle', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5); // withJitter(ms) = ms * 1.0 — deterministic delays
     mockAccessToken = 'test-access-token';
     MockEventSource.instances = [];
     mockSseTicket.mockResolvedValue({ ticket: 'ticket-abc', expiresIn: 30 });
@@ -118,6 +119,7 @@ describe('useNotifications — SSE lifecycle', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('opens an EventSource with the ticket in the URL on mount', async () => {
