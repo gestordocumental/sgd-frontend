@@ -1,5 +1,4 @@
 import { defineConfig, devices } from '@playwright/test';
-import { createArgosReporterOptions } from '@argos-ci/playwright';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -16,10 +15,7 @@ export default defineConfig({
     ['html', { open: process.env.CI ? 'never' : 'on-failure', outputFolder: 'playwright-report' }],
     // uploadToArgos gates the network upload; the reporter itself always runs.
     // Auth hierarchy: ARGOS_TOKEN → OIDC (id-token: write) → tokenless.
-    [
-      '@argos-ci/playwright/reporter',
-      createArgosReporterOptions({ uploadToArgos: !!process.env.CI }),
-    ],
+    ['@argos-ci/playwright/reporter', { uploadToArgos: !!process.env.CI }],
   ],
   use: {
     baseURL: 'http://localhost:4173',
