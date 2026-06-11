@@ -270,7 +270,7 @@ function LoginPage() {
             </div>
           )}
 
-          <p className="text-center text-xs text-muted-foreground/40 mt-8" aria-hidden="true">
+          <p className="text-center text-xs text-muted-foreground mt-8" aria-hidden="true">
             {t('auth.footer')}
           </p>
         </div>

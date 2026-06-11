@@ -110,6 +110,12 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
   await page.route(`${API}/org/${orgId}/cargos`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/workflows/my-tasks`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/workflows/my-available`, (route) => route.fulfill({ json: [] }));
+
+  // useRoles and usePermissions fire unconditionally when companyId is set.
+  // mockApiFallback's paginated shape causes .map() crashes in RoleDialogs.
+  await page.route(`${API}/org/${orgId}/departamentos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/roles`, (route) => route.fulfill({ json: [] }));
 }
 
 /** Mock token refresh for a super-admin session (no company context needed). */
