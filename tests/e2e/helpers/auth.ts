@@ -103,6 +103,13 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
   await page.route(`${API}/org/${orgId}`, (route) =>
     route.fulfill({ json: { id: orgId, name: 'Test Company', nit: '000000', isActive: true } }),
   );
+
+  // Endpoints that return plain arrays — mockApiFallback's paginated shape
+  // causes .map() calls in hooks (useMyPermissions, useCompanyUsers) to throw.
+  await page.route(`${API}/users/me/org-roles`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/org/${orgId}/cargos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/workflows/my-tasks`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/workflows/my-available`, (route) => route.fulfill({ json: [] }));
 }
 
 /** Mock token refresh for a super-admin session (no company context needed). */
@@ -126,6 +133,16 @@ export async function mockAdminAuthRefresh(page: Page) {
       },
     }),
   );
+
+  // Admin dashboard queries that return plain arrays — paginated shape causes
+  // for...of iteration in the component to throw "not iterable".
+  await page.route(`${API}/documents/admin/storage-per-org`, (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(`${API}/workflows/admin/storage-per-org`, (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(`${API}/users/admin/counts-by-org`, (route) => route.fulfill({ json: [] }));
 }
 
 /**
