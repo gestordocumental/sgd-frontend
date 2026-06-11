@@ -154,6 +154,11 @@ export function useCompanyUsers(companyId: string) {
     [editDeptCargos, editCargos],
   );
 
+  const editForm = useForm<EditUserForm>({
+    resolver: zodResolver(editUserSchema),
+    mode: 'onChange',
+  });
+
   // When cargos load asynchronously after editForm.reset(), the native <select>
   // had no matching <option> at reset time and shows the placeholder.
   // Re-apply cargoId once the list arrives, but only if the user hasn't changed it yet.
@@ -398,11 +403,6 @@ export function useCompanyUsers(companyId: string) {
       }
     },
     onSettled: invalidate,
-  });
-
-  const editForm = useForm<EditUserForm>({
-    resolver: zodResolver(editUserSchema),
-    mode: 'onChange',
   });
 
   const openCreate = () => {

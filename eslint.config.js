@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import prettier from 'eslint-config-prettier/flat'
 
 export default defineConfig([
-  globalIgnores(['dist', '.vite', 'public/mockServiceWorker.js']),
+  globalIgnores(['dist', '.vite', 'coverage', 'public/mockServiceWorker.js']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

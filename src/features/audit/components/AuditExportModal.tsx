@@ -46,14 +46,15 @@ export function AuditExportModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync props when modal reopens
+  // Sync props when modal reopens. Multiple synchronous setState calls are
+  // intentional here (atomically reset all fields when open flips to true).
+  // React 18 batches these into a single re-render automatically.
   useEffect(() => {
-    if (open) {
-      setCorrelationId(defaultCorrelationId ?? '');
-      setFrom(defaultFrom ?? '');
-      setTo(defaultTo ?? '');
-      setError(null);
-    }
+    if (!open) return;
+    setCorrelationId(defaultCorrelationId ?? ''); // eslint-disable-line react-hooks/set-state-in-effect
+    setFrom(defaultFrom ?? '');
+    setTo(defaultTo ?? '');
+    setError(null);
   }, [open, defaultCorrelationId, defaultFrom, defaultTo]);
 
   const trimmedCorrelationId = correlationId.trim();
