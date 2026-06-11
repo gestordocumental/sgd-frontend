@@ -181,7 +181,7 @@ export function useTypologies(orgId: string, enabled = true) {
     queryKey: ['typologies-history', orgId, historyTypology?.datosDeclarados.codigo],
     queryFn: ({ signal }) =>
       typologiesApi.history(orgId, historyTypology!.datosDeclarados.codigo!, signal),
-    enabled: !!historyTypology?.datosDeclarados.codigo,
+    enabled: enabled && !!orgId && !!historyTypology?.datosDeclarados.codigo,
     staleTime: 0,
   });
 
