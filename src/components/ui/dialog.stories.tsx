@@ -38,13 +38,13 @@ export const Default: Story = {
   ),
 };
 
-export const WithoutCloseButton: Story = {
+export const WithoutHeaderCloseButton: Story = {
   render: () => (
     <Dialog>
-      <DialogTrigger render={<Button variant="outline">Open (no close btn)</Button>} />
+      <DialogTrigger render={<Button variant="outline">Open (no header ×)</Button>} />
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>No close button</DialogTitle>
+          <DialogTitle>No header close button</DialogTitle>
         </DialogHeader>
         <DialogFooter showCloseButton>
           <Button size="sm">OK</Button>
