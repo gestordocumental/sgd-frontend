@@ -14,10 +14,11 @@ function sonnerNoInjectCSS(): Plugin {
     transform(code, id) {
       if (!id.includes('node_modules/sonner/') && !id.includes('node_modules\\sonner\\')) return;
       if (!id.endsWith('index.js') && !id.endsWith('index.mjs')) return;
-      return code.replace(
-        /function __insertCSS\(code\) \{[\s\S]*?\n\}/,
-        'function __insertCSS(_code) {}',
-      );
+      const pattern = /function __insertCSS\(code\) \{[\s\S]*?\n\}/;
+      if (!pattern.test(code)) {
+        throw new Error('sonner-no-inject-css: __insertCSS not found; check sonner version');
+      }
+      return code.replace(pattern, 'function __insertCSS(_code) {}');
     },
   };
 }

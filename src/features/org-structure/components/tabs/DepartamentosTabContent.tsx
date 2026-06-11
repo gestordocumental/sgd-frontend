@@ -34,53 +34,64 @@ import { PAGE_SIZE, Pager, SearchInput, EmptyState, Stat } from '../org-structur
 
 type OrgStructureHook = ReturnType<typeof useOrgStructure>;
 
-async function downloadTemplate() {
-  const XLSX = await import('xlsx');
-  const headers = [
-    'Departamento',
-    'Descripción Departamento',
-    'Área',
-    'Descripción Área',
-    'Cargo',
-    'Descripción Cargo',
-  ];
-  const colWidths = [{ wch: 24 }, { wch: 30 }, { wch: 20 }, { wch: 28 }, { wch: 26 }, { wch: 30 }];
-  const ws = XLSX.utils.aoa_to_sheet([headers]);
-  ws['!cols'] = colWidths;
-  const exampleRows = [
-    [
-      'Recursos Humanos',
-      'Gestión del talento humano',
-      'Selección',
-      'Reclutamiento y selección',
-      'Analista de Selección',
-      'Gestiona procesos de selección',
-    ],
-    ['Recursos Humanos', '', 'Nómina', 'Liquidación de nómina', 'Auxiliar de Nómina', ''],
-    [
-      'Recursos Humanos',
-      '',
-      '',
-      '',
-      'Director de RR.HH.',
-      'Cargo nivel departamento — dejar Área en blanco',
-    ],
-    [
-      'Tecnología',
-      'Área de sistemas e infraestructura',
-      'Desarrollo',
-      'Desarrollo de software',
-      'Desarrollador Frontend',
-      '',
-    ],
-    ['Tecnología', '', '', '', 'CTO', 'Cargo nivel departamento — sin área asignada'],
-  ];
-  const exampleSheet = XLSX.utils.aoa_to_sheet([headers, ...exampleRows]);
-  exampleSheet['!cols'] = colWidths;
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Estructura');
-  XLSX.utils.book_append_sheet(wb, exampleSheet, 'Ejemplo');
-  XLSX.writeFile(wb, 'plantilla-estructura-organizacional.xlsx');
+async function downloadTemplate(onError: () => void) {
+  try {
+    const XLSX = await import('xlsx');
+    const headers = [
+      'Departamento',
+      'Descripción Departamento',
+      'Área',
+      'Descripción Área',
+      'Cargo',
+      'Descripción Cargo',
+    ];
+    const colWidths = [
+      { wch: 24 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 28 },
+      { wch: 26 },
+      { wch: 30 },
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    ws['!cols'] = colWidths;
+    const exampleRows = [
+      [
+        'Recursos Humanos',
+        'Gestión del talento humano',
+        'Selección',
+        'Reclutamiento y selección',
+        'Analista de Selección',
+        'Gestiona procesos de selección',
+      ],
+      ['Recursos Humanos', '', 'Nómina', 'Liquidación de nómina', 'Auxiliar de Nómina', ''],
+      [
+        'Recursos Humanos',
+        '',
+        '',
+        '',
+        'Director de RR.HH.',
+        'Cargo nivel departamento — dejar Área en blanco',
+      ],
+      [
+        'Tecnología',
+        'Área de sistemas e infraestructura',
+        'Desarrollo',
+        'Desarrollo de software',
+        'Desarrollador Frontend',
+        '',
+      ],
+      ['Tecnología', '', '', '', 'CTO', 'Cargo nivel departamento — sin área asignada'],
+    ];
+    const exampleSheet = XLSX.utils.aoa_to_sheet([headers, ...exampleRows]);
+    exampleSheet['!cols'] = colWidths;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Estructura');
+    XLSX.utils.book_append_sheet(wb, exampleSheet, 'Ejemplo');
+    XLSX.writeFile(wb, 'plantilla-estructura-organizacional.xlsx');
+  } catch {
+    onError();
+  }
 }
 
 interface DepartamentosTabContentProps {
@@ -183,7 +194,13 @@ export function DepartamentosTabContent({ hook, canWrite = false }: Departamento
                       <ChevronDown className="size-3.5 opacity-60" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={downloadTemplate}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          void downloadTemplate(() =>
+                            toast.error(t('orgStructure.excel.importError')),
+                          )
+                        }
+                      >
                         <Download className="size-4" />
                         {t('orgStructure.excel.downloadTemplate')}
                       </DropdownMenuItem>

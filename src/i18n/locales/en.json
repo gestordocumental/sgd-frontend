@@ -79,7 +79,8 @@
     "expand": "Expand",
     "collapse": "Collapse",
     "prevPage": "Previous page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "skipToContent": "Skip to content"
   },
   "profile": {
     "myProfile": "My profile",

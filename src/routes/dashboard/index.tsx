@@ -178,7 +178,7 @@ function CompanyDashboard() {
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
-      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col min-h-0 outline-none">
+      <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col min-h-0 outline-none">
         <TabsContent value="overview" className="flex-1 overflow-auto">
           <ErrorBoundary
             fallback={(reset) => (
@@ -293,7 +293,7 @@ function CompanyDashboard() {
             </ErrorBoundary>
           </TabsContent>
         )}
-      </main>
+      </div>
 
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <CompanyUserDialogs

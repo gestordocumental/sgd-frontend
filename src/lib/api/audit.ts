@@ -58,6 +58,8 @@ export const auditApi = {
   getById: (id: string, signal?: AbortSignal) =>
     apiClient.get<AuditLogEntry>(`/audit/logs/${id}`, { signal }).then((r) => r.data),
 
-  exportLogs: (filters?: AuditExportFilters) =>
-    apiClient.get<AuditLogEntry[]>('/audit/logs/export', { params: filters }).then((r) => r.data),
+  exportLogs: (filters?: AuditExportFilters, signal?: AbortSignal) =>
+    apiClient
+      .get<AuditLogEntry[]>('/audit/logs/export', { params: filters, signal })
+      .then((r) => r.data),
 };

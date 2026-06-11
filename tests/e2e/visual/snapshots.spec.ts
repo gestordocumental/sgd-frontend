@@ -18,7 +18,7 @@ test.describe('Visual — login', () => {
 
   test('login page', async ({ page }) => {
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.locator('form').first().waitFor();
     await argosScreenshot(page, 'login');
   });
 });
@@ -34,7 +34,7 @@ test.describe('Visual — company dashboard', () => {
 
   test('overview tab', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.locator('#main-content').waitFor();
     await argosScreenshot(page, 'company-dashboard-overview');
   });
 });
@@ -50,7 +50,7 @@ test.describe('Visual — admin dashboard', () => {
 
   test('overview tab', async ({ page }) => {
     await page.goto('/dashboard/admin');
-    await page.waitForLoadState('networkidle');
+    await page.locator('#main-content').waitFor();
     await argosScreenshot(page, 'admin-dashboard-overview');
   });
 });

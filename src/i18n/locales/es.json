@@ -79,7 +79,8 @@
     "expand": "Expandir",
     "collapse": "Contraer",
     "prevPage": "Página anterior",
-    "nextPage": "Página siguiente"
+    "nextPage": "Página siguiente",
+    "skipToContent": "Saltar al contenido"
   },
   "profile": {
     "myProfile": "Mi perfil",
