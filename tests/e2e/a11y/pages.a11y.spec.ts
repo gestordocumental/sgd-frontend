@@ -9,8 +9,8 @@ test.describe('A11y — login page', () => {
   });
 
   test('login page has no WCAG 2.1 AA violations', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.locator('form').first().waitFor();
     await checkPageA11y(page);
   });
 });
