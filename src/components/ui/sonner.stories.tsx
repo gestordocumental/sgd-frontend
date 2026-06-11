@@ -4,8 +4,9 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster } from './sonner';
 import { Button } from './button';
 
-const meta: Meta = {
+const meta: Meta<typeof Toaster> = {
   title: 'UI/Toaster',
+  component: Toaster,
   tags: ['autodocs'],
   parameters: { layout: 'centered' },
   decorators: [
@@ -18,7 +19,7 @@ const meta: Meta = {
   ],
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof Toaster>;
 
 export const Success: Story = {
   render: () => (

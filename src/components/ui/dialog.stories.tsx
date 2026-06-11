@@ -10,13 +10,14 @@ import {
 } from './dialog';
 import { Button } from './button';
 
-const meta: Meta = {
+const meta: Meta<typeof Dialog> = {
   title: 'UI/Dialog',
+  component: Dialog,
   tags: ['autodocs'],
   parameters: { layout: 'centered' },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof Dialog>;
 
 export const Default: Story = {
   render: () => (

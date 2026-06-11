@@ -10,13 +10,14 @@ import {
 } from './table';
 import { Badge } from './badge';
 
-const meta: Meta = {
+const meta: Meta<typeof Table> = {
   title: 'UI/Table',
+  component: Table,
   tags: ['autodocs'],
   parameters: { layout: 'padded' },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof Table>;
 
 const users = [
   { id: '001', name: 'Ana García', email: 'ana@helisa.com', role: 'Admin', status: 'Active' },

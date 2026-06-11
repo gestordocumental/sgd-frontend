@@ -11,13 +11,14 @@ import {
 } from './sheet';
 import { Button } from './button';
 
-const meta: Meta = {
+const meta: Meta<typeof Sheet> = {
   title: 'UI/Sheet',
+  component: Sheet,
   tags: ['autodocs'],
   parameters: { layout: 'centered' },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof Sheet>;
 
 export const Right: Story = {
   render: () => (

@@ -17,13 +17,14 @@ import {
 } from './sidebar';
 import { Avatar, AvatarFallback } from './avatar';
 
-const meta: Meta = {
+const meta: Meta<typeof SidebarProvider> = {
   title: 'UI/Sidebar',
+  component: SidebarProvider,
   tags: ['autodocs'],
   parameters: { layout: 'fullscreen' },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof SidebarProvider>;
 
 const navItems = [
   { icon: HomeIcon, label: 'Dashboard', url: '#' },

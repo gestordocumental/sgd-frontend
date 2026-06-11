@@ -2,13 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { Pager } from './pager';
 
-const meta: Meta = {
+const meta: Meta<typeof Pager> = {
   title: 'UI/Pager',
+  component: Pager,
   tags: ['autodocs'],
   parameters: { layout: 'centered' },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof Pager>;
 
 export const PageNumbers: Story = {
   render: function Render() {
