@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -232,7 +233,10 @@ export function useCompanyUsers(companyId: string) {
     onSuccess: (created) => {
       invalidate();
       setCreateUserOpen(false);
-      if (!created) return;
+      if (!created) {
+        toast.success(t('users.dialogs.userLinkedToOrg'));
+        return;
+      }
       setInvitedUser({
         email: created.email,
         invitationUrl: `${window.location.origin}/complete-registration?token=${created.invitationToken}`,
