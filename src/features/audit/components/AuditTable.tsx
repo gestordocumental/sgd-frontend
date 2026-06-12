@@ -361,9 +361,16 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   title={t('audit.detail.filterByCorrelation')}
                                   aria-label={t('audit.detail.filterByCorrelation')}
                                   onClick={() => {
-                                    const correlationOnly = { correlationId: log.correlationId! };
+                                    const correlationOnly = {
+                                      action: '',
+                                      resourceType: '',
+                                      actorId: '',
+                                      correlationId: log.correlationId!,
+                                      from: '',
+                                      to: '',
+                                    };
                                     setDraft(correlationOnly);
-                                    applyFilters(correlationOnly);
+                                    applyFilters({ correlationId: log.correlationId! });
                                   }}
                                 >
                                   <Filter className="size-3" />
@@ -442,9 +449,15 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
           open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           onFilterByCorrelation={(correlationId) => {
-            const correlationOnly = { correlationId };
-            setDraft(correlationOnly);
-            applyFilters(correlationOnly);
+            setDraft({
+              action: '',
+              resourceType: '',
+              actorId: '',
+              correlationId,
+              from: '',
+              to: '',
+            });
+            applyFilters({ correlationId });
           }}
         />
       )}
