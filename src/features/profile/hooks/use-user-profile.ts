@@ -271,24 +271,26 @@ export function useUserProfile() {
 
       // Case 3: no other companies → log out with a message on the login page
       localStorage.setItem('sgd-revoked-company', companyName);
+      queryClient.clear();
       doLogout();
       void go({ to: '/login', replace: true });
     };
 
     window.addEventListener('sgd:session-revoked', handler);
     return () => window.removeEventListener('sgd:session-revoked', handler);
-  }, []); // stable — reads from ref
+  }, [queryClient]); // queryClient is stable for the life of the provider
 
   useEffect(() => {
     const handler = () => {
       const { clearAuth: doLogout, navigate: go } = ctxRef.current;
       localStorage.setItem('sgd-super-admin-revoked', '1');
+      queryClient.clear();
       doLogout();
       void go({ to: '/login', replace: true });
     };
     window.addEventListener('sgd:super-admin-revoked', handler);
     return () => window.removeEventListener('sgd:super-admin-revoked', handler);
-  }, []); // stable — reads from ref
+  }, [queryClient]); // queryClient is stable for the life of the provider
 
   // Relay revocation events from other tabs via BroadcastChannel.
   // BroadcastChannel does not deliver back to the posting tab, so this only

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { auditApi, type AuditLogFilters } from '@/lib/api/audit';
 
@@ -8,6 +8,15 @@ export function useAudit(companyId: string | undefined, enabled: boolean) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Omit<AuditLogFilters, 'page' | 'limit' | 'orgId'>>({});
+
+  const prevCompanyId = useRef(companyId);
+  useEffect(() => {
+    if (companyId !== prevCompanyId.current) {
+      prevCompanyId.current = companyId;
+      setFilters({});
+      setPage(1);
+    }
+  }, [companyId]);
 
   const queryKey = ['audit-logs', companyId ?? 'all', filters, page];
 

@@ -1,19 +1,24 @@
 import '../src/index.css';
 import '../src/i18n'; // initializes i18next so components using useTranslation work
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import type { Decorator, Preview } from '@storybook/react';
 
 const DARK_BG = 'hsl(222 47% 5%)';
 
 // Toggle the `.dark` class on <html> to match the selected Storybook background.
-const DarkModeDecorator: Decorator = (Story, context) => {
-  const bg = context.globals.backgrounds?.value;
+function DarkModeWrapper({ bg, children }: { bg?: string; children: ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', bg === DARK_BG);
     return () => document.documentElement.classList.remove('dark');
   }, [bg]);
-  return <Story />;
-};
+  return <>{children}</>;
+}
+
+const DarkModeDecorator: Decorator = (Story, context) => (
+  <DarkModeWrapper bg={context.globals.backgrounds?.value}>
+    <Story />
+  </DarkModeWrapper>
+);
 
 const preview: Preview = {
   decorators: [DarkModeDecorator],

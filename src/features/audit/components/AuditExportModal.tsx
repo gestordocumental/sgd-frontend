@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { auditApi } from '@/lib/api/audit';
+import { auditApi, type AuditLogEntry } from '@/lib/api/audit';
 import {
   type SimpleUser,
   resolveActorName,
@@ -19,10 +19,12 @@ import {
 } from './audit-table.utils';
 
 const MAX_LIMIT_OPTIONS = [500, 1000, 2500, 5000];
+const CORRELATION_PAGE_SIZE = 500;
 
 interface AuditExportModalProps {
   open: boolean;
   onClose: () => void;
+  companyId?: string;
   defaultFrom?: string;
   defaultTo?: string;
   defaultCorrelationId?: string;
@@ -32,6 +34,7 @@ interface AuditExportModalProps {
 export function AuditExportModal({
   open,
   onClose,
+  companyId,
   defaultFrom,
   defaultTo,
   defaultCorrelationId,
@@ -59,8 +62,23 @@ export function AuditExportModal({
 
   const trimmedCorrelationId = correlationId.trim();
   const byCorrelation = !!trimmedCorrelationId;
-  // When a correlation ID is set, force max limit to get all events
-  const effectiveLimit = byCorrelation ? 5000 : limit;
+
+  async function fetchAllByCorrelation(corrId: string): Promise<AuditLogEntry[]> {
+    const all: AuditLogEntry[] = [];
+    let currentPage = 1;
+    while (true) {
+      const result = await auditApi.getLogs({
+        correlationId: corrId,
+        orgId: companyId || undefined,
+        page: currentPage,
+        limit: CORRELATION_PAGE_SIZE,
+      });
+      all.push(...result.data);
+      if (all.length >= result.total || result.data.length === 0) break;
+      currentPage++;
+    }
+    return all;
+  }
 
   function isoToLocal(iso: string): string {
     if (!iso) return '';
@@ -75,12 +93,13 @@ export function AuditExportModal({
     setLoading(true);
     try {
       const XLSX = await import('xlsx');
-      const data = await auditApi.exportLogs({
-        correlationId: trimmedCorrelationId || undefined,
-        from: !byCorrelation && from ? new Date(from).toISOString() : undefined,
-        to: !byCorrelation && to ? new Date(to).toISOString() : undefined,
-        limit: effectiveLimit,
-      });
+      const data = byCorrelation
+        ? await fetchAllByCorrelation(trimmedCorrelationId)
+        : await auditApi.exportLogs({
+            from: from ? new Date(from).toISOString() : undefined,
+            to: to ? new Date(to).toISOString() : undefined,
+            limit,
+          });
 
       if (data.length === 0) {
         setError(t('audit.export.empty'));

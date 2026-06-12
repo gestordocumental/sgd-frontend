@@ -6,7 +6,7 @@ interface RecentOrgsListProps {
 }
 
 export function RecentOrgsList({ companies }: RecentOrgsListProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const recent = [...companies]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 8);
@@ -27,7 +27,7 @@ export function RecentOrgsList({ companies }: RecentOrgsListProps) {
                 <span className="text-sm font-medium truncate">{c.name}</span>
               </div>
               <span className="text-sm text-muted-foreground shrink-0">
-                {new Date(c.createdAt).toLocaleDateString()}
+                {new Date(c.createdAt).toLocaleDateString(i18n.resolvedLanguage ?? i18n.language)}
               </span>
               <span
                 className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold ${

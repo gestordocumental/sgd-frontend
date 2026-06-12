@@ -58,7 +58,7 @@ export function CompanyUsersRow({
     refetch,
   } = useQuery({
     queryKey: ['company-users', companyId],
-    queryFn: ({ signal }) => usersApi.listUsersByOrg(companyId, 200, undefined, signal),
+    queryFn: ({ signal }) => usersApi.fetchAllUsersByOrg(companyId, signal),
     staleTime: 120_000,
   });
   const users: ApiUserWithRoles[] = usersPage?.data ?? [];
@@ -84,6 +84,7 @@ export function CompanyUsersRow({
           : statusFilter === 'pending'
             ? u.registrationStatus === 'pending_credentials' && !isRemoved
             : /* active */ !isRemoved &&
+              u.isActive &&
               u.roles.length > 0 &&
               u.registrationStatus !== 'pending_credentials';
 
@@ -229,6 +230,13 @@ export function CompanyUsersRow({
                             <Badge variant="destructive" className="text-xs">
                               {t('common.deleted')}
                             </Badge>
+                          ) : !u.isActive ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs text-amber-600 border-amber-200 bg-amber-50"
+                            >
+                              {t('common.inactive')}
+                            </Badge>
                           ) : u.roles.length === 0 ? (
                             <Badge
                               variant="outline"
@@ -294,10 +302,15 @@ export function CompanyUsersRow({
                                     <CheckIcon className="size-4" />{' '}
                                     {t('companies.actions.activateUser')}
                                   </>
-                                ) : (
+                                ) : u.isActive ? (
                                   <>
                                     <XIcon className="size-4" />{' '}
                                     {t('companies.actions.deactivateUser')}
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckIcon className="size-4" />{' '}
+                                    {t('companies.actions.activateUser')}
                                   </>
                                 )}
                               </DropdownMenuItem>

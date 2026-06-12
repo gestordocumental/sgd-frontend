@@ -1,24 +1,25 @@
-import { useTranslation } from 'react-i18next'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure'
-import type { useTypologies } from '@/features/doc-governance/hooks/use-typologies'
-import { TypologyDialogs } from '@/features/doc-governance/components/TypologyDialogs'
-import { DepartamentosTabContent } from './tabs/DepartamentosTabContent'
-import { AreasTabContent } from './tabs/AreasTabContent'
-import { CargosTabContent } from './tabs/CargosTabContent'
-import { TypologyTabContent } from './tabs/TypologyTabContent'
+import { useTranslation } from 'react-i18next';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure';
+import type { useTypologies } from '@/features/doc-governance/hooks/use-typologies';
+import { TypologyDialogs } from '@/features/doc-governance/components/TypologyDialogs';
+import { OrgStructureDialogs } from './OrgStructureDialogs';
+import { DepartamentosTabContent } from './tabs/DepartamentosTabContent';
+import { AreasTabContent } from './tabs/AreasTabContent';
+import { CargosTabContent } from './tabs/CargosTabContent';
+import { TypologyTabContent } from './tabs/TypologyTabContent';
 
-type OrgStructureHook = ReturnType<typeof useOrgStructure>
-type TypologiesHook   = ReturnType<typeof useTypologies>
+type OrgStructureHook = ReturnType<typeof useOrgStructure>;
+type TypologiesHook = ReturnType<typeof useTypologies>;
 
 interface OrgStructureTabProps {
-  hook: OrgStructureHook
-  typologiesHook: TypologiesHook
-  canWrite?: boolean
+  hook: OrgStructureHook;
+  typologiesHook: TypologiesHook;
+  canWrite?: boolean;
 }
 
 export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgStructureTabProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <main className="p-6 space-y-6">
       <Tabs defaultValue="departamentos">
@@ -36,6 +37,7 @@ export function OrgStructureTab({ hook, typologiesHook, canWrite = false }: OrgS
       </Tabs>
 
       <TypologyDialogs hook={typologiesHook} />
+      <OrgStructureDialogs hook={hook} />
     </main>
-  )
+  );
 }

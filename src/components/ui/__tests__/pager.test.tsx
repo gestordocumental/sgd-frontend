@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { axe } from 'vitest-axe';
-import '@/i18n';
+import i18n from '@/i18n';
 import { Pager } from '../pager';
 
 // ── development-mode prop validation ──────────────────────────────────────────
 
 describe('Pager — development prop validation', () => {
   beforeEach(() => {
+    void i18n.changeLanguage('en');
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.stubEnv('DEV', true); // enables import.meta.env.DEV in the component
   });
@@ -41,6 +42,10 @@ describe('Pager — development prop validation', () => {
 // ── page/totalPages mode ───────────────────────────────────────────────────────
 
 describe('Pager — page/totalPages mode', () => {
+  beforeEach(() => {
+    void i18n.changeLanguage('en');
+  });
+
   it('renders the page indicator', () => {
     render(<Pager page={2} totalPages={5} onChange={vi.fn()} />);
     // Use selector:'span' — ancestor divs also have textContent "2 / 5" in this
@@ -102,6 +107,10 @@ describe('Pager — page/totalPages mode', () => {
 // ── prev/next mode ─────────────────────────────────────────────────────────────
 
 describe('Pager — prev/next mode', () => {
+  beforeEach(() => {
+    void i18n.changeLanguage('en');
+  });
+
   it('renders two nav buttons', () => {
     render(<Pager hasPrev hasNext onPrev={vi.fn()} onNext={vi.fn()} />);
     expect(screen.getAllByRole('button')).toHaveLength(2);

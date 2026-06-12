@@ -130,6 +130,7 @@ export function AdminDashboard({
         companies={companies}
         title={t('dashboard.charts.storagePerOrg')}
         noDataLabel={t('dashboard.noData')}
+        loading={storageLoading}
       />
 
       <RecentOrgsList companies={companies} />

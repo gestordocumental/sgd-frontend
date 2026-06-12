@@ -143,6 +143,7 @@ export function useAdminUsers() {
   });
 
   const superAdmins = superAdminsResult?.data ?? [];
+  const superAdminsTotal = superAdminsResult?.total ?? 0;
   const saHasPrevPage = saCursorIdx > 0;
   const saHasNextPage = superAdminsResult?.hasMore ?? false;
 
@@ -202,9 +203,8 @@ export function useAdminUsers() {
   };
 
   const refreshSuperAdmins = useCallback(() => {
-    resetSaCursor();
     queryClient.invalidateQueries({ queryKey: ['superAdmins'] });
-  }, [queryClient, resetSaCursor]);
+  }, [queryClient]);
 
   const createForm = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -447,10 +447,10 @@ export function useAdminUsers() {
       if (idx === saCursorIdx + 1) saGoNextPage();
       else if (idx >= 0 && idx < saCursorIdx) setSaCursorIdx(idx);
     },
-    superAdminsTotal: superAdmins.length,
+    superAdminsTotal,
     superAdminsActiveTotal: superAdmins.filter((u) => !u.deletedAt && u.isActive).length,
     superAdminsInactiveTotal: superAdmins.filter((u) => !u.deletedAt && !u.isActive).length,
-    superAdminsTotalPages: saHasNextPage ? saCursorIdx + 2 : Math.max(1, saCursorIdx + 1),
+    superAdminsTotalPages: Math.max(1, Math.ceil(superAdminsTotal / PAGE_SIZE)),
     createOpen,
     setCreateOpen,
     invitedUser,

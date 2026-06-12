@@ -180,7 +180,7 @@ export function useCompanyUsers(companyId: string) {
     dataUpdatedAt: usersDataUpdatedAt,
   } = useQuery({
     queryKey: ['company-users', companyId],
-    queryFn: ({ signal }) => usersApi.listUsersByOrg(companyId, 200, undefined, signal),
+    queryFn: ({ signal }) => usersApi.fetchAllUsersByOrg(companyId, signal),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
     enabled: !!companyId,

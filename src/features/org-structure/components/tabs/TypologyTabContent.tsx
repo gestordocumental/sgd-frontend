@@ -96,6 +96,7 @@ export function TypologyTabContent({ typologiesHook, canWrite = false }: Typolog
               placeholder={t('common.search')}
             />
             <select
+              aria-label={t('common.statusLabel')}
               value={typoStatus}
               onChange={(e) => {
                 setTypoStatus(e.target.value as TypologyStatus | 'all');

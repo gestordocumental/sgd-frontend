@@ -351,7 +351,7 @@
       "empty": "No records found for the selected period.",
       "error": "Error generating the export. Please try again.",
       "byCorrelationId": "Export by correlation ID",
-      "correlationNote": "All events with this correlation ID will be exported (up to 5000).",
+      "correlationNote": "All events with this correlation ID will be exported.",
       "orByDate": "or by date range",
       "filePrefix": "audit",
       "filePrefixCorrelation": "audit_correlation",

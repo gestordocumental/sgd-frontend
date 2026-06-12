@@ -28,13 +28,6 @@ export function useCompanyDashboard() {
   // Tabs are lazy-mounted on first visit and kept alive afterwards.
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(['overview']));
 
-  const handleTabChange = useCallback((tab: TabId) => {
-    startTransition(() => {
-      setActiveTab(tab);
-      setMountedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
-    });
-  }, []);
-
   // ── Permissions ────────────────────────────────────────────────────────────
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions(
     companyId,
@@ -52,6 +45,39 @@ export function useCompanyDashboard() {
   const canWriteOrgStructure = hasPermission('ORG_STRUCTURE', 'WRITE');
   const canWriteWorkflows = hasPermission('WORKFLOWS', 'WRITE');
   const canApproveWorkflows = hasPermission('WORKFLOWS', 'APPROVE');
+
+  const canMountTab = useCallback(
+    (tab: TabId): boolean => {
+      if (permissionsLoading) return true;
+      if (tab === 'users') return canViewUsers;
+      if (tab === 'roles') return canViewOrgs;
+      if (tab === 'org-structure') return canViewOrgStructure;
+      if (tab === 'workflows') return canViewWorkflows;
+      if (tab === 'audit') return canViewAudit;
+      return true;
+    },
+    [
+      permissionsLoading,
+      canViewUsers,
+      canViewOrgs,
+      canViewOrgStructure,
+      canViewWorkflows,
+      canViewAudit,
+    ],
+  );
+
+  const handleTabChange = useCallback(
+    (tab: TabId) => {
+      startTransition(() => {
+        const allowed = canMountTab(tab);
+        setActiveTab(allowed ? tab : 'overview');
+        if (allowed) {
+          setMountedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
+        }
+      });
+    },
+    [canMountTab],
+  );
 
   // If the active tab is inaccessible after permissions resolve, fall back to
   // 'overview' without a state mutation — derived during render.

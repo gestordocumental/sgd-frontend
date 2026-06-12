@@ -351,7 +351,7 @@
       "empty": "No se encontraron registros para el período seleccionado.",
       "error": "Error al generar la exportación. Por favor intenta de nuevo.",
       "byCorrelationId": "Exportar por ID de correlación",
-      "correlationNote": "Se exportarán todos los eventos con este ID de correlación (hasta 5000).",
+      "correlationNote": "Se exportarán todos los eventos con este ID de correlación.",
       "orByDate": "o por rango de fechas",
       "filePrefix": "auditoria",
       "filePrefixCorrelation": "auditoria_correlacion",
