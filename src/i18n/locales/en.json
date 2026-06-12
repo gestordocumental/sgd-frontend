@@ -553,6 +553,7 @@
         "title": "Invitation resent",
         "description": "A new invitation link has been generated for {{email}}. The previous link has been invalidated."
       },
+      "userLinkedToOrg": "The user already existed and has been added to the organization.",
       "noRoleWarning": "This user has no role assigned. Assign one so they can access the system.",
       "selectRole": "Select role"
     }

@@ -553,6 +553,7 @@
         "title": "Invitación reenviada",
         "description": "Se generó un nuevo enlace de invitación para {{email}}. El enlace anterior ha sido invalidado."
       },
+      "userLinkedToOrg": "El usuario ya existía y ha sido añadido a la organización.",
       "noRoleWarning": "Este usuario no tiene un rol asignado. Asigna uno para que pueda acceder al sistema.",
       "selectRole": "Seleccionar rol"
     }

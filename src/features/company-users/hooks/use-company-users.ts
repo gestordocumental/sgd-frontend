@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   usersApi,
+  type ApiUserCreated,
   type ApiUserWithRoles,
   type InvitedUserInfo,
   type CreateUserDto,
@@ -215,10 +217,26 @@ export function useCompanyUsers(companyId: string) {
   }, [roles, createUserOpen, createForm]);
 
   const createMutation = useMutation({
-    mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
+    mutationFn: async (dto: CreateUserDto): Promise<ApiUserCreated | null> => {
+      try {
+        return await usersApi.create(dto);
+      } catch (err: unknown) {
+        const apiErr = err as { response?: { status?: number; data?: { userId?: string } } };
+        const existingUserId = apiErr?.response?.data?.userId;
+        if (apiErr?.response?.status === 409 && existingUserId && dto.orgId) {
+          await usersApi.assignUserToOrg(existingUserId, dto.orgId, dto.roleId);
+          return null;
+        }
+        throw err;
+      }
+    },
     onSuccess: (created) => {
       invalidate();
       setCreateUserOpen(false);
+      if (!created) {
+        toast.success(t('users.dialogs.userLinkedToOrg'));
+        return;
+      }
       setInvitedUser({
         email: created.email,
         invitationUrl: `${window.location.origin}/complete-registration?token=${created.invitationToken}`,
