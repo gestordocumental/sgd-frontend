@@ -94,40 +94,55 @@ export interface OrgUserCount {
 }
 
 export const usersApi = {
-  list: () => apiClient.get<{ data: ApiUser[]; total: number }>('/users').then((r) => r.data.data),
+  list: (
+    params?: { cursor?: string; limit?: number },
+    signal?: AbortSignal,
+  ): Promise<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean }> =>
+    apiClient
+      .get<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean }>('/users', {
+        params,
+        signal,
+      })
+      .then((r) => r.data),
 
-  countsByOrg: () =>
-    apiClient.get<OrgUserCount[]>('/users/admin/counts-by-org').then((r) => r.data),
+  countsByOrg: (signal?: AbortSignal) =>
+    apiClient.get<OrgUserCount[]>('/users/admin/counts-by-org', { signal }).then((r) => r.data),
 
-  getMe: () => apiClient.get<ApiUser>('/users/me').then((r) => r.data),
+  getMe: (signal?: AbortSignal) =>
+    apiClient.get<ApiUser>('/users/me', { signal }).then((r) => r.data),
 
-  getById: (id: string) => apiClient.get<ApiUserWithRoles>(`/users/${id}`).then((r) => r.data),
+  getById: (id: string, signal?: AbortSignal) =>
+    apiClient.get<ApiUserWithRoles>(`/users/${id}`, { signal }).then((r) => r.data),
 
-  listSuperAdmin: (params?: {
-    cursor?: string;
-    limit?: number;
-    search?: string;
-    status?: 'active' | 'inactive' | 'deleted' | 'pending';
-  }): Promise<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean }> =>
+  listSuperAdmin: (
+    params?: {
+      cursor?: string;
+      limit?: number;
+      search?: string;
+      status?: 'active' | 'inactive' | 'deleted' | 'pending';
+    },
+    signal?: AbortSignal,
+  ): Promise<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean }> =>
     apiClient
       .get<{
         data: ApiUser[];
         nextCursor: string | null;
         hasMore: boolean;
-      }>('/users/super-admins', { params })
+      }>('/users/super-admins', { params, signal })
       .then((r) => r.data),
 
   listUsersByOrg: (
     orgId: string,
     limit = 200,
     cursor?: string,
+    signal?: AbortSignal,
   ): Promise<{ data: ApiUserWithRoles[]; nextCursor: string | null; hasMore: boolean }> =>
     apiClient
       .get<{
         data: ApiUserWithRoles[];
         nextCursor: string | null;
         hasMore: boolean;
-      }>(`/users/by-org/${orgId}`, { params: { limit, cursor } })
+      }>(`/users/by-org/${orgId}`, { params: { limit, cursor }, signal })
       .then((r) => {
         if (r.data.hasMore) {
           Sentry.captureMessage(
@@ -168,8 +183,8 @@ export const usersApi = {
       .then((r) => r.data),
 
   // No USERS:READ required — a user can always read their own roles in their current company
-  getMyOrgRoles: () =>
-    apiClient.get<UserOrgRoleResponseDto[]>('/users/me/org-roles').then((r) => r.data),
+  getMyOrgRoles: (signal?: AbortSignal) =>
+    apiClient.get<UserOrgRoleResponseDto[]>('/users/me/org-roles', { signal }).then((r) => r.data),
 
   uploadAvatar: (file: File) => {
     const form = new FormData();

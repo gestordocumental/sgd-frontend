@@ -60,7 +60,7 @@ export function useUserProfile() {
   // Fetch the IDs of companies this user belongs to
   const { data: companyIds = EMPTY_COMPANY_IDS } = useQuery({
     queryKey: ['my-companies'],
-    queryFn: authApi.getMyCompanies,
+    queryFn: ({ signal }) => authApi.getMyCompanies(signal),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     enabled: !!accessToken,
@@ -72,7 +72,7 @@ export function useUserProfile() {
   // silently truncated regardless of how many organisations exist.
   const { data: allCompanies = EMPTY_COMPANIES } = useQuery({
     queryKey: ['all-companies-for-switch'],
-    queryFn: fetchAllCompanies,
+    queryFn: ({ signal }) => fetchAllCompanies(signal),
     staleTime: 300_000,
     enabled: isSuperAdmin && companyIds.length > 0,
   });
@@ -83,7 +83,7 @@ export function useUserProfile() {
   // a token the user-service doesn't accept from org-service).
   const { data: myCompanies = EMPTY_COMPANIES } = useQuery({
     queryKey: ['my-org-details', companyIds],
-    queryFn: () => companiesApi.getMyOrgs(companyIds),
+    queryFn: ({ signal }) => companiesApi.getMyOrgs(companyIds, signal),
     staleTime: 300_000,
     enabled: !isSuperAdmin && companyIds.length > 0,
   });
@@ -112,7 +112,7 @@ export function useUserProfile() {
   // required) so any role (VIEWER, EDITOR, etc.) can load their own profile.
   const { data: userDetails } = useQuery({
     queryKey: ['user-profile', userId],
-    queryFn: () => usersApi.getMe(),
+    queryFn: ({ signal }) => usersApi.getMe(signal),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     enabled: !!userId,

@@ -75,8 +75,12 @@
     "resultsCount_one": "{{count}} resultado",
     "resultsCount_other": "{{count}} resultados",
     "refresh": "Actualizar",
+    "remove": "Eliminar",
+    "expand": "Expandir",
+    "collapse": "Contraer",
     "prevPage": "Página anterior",
-    "nextPage": "Página siguiente"
+    "nextPage": "Página siguiente",
+    "skipToContent": "Saltar al contenido"
   },
   "profile": {
     "myProfile": "Mi perfil",
@@ -910,13 +914,18 @@
     "description": "Ocurrió un error inesperado. Puedes intentar recargar la página.",
     "reload": "Recargar página"
   },
+  "featureError": {
+    "title": "Error en {{feature}}",
+    "description": "Algo salió mal al cargar esta sección. El resto de la aplicación sigue funcionando.",
+    "retry": "Reintentar"
+  },
   "permissions": {
     "modules": {
       "DOCUMENTS": "Documentos",
       "WORKFLOWS": "Flujos de trabajo",
       "USERS": "Usuarios",
-      "ORGS": "Organizaciones",
-      "ORG_STRUCTURE": "Estructura organizacional",
+      "ROLES": "Roles",
+      "ORG_STRUCTURE": "Gobierno Documental",
       "AUDIT": "Auditoría"
     },
     "actions": {
@@ -950,15 +959,15 @@
         "DELETE": "Eliminar usuarios",
         "MANAGE": "Gestión completa de usuarios"
       },
-      "ORGS": {
-        "READ": "Consultar información de la organización",
-        "WRITE": "Editar información de la organización",
-        "MANAGE": "Gestión completa de la organización"
+      "ROLES": {
+        "READ": "Ver roles y permisos",
+        "WRITE": "Crear y editar roles",
+        "MANAGE": "Gestión completa de roles"
       },
       "ORG_STRUCTURE": {
-        "READ": "Consultar estructura organizacional",
-        "WRITE": "Editar estructura organizacional",
-        "DELETE": "Eliminar elementos de la estructura organizacional"
+        "READ": "Consultar gobierno documental",
+        "WRITE": "Editar gobierno documental",
+        "DELETE": "Eliminar elementos del gobierno documental"
       },
       "AUDIT": {
         "READ": "Consultar registros de auditoría"

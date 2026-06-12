@@ -12,9 +12,9 @@ import {
   formatFieldName,
   resourceTypeColor,
   formatResourceType,
-  resolveActorName,
   resolveResourceName,
 } from './audit-table.utils';
+import { useActorName } from '../hooks/use-actor-name';
 
 // Fields in audit changes that hold org-structure UUIDs
 const ORG_STRUCTURE_FIELDS = new Set(['departamentoId', 'areaId', 'cargoId']);
@@ -51,6 +51,7 @@ export function AuditDetailModal({
   companyId,
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
+  const actorName = useActorName(log.actorId, users);
   const rawChanges = log.metadata?.['changes'];
   const changes: AuditChanges | null = isAuditChanges(rawChanges) ? rawChanges : null;
 
@@ -59,21 +60,21 @@ export function AuditDetailModal({
 
   const { data: depts = [] } = useQuery({
     queryKey: ['departamentos', orgId],
-    queryFn: () => orgStructureApi.listDepartamentos(orgId!),
+    queryFn: ({ signal }) => orgStructureApi.listDepartamentos(orgId!, signal),
     staleTime: 300_000,
     enabled: needsOrgLookup,
   });
 
   const { data: allAreas = [] } = useQuery({
     queryKey: ['all-areas', orgId],
-    queryFn: () => orgStructureApi.listAllAreas(orgId!),
+    queryFn: ({ signal }) => orgStructureApi.listAllAreas(orgId!, signal),
     staleTime: 300_000,
     enabled: needsOrgLookup,
   });
 
   const { data: allCargos = [] } = useQuery({
     queryKey: ['all-cargos', orgId],
-    queryFn: () => orgStructureApi.listAllCargos(orgId!),
+    queryFn: ({ signal }) => orgStructureApi.listAllCargos(orgId!, signal),
     staleTime: 300_000,
     enabled: needsOrgLookup,
   });
@@ -137,7 +138,7 @@ export function AuditDetailModal({
             <span className="text-muted-foreground whitespace-nowrap">
               {t('audit.columns.actor')}
             </span>
-            <span className="break-words">{resolveActorName(log.actorId, users)}</span>
+            <span className="break-words">{actorName}</span>
 
             {log.ip && (
               <>

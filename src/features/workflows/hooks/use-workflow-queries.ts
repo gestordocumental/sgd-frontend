@@ -53,13 +53,16 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     dataUpdatedAt: workflowsUpdatedAt,
   } = useQuery({
     queryKey: ['workflows', companyId, statusFilter, debouncedSearch, page],
-    queryFn: () =>
-      workflowsApi.list({
-        status: statusFilter,
-        search: debouncedSearch || undefined,
-        page,
-        limit: WORKFLOWS_PAGE_SIZE,
-      }),
+    queryFn: ({ signal }) =>
+      workflowsApi.list(
+        {
+          status: statusFilter,
+          search: debouncedSearch || undefined,
+          page,
+          limit: WORKFLOWS_PAGE_SIZE,
+        },
+        signal,
+      ),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
@@ -74,7 +77,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     dataUpdatedAt: myTasksUpdatedAt,
   } = useQuery({
     queryKey: ['workflows-my-tasks'],
-    queryFn: () => workflowsApi.myTasks(),
+    queryFn: ({ signal }) => workflowsApi.myTasks(signal),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
@@ -87,7 +90,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     dataUpdatedAt: myAvailableUpdatedAt,
   } = useQuery({
     queryKey: ['workflows-my-available'],
-    queryFn: () => workflowsApi.myAvailable(),
+    queryFn: ({ signal }) => workflowsApi.myAvailable(signal),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
@@ -95,7 +98,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['workflow-timeline', timelineWorkflowId],
-    queryFn: () => workflowsApi.getTimeline(timelineWorkflowId!),
+    queryFn: ({ signal }) => workflowsApi.getTimeline(timelineWorkflowId!, signal),
     staleTime: 30_000,
     enabled: !!timelineWorkflowId,
   });
@@ -103,7 +106,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   // Detalle completo (con adjuntos) cuando se abre el dialog de detalle
   const { data: detailWorkflowFull } = useQuery({
     queryKey: ['workflow', detailWorkflowId],
-    queryFn: () => workflowsApi.getById(detailWorkflowId!),
+    queryFn: ({ signal }) => workflowsApi.getById(detailWorkflowId!, signal),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     enabled: !!detailWorkflowId,
@@ -112,7 +115,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   // Tipologías activas de la organización — para el selector del formulario
   const { data: typologies = [] } = useQuery({
     queryKey: ['typologies', companyId],
-    queryFn: () => typologiesApi.list(companyId),
+    queryFn: ({ signal }) => typologiesApi.list(companyId, undefined, signal),
     staleTime: 60_000,
     enabled: !!companyId && createOpen,
   });
@@ -120,7 +123,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   // Usuarios de la organización — para el selector de aprobadores y resolución de nombres en detalle
   const { data: orgUsersPage } = useQuery({
     queryKey: ['company-users', companyId],
-    queryFn: () => usersApi.listUsersByOrg(companyId),
+    queryFn: ({ signal }) => usersApi.listUsersByOrg(companyId, 200, undefined, signal),
     staleTime: 60_000,
     enabled:
       !!companyId &&
@@ -135,7 +138,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   // Roles con sus permisos — para filtrar aprobadores elegibles
   const { data: allRoles = [] } = useQuery({
     queryKey: ['roles', companyId],
-    queryFn: () => rolesApi.listRoles(),
+    queryFn: ({ signal }) => rolesApi.listRoles(undefined, signal),
     staleTime: 60_000,
     enabled: !!companyId && (createOpen || editWorkflowOpen),
   });
@@ -144,6 +147,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     queryClient.invalidateQueries({ queryKey: ['workflows'] });
     queryClient.invalidateQueries({ queryKey: ['workflows-my-tasks'] });
     queryClient.invalidateQueries({ queryKey: ['workflows-my-available'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow'] }); // invalidates all detail queries ['workflow', id]
   }, [queryClient]);
 
   const isRefreshing = workflowsIsFetching || myTasksIsFetching || myAvailableIsFetching;

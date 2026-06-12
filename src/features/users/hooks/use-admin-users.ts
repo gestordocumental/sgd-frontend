@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,11 +56,24 @@ export function useAdminUsers() {
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
 
-  const { data: users = [] } = useQuery({
+  const {
+    data: usersPages,
+    fetchNextPage: fetchNextUsersPage,
+    hasNextPage: hasMoreUsers,
+  } = useInfiniteQuery({
     queryKey: ['users'],
-    queryFn: usersApi.list,
-    staleTime: 60_000,
+    queryFn: ({ pageParam, signal }) =>
+      usersApi.list({ cursor: pageParam ?? undefined, limit: 100 }, signal),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 120_000,
   });
+
+  useEffect(() => {
+    if (hasMoreUsers) fetchNextUsersPage();
+  }, [hasMoreUsers, fetchNextUsersPage]);
+
+  const users = usersPages?.pages.flatMap((p) => p.data) ?? [];
 
   // ── Server-side search / filter / cursor pagination state ─────────────────
   type SuperAdminStatus = 'all' | 'active' | 'inactive' | 'deleted' | 'pending';
@@ -115,14 +128,17 @@ export function useAdminUsers() {
       'superAdmins',
       { cursor: saCurrentCursor, search: saDebouncedSearch, status: saStatus },
     ],
-    queryFn: () =>
-      usersApi.listSuperAdmin({
-        cursor: saCurrentCursor,
-        limit: PAGE_SIZE,
-        search: saDebouncedSearch || undefined,
-        status: saStatus !== 'all' ? saStatus : undefined,
-      }),
-    staleTime: 60_000,
+    queryFn: ({ signal }) =>
+      usersApi.listSuperAdmin(
+        {
+          cursor: saCurrentCursor,
+          limit: PAGE_SIZE,
+          search: saDebouncedSearch || undefined,
+          status: saStatus !== 'all' ? saStatus : undefined,
+        },
+        signal,
+      ),
+    staleTime: 120_000,
     placeholderData: (prev) => prev,
   });
 
@@ -146,7 +162,7 @@ export function useAdminUsers() {
 
   const { data: companyRoles = [] } = useQuery({
     queryKey: ['roles', rolesCompanyId],
-    queryFn: () => rolesApi.listRoles(rolesCompanyId ?? undefined),
+    queryFn: ({ signal }) => rolesApi.listRoles(rolesCompanyId ?? undefined, signal),
     staleTime: 60_000,
     enabled:
       !!rolesCompanyId &&
@@ -155,21 +171,22 @@ export function useAdminUsers() {
 
   const { data: departamentos = [] } = useQuery({
     queryKey: ['departamentos', createCompanyId],
-    queryFn: () => orgStructureApi.listDepartamentos(createCompanyId!),
+    queryFn: ({ signal }) => orgStructureApi.listDepartamentos(createCompanyId!, signal),
     staleTime: 300_000,
     enabled: createUserContext === 'company' && !!createCompanyId && createOpen,
   });
 
   const { data: areas = [] } = useQuery({
     queryKey: ['areas', createCompanyId, selectedDeptId],
-    queryFn: () => orgStructureApi.listAreas(createCompanyId!, selectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listAreas(createCompanyId!, selectedDeptId, signal),
     staleTime: 300_000,
     enabled: createUserContext === 'company' && !!selectedDeptId && createOpen,
   });
 
   const { data: cargos = [] } = useQuery({
     queryKey: ['cargos', createCompanyId, selectedDeptId, selectedAreaId],
-    queryFn: () => orgStructureApi.listCargos(createCompanyId!, selectedDeptId, selectedAreaId),
+    queryFn: ({ signal }) =>
+      orgStructureApi.listCargos(createCompanyId!, selectedDeptId, selectedAreaId, signal),
     staleTime: 300_000,
     enabled: createUserContext === 'company' && !!selectedAreaId && createOpen,
   });

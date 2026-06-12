@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { companyUserJwt, globalUserJwt } from './jwt';
+import { companyUserJwt, globalUserJwt, superAdminJwt } from './jwt';
 
 /**
  * Base path for all API route patterns.
@@ -46,6 +46,27 @@ export async function injectCompanySession(page: Page, orgId = 'org-001') {
   );
 }
 
+/** Inject a super-admin session (no companyId) into localStorage. */
+export async function injectAdminSession(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'sgd-auth',
+      JSON.stringify({
+        user: {
+          id: 'sa-001',
+          email: 'superadmin@sgd.com',
+          name: 'Super Admin',
+          isSuperAdmin: true,
+          companyId: null,
+        },
+        isAuthenticated: true,
+        isSuperAdmin: true,
+        hasSuperAdminContext: false,
+      }),
+    );
+  });
+}
+
 // ── API mock helpers ──────────────────────────────────────────────────────────
 
 /**
@@ -82,6 +103,52 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
   await page.route(`${API}/org/${orgId}`, (route) =>
     route.fulfill({ json: { id: orgId, name: 'Test Company', nit: '000000', isActive: true } }),
   );
+
+  // Endpoints that return plain arrays — mockApiFallback's paginated shape
+  // causes .map() calls in hooks (useMyPermissions, useCompanyUsers) to throw.
+  await page.route(`${API}/users/me/org-roles`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/org/${orgId}/cargos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/workflows/my-tasks`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/workflows/my-available`, (route) => route.fulfill({ json: [] }));
+
+  // useRoles and usePermissions fire unconditionally when companyId is set.
+  // mockApiFallback's paginated shape causes .map() crashes in RoleDialogs.
+  await page.route(`${API}/org/${orgId}/departamentos`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
+  await page.route(`${API}/roles`, (route) => route.fulfill({ json: [] }));
+}
+
+/** Mock token refresh for a super-admin session (no company context needed). */
+export async function mockAdminAuthRefresh(page: Page) {
+  const adminJwt = superAdminJwt();
+
+  await page.route(`${API}/auth/refresh`, (route) =>
+    route.fulfill({ json: { accessToken: adminJwt, refreshToken: 'rt-admin-mock' } }),
+  );
+
+  await page.route(`${API}/users/sa-001`, (route) =>
+    route.fulfill({
+      json: {
+        id: 'sa-001',
+        email: 'superadmin@sgd.com',
+        firstName: 'Super',
+        lastName: 'Admin',
+        isActive: true,
+        isSuperAdmin: true,
+        avatarUrl: null,
+      },
+    }),
+  );
+
+  // Admin dashboard queries that return plain arrays — paginated shape causes
+  // for...of iteration in the component to throw "not iterable".
+  await page.route(`${API}/documents/admin/storage-per-org`, (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(`${API}/workflows/admin/storage-per-org`, (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(`${API}/users/admin/counts-by-org`, (route) => route.fulfill({ json: [] }));
 }
 
 /**

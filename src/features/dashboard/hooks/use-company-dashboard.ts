@@ -42,13 +42,13 @@ export function useCompanyDashboard() {
   );
 
   const canViewUsers = hasPermission('USERS', 'READ');
-  const canViewOrgs = hasPermission('ORGS', 'READ');
+  const canViewOrgs = hasPermission('ROLES', 'READ');
   const canViewOrgStructure = hasPermission('ORG_STRUCTURE', 'READ');
   const canViewWorkflows = hasPermission('WORKFLOWS', 'READ');
   const canManageWorkflows = hasPermission('WORKFLOWS', 'MANAGE');
   const canViewAudit = hasPermission('AUDIT', 'READ');
   const canWriteUsers = hasPermission('USERS', 'WRITE');
-  const canWriteOrgs = hasPermission('ORGS', 'WRITE');
+  const canWriteOrgs = hasPermission('ROLES', 'WRITE');
   const canWriteOrgStructure = hasPermission('ORG_STRUCTURE', 'WRITE');
   const canWriteWorkflows = hasPermission('WORKFLOWS', 'WRITE');
   const canApproveWorkflows = hasPermission('WORKFLOWS', 'APPROVE');

@@ -37,16 +37,19 @@ export interface UpdateCompanyDto {
 export type CursorPage<T> = { data: T[]; nextCursor: string | null; hasMore: boolean };
 
 export const companiesApi = {
-  list: (params?: {
-    cursor?: string;
-    limit?: number;
-    search?: string;
-    status?: 'active' | 'inactive' | 'deleted';
-  }): Promise<CursorPage<ApiCompany>> =>
-    apiClient.get<CursorPage<ApiCompany>>('/org', { params }).then((r) => r.data),
+  list: (
+    params?: {
+      cursor?: string;
+      limit?: number;
+      search?: string;
+      status?: 'active' | 'inactive' | 'deleted';
+    },
+    signal?: AbortSignal,
+  ): Promise<CursorPage<ApiCompany>> =>
+    apiClient.get<CursorPage<ApiCompany>>('/org', { params, signal }).then((r) => r.data),
 
-  getById: (id: string): Promise<ApiCompany> =>
-    apiClient.get<ApiCompany>(`/org/${id}`).then((r) => r.data),
+  getById: (id: string, signal?: AbortSignal): Promise<ApiCompany> =>
+    apiClient.get<ApiCompany>(`/org/${id}`, { signal }).then((r) => r.data),
 
   create: (dto: CreateCompanyDto): Promise<ApiCompany> =>
     apiClient.post<ApiCompany>('/org', dto).then((r) => r.data),
@@ -59,9 +62,9 @@ export const companiesApi = {
   restore: (id: string): Promise<ApiCompany> =>
     apiClient.post<ApiCompany>(`/org/${id}/restore`).then((r) => r.data),
 
-  getMyOrgs: (ids: string[]): Promise<ApiCompany[]> =>
+  getMyOrgs: (ids: string[], signal?: AbortSignal): Promise<ApiCompany[]> =>
     apiClient
-      .get<ApiCompany[]>('/org/mine', { params: { ids: ids.join(',') } })
+      .get<ApiCompany[]>('/org/mine', { params: { ids: ids.join(',') }, signal })
       .then((r) => r.data),
 };
 
@@ -69,12 +72,12 @@ export const companiesApi = {
 // Used by the super-admin context-switcher so it never silently truncates.
 const FETCH_ALL_PAGE_SIZE = 100;
 
-export async function fetchAllCompanies(): Promise<ApiCompany[]> {
+export async function fetchAllCompanies(signal?: AbortSignal): Promise<ApiCompany[]> {
   try {
     const all: ApiCompany[] = [];
     let cursor: string | undefined;
     do {
-      const page = await companiesApi.list({ cursor, limit: FETCH_ALL_PAGE_SIZE });
+      const page = await companiesApi.list({ cursor, limit: FETCH_ALL_PAGE_SIZE }, signal);
       all.push(...page.data);
       cursor = page.nextCursor ?? undefined;
     } while (cursor !== undefined);

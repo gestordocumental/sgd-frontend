@@ -9,9 +9,14 @@ export default defineConfig({
   // CI=1 (sequential, deterministic). Local=2: parallel enough to be fast,
   // low enough not to exhaust CPU/RAM with 6 full Chromium instances.
   workers: process.env.CI ? 1 : 2,
-  reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
-    : [['html', { open: 'on-failure', outputFolder: 'playwright-report' }]],
+  reporter: [
+    // GitHub Actions annotations — only meaningful inside a workflow run
+    ...(process.env.CI ? ([['github']] as const) : []),
+    ['html', { open: process.env.CI ? 'never' : 'on-failure', outputFolder: 'playwright-report' }],
+    // uploadToArgos gates the network upload; the reporter itself always runs.
+    // Auth hierarchy: ARGOS_TOKEN → OIDC (id-token: write) → tokenless.
+    ['@argos-ci/playwright/reporter', { uploadToArgos: !!process.env.ARGOS_TOKEN }],
+  ],
   use: {
     baseURL: 'http://localhost:4173',
     // Capture a trace on the first retry so failures are diagnosable

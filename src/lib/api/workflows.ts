@@ -227,15 +227,19 @@ const withIdempotency = (key?: string) =>
   key ? { headers: { 'Idempotency-Key': key } } : undefined;
 
 export const workflowsApi = {
-  stats: () => apiClient.get<WorkflowStats>('/workflows/stats').then((r) => r.data),
+  stats: (signal?: AbortSignal) =>
+    apiClient.get<WorkflowStats>('/workflows/stats', { signal }).then((r) => r.data),
 
-  storagePerOrg: () =>
-    apiClient.get<WorkflowOrgStorageStat[]>('/workflows/admin/storage-per-org').then((r) => r.data),
+  storagePerOrg: (signal?: AbortSignal) =>
+    apiClient
+      .get<WorkflowOrgStorageStat[]>('/workflows/admin/storage-per-org', { signal })
+      .then((r) => r.data),
 
-  list: (params?: ListWorkflowsParams) =>
-    apiClient.get<PaginatedWorkflows>('/workflows', { params }).then((r) => r.data),
+  list: (params?: ListWorkflowsParams, signal?: AbortSignal) =>
+    apiClient.get<PaginatedWorkflows>('/workflows', { params, signal }).then((r) => r.data),
 
-  getById: (id: string) => apiClient.get<ApiWorkflow>(`/workflows/${id}`).then((r) => r.data),
+  getById: (id: string, signal?: AbortSignal) =>
+    apiClient.get<ApiWorkflow>(`/workflows/${id}`, { signal }).then((r) => r.data),
 
   create: (dto: CreateWorkflowDto) =>
     apiClient.post<ApiWorkflow>('/workflows', dto).then((r) => r.data),
@@ -245,9 +249,11 @@ export const workflowsApi = {
 
   remove: (id: string) => apiClient.delete<void>(`/workflows/${id}`).then((r) => r.data),
 
-  myTasks: () => apiClient.get<ApiWorkflow[]>('/workflows/my-tasks').then((r) => r.data),
+  myTasks: (signal?: AbortSignal) =>
+    apiClient.get<ApiWorkflow[]>('/workflows/my-tasks', { signal }).then((r) => r.data),
 
-  myAvailable: () => apiClient.get<ApiWorkflow[]>('/workflows/my-available').then((r) => r.data),
+  myAvailable: (signal?: AbortSignal) =>
+    apiClient.get<ApiWorkflow[]>('/workflows/my-available', { signal }).then((r) => r.data),
 
   startApproval: (id: string, idempotencyKey?: string) =>
     apiClient
@@ -275,8 +281,8 @@ export const workflowsApi = {
       .post<ApiWorkflow>(`/workflows/${id}/reject`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 
-  getTimeline: (id: string) =>
-    apiClient.get<ApiTimelineEvent[]>(`/workflows/${id}/timeline`).then((r) => r.data),
+  getTimeline: (id: string, signal?: AbortSignal) =>
+    apiClient.get<ApiTimelineEvent[]>(`/workflows/${id}/timeline`, { signal }).then((r) => r.data),
 
   notifyNoFinalUsers: (dto: { typologyId: string; typologyName: string; recipientIds: string[] }) =>
     apiClient.post<void>('/workflows/notify-no-final-users', dto).then((r) => r.data),

@@ -30,9 +30,14 @@ import {
   formatAction,
   resourceTypeColor,
   formatResourceType,
-  resolveActorName,
   resolveResourceName,
 } from './audit-table.utils';
+import { useActorName } from '../hooks/use-actor-name';
+
+function ActorCell({ actorId, users }: { actorId: string; users: SimpleUser[] }) {
+  const name = useActorName(actorId, users);
+  return <>{name}</>;
+}
 
 interface AuditTableProps {
   hook: AuditHook;
@@ -322,7 +327,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                             className="text-xs text-muted-foreground max-w-[160px] truncate"
                             title={log.actorId}
                           >
-                            {resolveActorName(log.actorId, users)}
+                            <ActorCell actorId={log.actorId} users={users} />
                           </TableCell>
                           <TableCell className="text-xs">
                             {CORRELATION_RESOURCE_TYPES.has(log.resourceType) &&

@@ -66,28 +66,29 @@ export function useOrgStructure(companyId: string, enabled = true) {
   // ── Queries ────────────────────────────────────────────────────
   const { data: departamentos = [], isLoading: deptLoading } = useQuery({
     queryKey: ['departamentos', companyId],
-    queryFn: () => orgStructureApi.listDepartamentos(companyId),
+    queryFn: ({ signal }) => orgStructureApi.listDepartamentos(companyId, signal),
     staleTime: 60_000,
     enabled: enabled && !!companyId,
   });
 
   const { data: areas = [], isLoading: areasLoading } = useQuery({
     queryKey: ['areas', companyId, selectedDeptId],
-    queryFn: () => orgStructureApi.listAreas(companyId, selectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listAreas(companyId, selectedDeptId, signal),
     staleTime: 60_000,
     enabled: enabled && !!companyId && !!selectedDeptId,
   });
 
   const { data: cargos = [], isLoading: cargosLoading } = useQuery({
     queryKey: ['cargos', companyId, selectedDeptId, selectedAreaId],
-    queryFn: () => orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId),
+    queryFn: ({ signal }) =>
+      orgStructureApi.listCargos(companyId, selectedDeptId, selectedAreaId, signal),
     staleTime: 60_000,
     enabled: enabled && !!companyId && !!selectedDeptId && !!selectedAreaId,
   });
 
   const { data: deptCargos = [], isLoading: deptCargosLoading } = useQuery({
     queryKey: ['dept-cargos', companyId, selectedDeptId],
-    queryFn: () => orgStructureApi.listDeptCargos(companyId, selectedDeptId),
+    queryFn: ({ signal }) => orgStructureApi.listDeptCargos(companyId, selectedDeptId, signal),
     staleTime: 60_000,
     enabled: enabled && !!companyId && !!selectedDeptId,
   });

@@ -171,6 +171,20 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
         idempotencyKey,
       );
     },
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['workflows-my-tasks'] });
+      const previousTasks = queryClient.getQueryData<ApiWorkflow[]>(['workflows-my-tasks']);
+      queryClient.setQueryData<ApiWorkflow[]>(
+        ['workflows-my-tasks'],
+        (old) => old?.filter((w) => w.id !== id) ?? [],
+      );
+      return { previousTasks };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousTasks !== undefined) {
+        queryClient.setQueryData(['workflows-my-tasks'], context.previousTasks);
+      }
+    },
     onSuccess: () => {
       depsRef.current.invalidateAll();
       depsRef.current.onApproveSuccess();
@@ -180,6 +194,20 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
   const rejectMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: RejectForm }) =>
       workflowsApi.reject(id, dto, crypto.randomUUID()),
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['workflows-my-tasks'] });
+      const previousTasks = queryClient.getQueryData<ApiWorkflow[]>(['workflows-my-tasks']);
+      queryClient.setQueryData<ApiWorkflow[]>(
+        ['workflows-my-tasks'],
+        (old) => old?.filter((w) => w.id !== id) ?? [],
+      );
+      return { previousTasks };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousTasks !== undefined) {
+        queryClient.setQueryData(['workflows-my-tasks'], context.previousTasks);
+      }
+    },
     onSuccess: () => {
       depsRef.current.invalidateAll();
       depsRef.current.onRejectSuccess();

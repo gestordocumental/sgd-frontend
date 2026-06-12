@@ -1,8 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import * as Sentry from '@sentry/react';
 
+type FallbackRender = (resetErrorBoundary: () => void) => ReactNode;
+
 interface Props {
-  fallback: ReactNode;
+  fallback: ReactNode | FallbackRender;
   children: ReactNode;
 }
 
@@ -21,9 +23,12 @@ export class ErrorBoundary extends Component<Props, State> {
     Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
   }
 
+  reset = () => this.setState({ hasError: false });
+
   render() {
     if (this.state.hasError) {
-      return this.props.fallback;
+      const { fallback } = this.props;
+      return typeof fallback === 'function' ? fallback(this.reset) : fallback;
     }
     return this.props.children;
   }

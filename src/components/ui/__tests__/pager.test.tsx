@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { axe } from 'vitest-axe';
 import '@/i18n';
 import { Pager } from '../pager';
 
@@ -134,5 +135,19 @@ describe('Pager — prev/next mode', () => {
     render(<Pager hasPrev hasNext onPrev={vi.fn()} onNext={onNext} />);
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(onNext).toHaveBeenCalledOnce();
+  });
+});
+
+// ── Accessibility ──────────────────────────────────────────────────────────────
+
+describe('Pager — accessibility', () => {
+  it('page/totalPages mode has no WCAG 2.1 AA violations', async () => {
+    const { container } = render(<Pager page={2} totalPages={5} total={50} onChange={vi.fn()} />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('prev/next mode has no WCAG 2.1 AA violations', async () => {
+    const { container } = render(<Pager hasPrev hasNext onPrev={vi.fn()} onNext={vi.fn()} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

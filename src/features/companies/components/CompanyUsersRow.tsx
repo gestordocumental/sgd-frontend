@@ -58,8 +58,8 @@ export function CompanyUsersRow({
     refetch,
   } = useQuery({
     queryKey: ['company-users', companyId],
-    queryFn: () => usersApi.listUsersByOrg(companyId),
-    staleTime: 60_000,
+    queryFn: ({ signal }) => usersApi.listUsersByOrg(companyId, 200, undefined, signal),
+    staleTime: 120_000,
   });
   const users: ApiUserWithRoles[] = usersPage?.data ?? [];
 
@@ -129,6 +129,7 @@ export function CompanyUsersRow({
                     onClick={() => refetch()}
                     disabled={isFetching}
                     title={t('common.refresh')}
+                    aria-label={t('common.refresh')}
                   >
                     <RefreshCw
                       className={`size-3 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`}

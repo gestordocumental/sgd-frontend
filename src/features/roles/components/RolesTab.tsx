@@ -228,6 +228,12 @@ function RoleRow({
         <button
           type="button"
           className="flex items-center justify-center size-6 rounded text-muted-foreground shrink-0"
+          aria-label={
+            isExpanded
+              ? `${t('common.collapse')}: ${role.name}`
+              : `${t('common.expand')}: ${role.name}`
+          }
+          aria-expanded={isExpanded}
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
@@ -330,6 +336,7 @@ function RoleRow({
                         variant="ghost"
                         size="icon"
                         className="size-6 text-muted-foreground hover:text-destructive"
+                        aria-label={`${t('common.remove')}: ${u.firstName} ${u.lastName}`}
                         onClick={() => onRemoveUser(u.id)}
                       >
                         <X className="size-3" />
