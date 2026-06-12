@@ -12,9 +12,9 @@ import {
   formatFieldName,
   resourceTypeColor,
   formatResourceType,
-  resolveActorName,
   resolveResourceName,
 } from './audit-table.utils';
+import { useActorName } from '../hooks/use-actor-name';
 
 // Fields in audit changes that hold org-structure UUIDs
 const ORG_STRUCTURE_FIELDS = new Set(['departamentoId', 'areaId', 'cargoId']);
@@ -51,6 +51,7 @@ export function AuditDetailModal({
   companyId,
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
+  const actorName = useActorName(log.actorId, users);
   const rawChanges = log.metadata?.['changes'];
   const changes: AuditChanges | null = isAuditChanges(rawChanges) ? rawChanges : null;
 
@@ -137,7 +138,7 @@ export function AuditDetailModal({
             <span className="text-muted-foreground whitespace-nowrap">
               {t('audit.columns.actor')}
             </span>
-            <span className="break-words">{resolveActorName(log.actorId, users)}</span>
+            <span className="break-words">{actorName}</span>
 
             {log.ip && (
               <>

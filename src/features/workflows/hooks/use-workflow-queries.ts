@@ -147,6 +147,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     queryClient.invalidateQueries({ queryKey: ['workflows'] });
     queryClient.invalidateQueries({ queryKey: ['workflows-my-tasks'] });
     queryClient.invalidateQueries({ queryKey: ['workflows-my-available'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow'] }); // invalidates all detail queries ['workflow', id]
   }, [queryClient]);
 
   const isRefreshing = workflowsIsFetching || myTasksIsFetching || myAvailableIsFetching;
