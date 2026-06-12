@@ -27,8 +27,8 @@ const MOCK_PERMISSIONS: ApiPermission[] = [
   { id: 'perm-11', module: 'USERS', action: 'WRITE', description: 'Crear y editar usuarios' },
   { id: 'perm-12', module: 'USERS', action: 'DELETE', description: 'Eliminar usuarios' },
   { id: 'perm-13', module: 'USERS', action: 'MANAGE', description: 'Gestión completa de usuarios' },
-  { id: 'perm-14', module: 'ORGS', action: 'READ', description: 'Ver organizaciones' },
-  { id: 'perm-15', module: 'ORGS', action: 'WRITE', description: 'Editar organización' },
+  { id: 'perm-14', module: 'ROLES', action: 'READ', description: 'Ver roles y permisos' },
+  { id: 'perm-15', module: 'ROLES', action: 'WRITE', description: 'Crear y editar roles' },
   { id: 'perm-16', module: 'AUDIT', action: 'READ', description: 'Ver logs de auditoría' },
   {
     id: 'perm-17',

@@ -4,7 +4,7 @@ export type PermissionModule =
   | 'DOCUMENTS'
   | 'WORKFLOWS'
   | 'USERS'
-  | 'ORGS'
+  | 'ROLES'
   | 'AUDIT'
   | 'ORG_STRUCTURE';
 export type PermissionAction =

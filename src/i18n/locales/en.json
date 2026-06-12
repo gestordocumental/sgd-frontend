@@ -924,8 +924,8 @@
       "DOCUMENTS": "Documents",
       "WORKFLOWS": "Workflows",
       "USERS": "Users",
-      "ORGS": "Organizations",
-      "ORG_STRUCTURE": "Organizational structure",
+      "ROLES": "Roles",
+      "ORG_STRUCTURE": "Document Governance",
       "AUDIT": "Audit"
     },
     "actions": {
@@ -959,15 +959,15 @@
         "DELETE": "Delete users",
         "MANAGE": "Full user management"
       },
-      "ORGS": {
-        "READ": "View organization information",
-        "WRITE": "Edit organization information",
-        "MANAGE": "Full organization management"
+      "ROLES": {
+        "READ": "View roles and permissions",
+        "WRITE": "Create and edit roles",
+        "MANAGE": "Full role management"
       },
       "ORG_STRUCTURE": {
-        "READ": "View organizational structure",
-        "WRITE": "Edit organizational structure",
-        "DELETE": "Delete organizational structure elements"
+        "READ": "View document governance",
+        "WRITE": "Edit document governance",
+        "DELETE": "Delete document governance elements"
       },
       "AUDIT": {
         "READ": "View audit records"

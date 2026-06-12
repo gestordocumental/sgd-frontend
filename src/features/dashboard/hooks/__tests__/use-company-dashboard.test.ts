@@ -92,7 +92,7 @@ describe('useCompanyDashboard — effectiveTab', () => {
 
   it.each([
     ['users', 'USERS', 'READ'],
-    ['roles', 'ORGS', 'READ'],
+    ['roles', 'ROLES', 'READ'],
     ['org-structure', 'ORG_STRUCTURE', 'READ'],
     ['workflows', 'WORKFLOWS', 'READ'],
     ['audit', 'AUDIT', 'READ'],
@@ -107,7 +107,7 @@ describe('useCompanyDashboard — effectiveTab', () => {
 
   it.each([
     ['users', 'USERS', 'READ'],
-    ['roles', 'ORGS', 'READ'],
+    ['roles', 'ROLES', 'READ'],
     ['org-structure', 'ORG_STRUCTURE', 'READ'],
     ['workflows', 'WORKFLOWS', 'READ'],
     ['audit', 'AUDIT', 'READ'],
