@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { typologiesApi, type ApiTypology } from '@/lib/api/typologies';
+import { typologiesApi, type ApiTypology, type UpdateTypologyDto } from '@/lib/api/typologies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { useAuthStore } from '@/store/authStore';
 import { resolveApiError } from '@/lib/utils/api-error';
@@ -319,9 +319,11 @@ export function useTypologies(orgId: string, enabled = true) {
         // Best-effort rollback: revert metadata to original values so the
         // typology is not left with updated nombre/version but no new document.
         if (patched) {
-          const rollback: Record<string, string> = {};
-          if (patchDto.nombre !== undefined) rollback.nombre = typo.datosDeclarados.nombre ?? '';
-          if (patchDto.version !== undefined) rollback.version = typo.datosDeclarados.version ?? '';
+          const rollback: UpdateTypologyDto = {};
+          if (patchDto.nombre !== undefined && typo.datosDeclarados.nombre != null)
+            rollback.nombre = typo.datosDeclarados.nombre;
+          if (patchDto.version !== undefined && typo.datosDeclarados.version != null)
+            rollback.version = typo.datosDeclarados.version;
           await typologiesApi.update(orgId, typo.id, rollback).catch(() => {});
         }
         throw uploadErr;

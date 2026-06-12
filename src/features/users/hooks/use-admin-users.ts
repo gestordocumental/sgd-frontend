@@ -85,7 +85,15 @@ export function useAdminUsers() {
   // cursor stack: [null, cursor1, cursor2, ...] — null = first page
   const [saCursors, setSaCursors] = useState<(string | null)[]>([null]);
   const [saCursorIdx, setSaCursorIdx] = useState(0);
-  const saCurrentCursor = saCursors[saCursorIdx] ?? undefined;
+
+  // Store the last-seen server total so it can be read before the query runs this
+  // render. When the value changes we update it during render (React's documented
+  // "adjusting state during render" pattern) so the next render uses the fresh total
+  // to clamp the cursor without needing setState inside a useEffect.
+  const [saPrevTotal, setSaPrevTotal] = useState(0);
+  const saMaxIdx = Math.max(0, Math.ceil(saPrevTotal / PAGE_SIZE) - 1);
+  const effectiveSaCursorIdx = Math.min(saCursorIdx, saMaxIdx);
+  const saCurrentCursor = saCursors[effectiveSaCursorIdx] ?? undefined;
 
   const resetSaCursor = useCallback(() => {
     setSaCursors([null]);
@@ -144,19 +152,23 @@ export function useAdminUsers() {
 
   const superAdmins = superAdminsResult?.data ?? [];
   const superAdminsTotal = superAdminsResult?.total ?? 0;
-  const saHasPrevPage = saCursorIdx > 0;
+  // "Adjusting state during render": when total changes, React immediately discards
+  // this render and re-runs with the updated saPrevTotal so the clamped cursor is
+  // correct for the query in the same pass (no useEffect needed).
+  if (superAdminsTotal !== saPrevTotal) setSaPrevTotal(superAdminsTotal);
+  const saHasPrevPage = effectiveSaCursorIdx > 0;
   const saHasNextPage = superAdminsResult?.hasMore ?? false;
 
   const saGoNextPage = useCallback(() => {
     const next = superAdminsResult?.nextCursor;
     if (!next) return;
-    setSaCursors((prev) => [...prev.slice(0, saCursorIdx + 1), next]);
-    setSaCursorIdx((prev) => prev + 1);
-  }, [superAdminsResult?.nextCursor, saCursorIdx]);
+    setSaCursors((prev) => [...prev.slice(0, effectiveSaCursorIdx + 1), next]);
+    setSaCursorIdx(effectiveSaCursorIdx + 1);
+  }, [superAdminsResult?.nextCursor, effectiveSaCursorIdx]);
 
   const saGoPrevPage = useCallback(() => {
-    if (saCursorIdx > 0) setSaCursorIdx((prev) => prev - 1);
-  }, [saCursorIdx]);
+    if (effectiveSaCursorIdx > 0) setSaCursorIdx(effectiveSaCursorIdx - 1);
+  }, [effectiveSaCursorIdx]);
 
   const rolesCompanyId =
     createOpen && createUserContext === 'company' ? createCompanyId : editCompanyId;
@@ -435,17 +447,17 @@ export function useAdminUsers() {
     saStatus,
     setSaStatus,
     // Cursor internals (kept for internal use; prefer page-based fields below)
-    saCursorIdx,
+    saCursorIdx: effectiveSaCursorIdx,
     saHasPrevPage,
     saHasNextPage,
     saGoNextPage,
     saGoPrevPage,
     // Page-number facade over the cursor stack
-    saPage: saCursorIdx + 1,
+    saPage: effectiveSaCursorIdx + 1,
     setSaPage: (page: number) => {
       const idx = page - 1;
-      if (idx === saCursorIdx + 1) saGoNextPage();
-      else if (idx >= 0 && idx < saCursorIdx) setSaCursorIdx(idx);
+      if (idx === effectiveSaCursorIdx + 1) saGoNextPage();
+      else if (idx >= 0 && idx < effectiveSaCursorIdx) setSaCursorIdx(idx);
     },
     superAdminsTotal,
     superAdminsActiveTotal: superAdmins.filter((u) => !u.deletedAt && u.isActive).length,

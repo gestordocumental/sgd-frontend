@@ -80,7 +80,7 @@ export function CompanyUsersRow({
       statusFilter === 'all'
         ? true
         : statusFilter === 'inactive'
-          ? isRemoved
+          ? !isRemoved && !u.isActive
           : statusFilter === 'pending'
             ? u.registrationStatus === 'pending_credentials' && !isRemoved
             : /* active */ !isRemoved &&

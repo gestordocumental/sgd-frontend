@@ -96,6 +96,7 @@ export function AuditExportModal({
       const data = byCorrelation
         ? await fetchAllByCorrelation(trimmedCorrelationId)
         : await auditApi.exportLogs({
+            orgId: companyId || undefined,
             from: from ? new Date(from).toISOString() : undefined,
             to: to ? new Date(to).toISOString() : undefined,
             limit,

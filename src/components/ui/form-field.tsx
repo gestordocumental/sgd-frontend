@@ -28,7 +28,7 @@ export function FormField({ id, label, error, description, children }: FormField
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       {child}
-      {description && !error && (
+      {description && (
         <p id={descId} className="text-xs text-muted-foreground">
           {description}
         </p>

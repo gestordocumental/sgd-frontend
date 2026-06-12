@@ -271,6 +271,7 @@ export function useUserProfile() {
 
       // Case 3: no other companies → log out with a message on the login page
       localStorage.setItem('sgd-revoked-company', companyName);
+      localStorage.removeItem(COMPANIES_CACHE_KEY);
       queryClient.clear();
       doLogout();
       void go({ to: '/login', replace: true });
@@ -284,6 +285,7 @@ export function useUserProfile() {
     const handler = () => {
       const { clearAuth: doLogout, navigate: go } = ctxRef.current;
       localStorage.setItem('sgd-super-admin-revoked', '1');
+      localStorage.removeItem(COMPANIES_CACHE_KEY);
       queryClient.clear();
       doLogout();
       void go({ to: '/login', replace: true });

@@ -139,6 +139,7 @@ describe('useCompanyDashboard — mountedTabs', () => {
   });
 
   it('mounts a tab on first visit and keeps it alive after switching away', () => {
+    mockHasPermission.mockImplementation((m, a) => m === 'USERS' && a === 'READ');
     const { result } = renderHook(() => useCompanyDashboard());
 
     navigateTo(result, 'users');
@@ -149,6 +150,7 @@ describe('useCompanyDashboard — mountedTabs', () => {
   });
 
   it('does not duplicate entries for a tab already in the set', () => {
+    mockHasPermission.mockImplementation((m, a) => m === 'USERS' && a === 'READ');
     const { result } = renderHook(() => useCompanyDashboard());
 
     navigateTo(result, 'users');
