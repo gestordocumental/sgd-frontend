@@ -126,6 +126,14 @@ export function SearchableSelect({
                 placeholder={searchPlaceholder}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setOpenWithCallback(false);
+                    setSearch('');
+                  }
+                }}
               />
             </div>
           </div>

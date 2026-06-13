@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import { apiClient } from './client';
 
 export interface ApiUserRole {
@@ -122,12 +121,13 @@ export const usersApi = {
       status?: 'active' | 'inactive' | 'deleted' | 'pending';
     },
     signal?: AbortSignal,
-  ): Promise<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean }> =>
+  ): Promise<{ data: ApiUser[]; nextCursor: string | null; hasMore: boolean; total: number }> =>
     apiClient
       .get<{
         data: ApiUser[];
         nextCursor: string | null;
         hasMore: boolean;
+        total: number;
       }>('/users/super-admins', { params, signal })
       .then((r) => r.data),
 
@@ -143,15 +143,23 @@ export const usersApi = {
         nextCursor: string | null;
         hasMore: boolean;
       }>(`/users/by-org/${orgId}`, { params: { limit, cursor }, signal })
-      .then((r) => {
-        if (r.data.hasMore) {
-          Sentry.captureMessage(
-            `listUsersByOrg truncated: more than ${limit} users for org ${orgId}`,
-            { level: 'warning' },
-          );
-        }
-        return r.data;
-      }),
+      .then((r) => r.data),
+
+  fetchAllUsersByOrg: async (
+    orgId: string,
+    signal?: AbortSignal,
+  ): Promise<{ data: ApiUserWithRoles[]; nextCursor: null; hasMore: false }> => {
+    const PAGE = 200;
+    const all: ApiUserWithRoles[] = [];
+    let cursor: string | undefined;
+    while (true) {
+      const page = await usersApi.listUsersByOrg(orgId, PAGE, cursor, signal);
+      all.push(...page.data);
+      if (!page.hasMore || !page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    return { data: all, nextCursor: null, hasMore: false };
+  },
 
   create: (dto: CreateUserDto) => apiClient.post<ApiUserCreated>('/users', dto).then((r) => r.data),
 
@@ -176,6 +184,9 @@ export const usersApi = {
 
   removeUserFromOrg: (userId: string, orgId: string) =>
     apiClient.delete<void>(`/users/${userId}/orgs/${orgId}`).then((r) => r.data),
+
+  removeUserFromRole: (userId: string, orgId: string, roleId: string) =>
+    apiClient.delete<void>(`/users/${userId}/orgs/${orgId}/roles/${roleId}`).then((r) => r.data),
 
   setOptionalReviewer: (userId: string, orgId: string, value: boolean) =>
     apiClient

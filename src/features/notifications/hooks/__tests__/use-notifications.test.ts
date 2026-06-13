@@ -351,11 +351,12 @@ describe('useNotifications — SSE lifecycle', () => {
       MockEventSource.instances[0].emit('notification');
     });
 
+    // decodeJwt mock returns { companyId: 'company-1' } with no sub → userId = undefined
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['notifications-list'],
+      queryKey: ['notifications-list', undefined, 'company-1'],
     });
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['notifications-unread-count'],
+      queryKey: ['notifications-unread-count', undefined, 'company-1'],
     });
 
     unmount();

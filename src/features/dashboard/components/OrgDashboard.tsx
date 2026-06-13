@@ -249,12 +249,14 @@ function StatusDonutChart({
   labelKeyMap,
   title,
   noDataLabel,
+  loading = false,
 }: {
   data: Record<string, number>;
   colorMap: Record<string, string>;
   labelKeyMap: Record<string, string>;
   title: string;
   noDataLabel: string;
+  loading?: boolean;
 }) {
   const { t } = useTranslation();
   const slices = useMemo(
@@ -268,6 +270,21 @@ function StatusDonutChart({
         })),
     [data, colorMap, labelKeyMap, t],
   );
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="text-base font-semibold mb-4">{title}</p>
+        <div className="flex items-center gap-5">
+          <div className="size-32 rounded-full bg-muted/40 animate-pulse shrink-0" />
+          <div className="space-y-2 flex-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-4 rounded bg-muted/40 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
   return <DonutChart slices={slices} title={title} noDataLabel={noDataLabel} />;
 }
 
@@ -277,11 +294,30 @@ function WeeklyBarChart({
   data,
   title,
   noDataLabel,
+  loading = false,
 }: {
   data: { week: string; count: number }[];
   title: string;
   noDataLabel: string;
+  loading?: boolean;
 }) {
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="text-base font-semibold mb-4">{title}</p>
+        <div className="flex items-end gap-1.5 h-24">
+          {[60, 80, 45, 90, 55, 70, 40].map((h, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-t bg-muted/40 animate-pulse"
+              style={{ height: `${h}%` }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const hasData = data.length > 0;
   const maxCount = hasData ? Math.max(...data.map((d) => d.count), 1) : 0;
   const chartH = 100;
@@ -447,6 +483,7 @@ export function OrgDashboard({
           labelKeyMap={WORKFLOW_STATUS_LABEL_KEYS}
           title={t('dashboard.charts.workflowStatus')}
           noDataLabel={noData}
+          loading={isLoading}
         />
         <StatusDonutChart
           data={typologyStats?.extractionStatusCounts ?? {}}
@@ -454,11 +491,13 @@ export function OrgDashboard({
           labelKeyMap={EXTRACTION_STATUS_LABEL_KEYS}
           title={t('dashboard.charts.extractionStatus')}
           noDataLabel={noData}
+          loading={isLoading}
         />
         <WeeklyBarChart
           data={workflowStats?.weeklyTrend ?? []}
           title={t('dashboard.charts.weeklyTrend')}
           noDataLabel={noData}
+          loading={isLoading}
         />
       </div>
 

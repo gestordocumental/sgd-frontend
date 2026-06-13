@@ -98,7 +98,8 @@ export function useRoles(companyId: string) {
   });
 
   const removeUserFromRoleMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string }) => usersApi.removeUserFromOrg(userId, companyId),
+    mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) =>
+      usersApi.removeUserFromRole(userId, companyId, roleId),
     onSuccess: () => {
       invalidateRoles();
       invalidateMyOrgRoles();

@@ -90,7 +90,9 @@ export function RolesTab({ hook, users, canWrite = false }: RolesTabProps) {
         onTogglePermission={togglePermission}
         onEditRole={openEdit}
         onDeleteRole={setDeleteRole}
-        onRemoveUserFromRole={(_roleId, userId) => removeUserFromRoleMutation.mutate({ userId })}
+        onRemoveUserFromRole={(roleId, userId) =>
+          removeUserFromRoleMutation.mutate({ userId, roleId })
+        }
         onAssignRoleUser={(role) => setAssignRoleUser({ role })}
       />
     </main>

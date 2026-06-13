@@ -438,7 +438,7 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                         </Button>
                       )}
                     </div>
-                  ) : finalUserIds.length === 0 ? (
+                  ) : (
                     <SearchableSelect
                       options={availableFinalUserOptions}
                       value=""
@@ -447,7 +447,7 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                       searchPlaceholder={t('workflows.dialogs.finalUsersSearch')}
                       emptyText={t('workflows.dialogs.finalUsersEmpty')}
                     />
-                  ) : null}
+                  )}
                   {createError === 'ERR_NO_FINAL_USER' && (
                     <p className="text-xs text-destructive">
                       {t('workflows.dialogs.errorMinFinalUser')}

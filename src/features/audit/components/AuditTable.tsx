@@ -361,8 +361,16 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   title={t('audit.detail.filterByCorrelation')}
                                   aria-label={t('audit.detail.filterByCorrelation')}
                                   onClick={() => {
-                                    setDraft((d) => ({ ...d, correlationId: log.correlationId! }));
-                                    applyFilters({ ...filters, correlationId: log.correlationId! });
+                                    const correlationOnly = {
+                                      action: '',
+                                      resourceType: '',
+                                      actorId: '',
+                                      correlationId: log.correlationId!,
+                                      from: '',
+                                      to: '',
+                                    };
+                                    setDraft(correlationOnly);
+                                    applyFilters({ correlationId: log.correlationId! });
                                   }}
                                 >
                                   <Filter className="size-3" />
@@ -441,8 +449,15 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
           open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           onFilterByCorrelation={(correlationId) => {
-            setDraft((d) => ({ ...d, correlationId }));
-            applyFilters({ ...filters, correlationId });
+            setDraft({
+              action: '',
+              resourceType: '',
+              actorId: '',
+              correlationId,
+              from: '',
+              to: '',
+            });
+            applyFilters({ correlationId });
           }}
         />
       )}
@@ -451,6 +466,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
       <AuditExportModal
         open={exportOpen}
         onClose={() => setExportOpen(false)}
+        companyId={companyId}
         defaultFrom={filters.from}
         defaultTo={filters.to}
         defaultCorrelationId={filters.correlationId}

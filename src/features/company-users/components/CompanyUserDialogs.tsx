@@ -416,7 +416,9 @@ export function CompanyUserDialogs({ hook, companyName, companyId }: CompanyUser
               error={editForm.formState.errors.roleId?.message}
             >
               <select id="eu-role" className={selectCls} {...editForm.register('roleId')}>
-                <option value="">{t('users.dialogs.selectRole')}</option>
+                {(!editUser || editUser.roles.length === 0) && (
+                  <option value="">{t('users.dialogs.selectRole')}</option>
+                )}
                 {roles.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}

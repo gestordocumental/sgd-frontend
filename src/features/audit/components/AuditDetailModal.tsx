@@ -161,6 +161,7 @@ export function AuditDetailModal({
                     size="sm"
                     className="h-5 w-5 p-0 shrink-0"
                     title={t('audit.detail.copy')}
+                    aria-label={t('audit.detail.copy')}
                     onClick={() => {
                       if (!navigator.clipboard?.writeText) return;
                       void navigator.clipboard.writeText(log.correlationId!).catch(() => undefined);
@@ -173,6 +174,7 @@ export function AuditDetailModal({
                     size="sm"
                     className="h-5 w-5 p-0 shrink-0"
                     title={t('audit.detail.filterByCorrelation')}
+                    aria-label={t('audit.detail.filterByCorrelation')}
                     onClick={() => {
                       onFilterByCorrelation(log.correlationId!);
                       onClose();

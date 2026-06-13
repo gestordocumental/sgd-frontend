@@ -22,6 +22,7 @@ interface StoragePerOrgChartProps {
   companies: ApiCompany[];
   title: string;
   noDataLabel: string;
+  loading?: boolean;
 }
 
 export function StoragePerOrgChart({
@@ -29,10 +30,26 @@ export function StoragePerOrgChart({
   companies,
   title,
   noDataLabel,
+  loading = false,
 }: StoragePerOrgChartProps) {
   const { t } = useTranslation();
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="text-base font-semibold mb-4">{title}</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-8 rounded bg-muted/40 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const companyMap = new Map(companies.map((c) => [c.id, c.name]));
   const rows = stats.slice(0, 10).map((s) => ({
+    id: s.orgId,
     name: companyMap.get(s.orgId) ?? s.orgId.slice(0, 8),
     bytes: s.storageTotalBytes,
     docs: s.uploadedDocuments,
@@ -51,7 +68,7 @@ export function StoragePerOrgChart({
             const pct = (r.bytes / maxBytes) * 100;
             const [c1, c2] = GRAD_COLORS[i % GRAD_COLORS.length];
             return (
-              <li key={r.name}>
+              <li key={r.id}>
                 <div className="flex items-center justify-between mb-1 gap-2">
                   <span className="text-sm font-semibold truncate max-w-[200px]">{r.name}</span>
                   <span className="text-sm text-muted-foreground shrink-0">

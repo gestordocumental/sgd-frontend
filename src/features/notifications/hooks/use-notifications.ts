@@ -18,6 +18,10 @@ export function useNotifications() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
 
+  const decoded = accessToken ? decodeJwt(accessToken) : null;
+  const userId = decoded?.sub as string | undefined;
+  const companyId = decoded?.companyId as string | undefined;
+
   // ── SSE connection — ticket-based auth keeps the JWT out of URLs/logs ───────
   useEffect(() => {
     if (!accessToken) return;
@@ -49,8 +53,10 @@ export function useNotifications() {
     const attach = (sse: EventSource) => {
       sse.addEventListener('notification', () => {
         retryDelayMs = BACKOFF_INITIAL_MS; // reset backoff on a healthy message
-        void queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
-        void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+        void queryClient.invalidateQueries({ queryKey: ['notifications-list', userId, companyId] });
+        void queryClient.invalidateQueries({
+          queryKey: ['notifications-unread-count', userId, companyId],
+        });
       });
 
       // Delegate session revocation to useUserProfile which has the full context
@@ -140,13 +146,14 @@ export function useNotifications() {
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [accessToken, queryClient]);
+  }, [accessToken, queryClient, userId, companyId]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: unreadData } = useQuery({
-    queryKey: ['notifications-unread-count'],
+    queryKey: ['notifications-unread-count', userId, companyId],
     queryFn: ({ signal }) => notificationsApi.unreadCount(signal),
     staleTime: 0,
+    enabled: !!accessToken,
   });
 
   const {
@@ -156,7 +163,7 @@ export function useNotifications() {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['notifications-list'],
+    queryKey: ['notifications-list', userId, companyId],
     queryFn: ({ pageParam, signal }) => notificationsApi.list(pageParam, 20, signal),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -164,22 +171,27 @@ export function useNotifications() {
       return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
     },
     staleTime: 0,
+    enabled: !!accessToken,
   });
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const markAsReadMutation = useMutation({
     mutationFn: notificationsApi.markAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-list', userId, companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['notifications-unread-count', userId, companyId],
+      });
     },
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: notificationsApi.markAllAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-list', userId, companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['notifications-unread-count', userId, companyId],
+      });
     },
   });
 

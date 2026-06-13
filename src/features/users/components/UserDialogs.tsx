@@ -223,7 +223,7 @@ export function UserDialogs({ hook }: UserDialogsProps) {
                 {...editForm.register('idNumber')}
               />
             </FormField>
-            {editCompanyId && editUser && 'roles' in editUser && editUser.roles.length === 0 && (
+            {editCompanyId && companyRoles.length === 0 && (
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
                 <span>{t('users.dialogs.noRoleWarning')}</span>

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { typologiesApi, type ApiTypology } from '@/lib/api/typologies';
+import { typologiesApi, type ApiTypology, type UpdateTypologyDto } from '@/lib/api/typologies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { useAuthStore } from '@/store/authStore';
 import { resolveApiError } from '@/lib/utils/api-error';
@@ -191,7 +191,10 @@ export function useTypologies(orgId: string, enabled = true) {
   // ── Preview extract mutation (auto-fill fields when a file is selected) ─
   const previewExtractMutation = useMutation({
     mutationFn: (file: File) => typologiesApi.previewExtract(orgId, file, companyName ?? undefined),
-    onSuccess: (result) => {
+    onSuccess: (result, file) => {
+      // Discard stale results: if the dialog closed or the user selected a
+      // different file before this response arrived, do not pollute the form.
+      if (!createOpen || file !== createFile) return;
       if (result.nombre) form.setValue('nombre', result.nombre, { shouldValidate: true });
       if (result.codigo) form.setValue('codigo', result.codigo, { shouldValidate: true });
       if (result.version) form.setValue('version', result.version, { shouldValidate: true });
@@ -306,10 +309,25 @@ export function useTypologies(orgId: string, enabled = true) {
         patchDto.nombre = values.nombre;
       if (values.version && values.version !== (typo.datosDeclarados.version ?? ''))
         patchDto.version = values.version;
-      if (Object.keys(patchDto).length > 0) {
+      const patched = Object.keys(patchDto).length > 0;
+      if (patched) {
         await typologiesApi.update(orgId, typo.id, patchDto);
       }
-      return typologiesApi.uploadDocument(orgId, typo.id, file, companyName ?? undefined);
+      try {
+        return await typologiesApi.uploadDocument(orgId, typo.id, file, companyName ?? undefined);
+      } catch (uploadErr) {
+        // Best-effort rollback: revert metadata to original values so the
+        // typology is not left with updated nombre/version but no new document.
+        if (patched) {
+          const rollback: UpdateTypologyDto = {};
+          if (patchDto.nombre !== undefined && typo.datosDeclarados.nombre != null)
+            rollback.nombre = typo.datosDeclarados.nombre;
+          if (patchDto.version !== undefined && typo.datosDeclarados.version != null)
+            rollback.version = typo.datosDeclarados.version;
+          await typologiesApi.update(orgId, typo.id, rollback).catch(() => {});
+        }
+        throw uploadErr;
+      }
     },
     onSuccess: () => {
       invalidate();
@@ -366,15 +384,19 @@ export function useTypologies(orgId: string, enabled = true) {
   const handleFormDeptChange = (id: string) => {
     setFormDeptId(id);
     setFormAreaId('');
-    form.setValue('departamentoId', id);
-    form.setValue('areaId', '');
-    form.setValue('cargoId', '');
+    form.setValue('departamentoId', id, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    form.setValue('areaId', '', { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    form.setValue('cargoId', '', { shouldValidate: true, shouldDirty: true, shouldTouch: true });
   };
 
   const handleFormAreaChange = (id: string) => {
     setFormAreaId(id);
-    form.setValue('areaId', id);
-    form.setValue('cargoId', '');
+    form.setValue('areaId', id, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    form.setValue('cargoId', '', { shouldValidate: true, shouldDirty: true, shouldTouch: true });
   };
 
   return {
