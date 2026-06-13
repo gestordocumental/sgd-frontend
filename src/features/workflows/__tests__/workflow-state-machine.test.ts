@@ -219,9 +219,9 @@ describe('getWorkflowActions — canStartReviewCycle', () => {
     expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(true);
   });
 
-  it('is true for final user in AVAILABLE_FOR_FINAL_USERS (additional cycle)', () => {
+  it('is false in AVAILABLE_FOR_FINAL_USERS — document already published, button must not show', () => {
     const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['user-1'] });
-    expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(true);
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(false);
   });
 
   it('does not require canApprove — only finalUserIds membership', () => {
