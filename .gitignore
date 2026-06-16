@@ -15,6 +15,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Environment — local overrides never se commitean
+.env
 .env.local
 .env.*.local
 
@@ -23,6 +24,10 @@ lerna-debug.log*
 
 # Test coverage
 coverage
+
+# Playwright
+playwright-report
+test-results
 
 # Editor directories
 .vscode/*
@@ -36,3 +41,6 @@ Thumbs.db
 
 # Vite
 *.local
+
+# TanStack Router generated files
+.tanstack/

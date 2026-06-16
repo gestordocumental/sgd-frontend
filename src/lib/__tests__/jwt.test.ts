@@ -1,0 +1,61 @@
+import { describe, it, expect } from 'vitest'
+import { decodeJwt } from '../jwt'
+
+// Helper: build a minimal JWT with the given payload (no signature needed for decoding)
+function buildToken(payload: object): string {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+  const body = btoa(JSON.stringify(payload))
+  return `${header}.${body}.fakesig`
+}
+
+// Helper: build a JWT with URL-safe base64 chars in the payload segment
+function buildTokenUrlSafe(payload: object): string {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+  // Replace standard base64 chars with URL-safe equivalents
+  const body = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return `${header}.${body}.fakesig`
+}
+
+describe('decodeJwt', () => {
+  it('returns null for empty string', () => {
+    expect(decodeJwt('')).toBeNull()
+  })
+
+  it('returns null for a string with fewer than 2 dots', () => {
+    expect(decodeJwt('onlyone')).toBeNull()
+    expect(decodeJwt('two.parts')).toBeNull()
+  })
+
+  it('returns null for a token with invalid base64 payload', () => {
+    expect(decodeJwt('header.!!!invalid!!!.sig')).toBeNull()
+  })
+
+  it('decodes a valid token and returns the payload', () => {
+    const payload = { sub: 'user-123', email: 'test@example.com', exp: 9999999999, iat: 1000000000, iss: 'sgd' }
+    const token = buildToken(payload)
+    const result = decodeJwt(token)
+    expect(result).not.toBeNull()
+    expect(result?.sub).toBe('user-123')
+    expect(result?.email).toBe('test@example.com')
+    expect(result?.exp).toBe(9999999999)
+  })
+
+  it('decodes a token with URL-safe base64 characters (- and _)', () => {
+    const payload = { sub: 'user-456', email: 'url@safe.com', exp: 9999999999, iat: 1, iss: 'sgd' }
+    const token = buildTokenUrlSafe(payload)
+    const result = decodeJwt(token)
+    expect(result).not.toBeNull()
+    expect(result?.sub).toBe('user-456')
+  })
+
+  it('decodes isSuperAdmin flag correctly', () => {
+    const payload = { sub: 'admin-1', email: 'admin@example.com', exp: 9999999999, iat: 1, iss: 'sgd', isSuperAdmin: true }
+    const result = decodeJwt(buildToken(payload))
+    expect(result?.isSuperAdmin).toBe(true)
+  })
+
+  it('returns null when the token is undefined-like (handled via optional chaining)', () => {
+    // @ts-expect-error testing undefined input
+    expect(decodeJwt(undefined)).toBeNull()
+  })
+})

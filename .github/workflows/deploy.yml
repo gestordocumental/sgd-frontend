@@ -1,0 +1,61 @@
+name: Deploy
+
+on:
+  push:
+    branches: [dev, test, master]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy — ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'master' && 'production' || github.ref_name }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@50.42.0
+
+      - name: Inject Railway API URL
+        env:
+          RAILWAY_API_URL: ${{ vars.RAILWAY_API_URL }}
+        run: |
+          test -n "$RAILWAY_API_URL" || { echo "RAILWAY_API_URL is not set for this environment"; exit 1; }
+          jq -e '.routes[] | select(.src == "/api/(.*)")' vercel.json > /dev/null
+          jq --arg url "$RAILWAY_API_URL" \
+            '(.routes[] | select(.src == "/api/(.*)") | .dest) |= gsub("\\$\\{RAILWAY_API_URL\\}"; $url)' \
+            vercel.json > vercel.tmp.json && mv vercel.tmp.json vercel.json
+
+      - name: Pull Vercel config
+        run: vercel pull --yes --environment=${{ github.ref_name == 'master' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        run: vercel deploy --prebuilt ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
