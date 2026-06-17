@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { AxiosError } from 'axios';
-import { Eye, EyeOff, Loader2, AlertCircle, TriangleAlert } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, TriangleAlert, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,15 @@ import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 import { loginSchema, type LoginFormValues } from '@/lib/validations/schemas';
+import {
+  readState,
+  recordFailure,
+  recordSuccess,
+  isLocked,
+  secondsRemaining,
+  WARN_THRESHOLD,
+  FAIL_LOCK_THRESHOLD,
+} from '@/lib/login-throttle';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: () => {
@@ -25,10 +34,42 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 });
 
+function useLoginThrottle() {
+  const [state, setState] = useState(() => readState());
+
+  useEffect(() => {
+    if (!isLocked(state)) return;
+    const id = setInterval(() => {
+      const fresh = readState();
+      setState(fresh);
+      if (!isLocked(fresh)) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [state.lockedUntil]);
+
+  const trackFailure = useCallback(() => {
+    setState(recordFailure());
+  }, []);
+
+  const trackSuccess = useCallback(() => {
+    recordSuccess();
+    setState({ count: 0, lockedUntil: 0 });
+  }, []);
+
+  return {
+    failCount: state.count,
+    locked: isLocked(state),
+    secondsLeft: secondsRemaining(state),
+    trackFailure,
+    trackSuccess,
+  };
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
   const { t } = useTranslation();
+  const { failCount, locked, secondsLeft, trackFailure, trackSuccess } = useLoginThrottle();
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -45,6 +86,12 @@ function LoginPage() {
     return !!flag;
   });
 
+  const [idleLogout] = useState(() => {
+    const flag = localStorage.getItem('sgd-idle-logout');
+    if (flag) localStorage.removeItem('sgd-idle-logout');
+    return !!flag;
+  });
+
   const {
     register,
     handleSubmit,
@@ -57,6 +104,7 @@ function LoginPage() {
   const { mutate: login, isPending } = useMutation({
     mutationFn: authApi.login,
     onSuccess: async (data) => {
+      trackSuccess();
       const token = data.accessToken;
       const payload = token ? decodeJwt(token) : null;
       const isSuperAdmin = payload?.isSuperAdmin === true;
@@ -107,10 +155,14 @@ function LoginPage() {
       const raw = error.response?.data?.message;
       const msg = Array.isArray(raw) ? raw[0] : (raw ?? t('auth.serverErrorFallback'));
       setServerError(msg);
+      if (error.response?.status === 401) {
+        trackFailure();
+      }
     },
   });
 
   const onSubmit = (values: LoginFormValues) => {
+    if (locked) return;
     setServerError(null);
     login(values);
   };
@@ -174,11 +226,40 @@ function LoginPage() {
               </div>
             )}
 
+            {/* Aviso de cierre de sesión automático por inactividad */}
+            {idleLogout && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2.5 text-sm text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
+                <Info className="size-4 mt-0.5 shrink-0" />
+                <span>{t('auth.idleLogoutNotice')}</span>
+              </div>
+            )}
+
             {/* Error del servidor */}
-            {serverError && (
+            {serverError && !locked && (
               <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
                 <AlertCircle className="size-4 mt-0.5 shrink-0" />
                 <span>{serverError}</span>
+              </div>
+            )}
+
+            {/* Aviso de acercarse al límite de intentos */}
+            {!locked && failCount >= WARN_THRESHOLD && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                <span>
+                  {t('auth.loginAttemptsWarning', {
+                    count: failCount,
+                    threshold: FAIL_LOCK_THRESHOLD,
+                  })}
+                </span>
+              </div>
+            )}
+
+            {/* Bloqueo temporal por demasiados intentos fallidos */}
+            {locked && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                <span>{t('auth.loginLocked', { seconds: secondsLeft })}</span>
               </div>
             )}
 
@@ -244,9 +325,11 @@ function LoginPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={isPending || isSwitchingCompany || !isValid}
+              disabled={isPending || isSwitchingCompany || !isValid || locked}
             >
-              {isSwitchingCompany ? (
+              {locked ? (
+                t('auth.loginLockedButton', { seconds: secondsLeft })
+              ) : isSwitchingCompany ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
                   {t('auth.loadingWorkspace')}

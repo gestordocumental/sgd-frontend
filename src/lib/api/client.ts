@@ -79,14 +79,17 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Retry automático para errores de red transitorios y respuestas 5xx.
-// Excluye errores 4xx (son definitivos — no vale la pena reintentar).
+// Retry automático sólo para fallos a nivel de red (sin respuesta HTTP):
+// ECONNRESET, ENOTFOUND, DNS lookup failures, etc.
+// Las respuestas HTTP 5xx (incluyendo 503) se excluyen intencionalmente:
+// React Query (retry: 1 en main.tsx) ya reintenta queries fallidas con su
+// propio back-off.  Dejar que ambas capas reintenten multiplica los intentos
+// a 8 por query y puede extender el tiempo de error visible a 2+ minutos
+// cuando el backend está lento pero alcanzable.
 axiosRetry(apiClient, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
-  retryCondition: (error) =>
-    axiosRetry.isNetworkError(error) ||
-    (error.response !== undefined && error.response.status >= 500),
+  retryCondition: (error) => axiosRetry.isNetworkError(error),
 });
 
 // Adjunta el JWT y el CSRF token en cada request autenticada.

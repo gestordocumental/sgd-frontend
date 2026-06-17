@@ -13,7 +13,15 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0,
+      // 60 s fallback for any query that does not set its own staleTime.
+      // Individual hooks override this per data-freshness requirements:
+      //   reference data (roles, org-structure)    → 300 000 ms
+      //   operational data (workflows, users)      → 30 000–120 000 ms
+      //   SSE-driven data (notifications, history) → 30 000 ms
+      // Real-time freshness for SSE-driven data comes from invalidateQueries
+      // fired on push events, not from staleTime: 0. Using 0 causes every
+      // React 19 Strict Mode double-mount to fire a duplicate request.
+      staleTime: 60_000,
       retry: 1,
     },
   },

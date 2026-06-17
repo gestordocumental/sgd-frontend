@@ -367,13 +367,11 @@ describe('response interceptor — concurrent 401s are queued', () => {
 
 describe('axiosRetry retryCondition', () => {
   // Mirrors the exact condition registered in client.ts.
-  // The function is internal so we replicate its logic here to document
-  // and enforce the contract explicitly.
+  // Only network-level failures (no HTTP response) are retried here.
+  // HTTP 5xx errors are handled by React Query's retry:1 to avoid
+  // multiplying attempts to 8 per query (see client.ts comment).
   function retryCondition(error: AxiosError): boolean {
-    return (
-      axiosRetry.isNetworkError(error) ||
-      (error.response !== undefined && error.response.status >= 500)
-    );
+    return axiosRetry.isNetworkError(error);
   }
 
   it('retries on network errors (ERR_NETWORK — no response object)', () => {
@@ -382,22 +380,28 @@ describe('axiosRetry retryCondition', () => {
     expect(retryCondition(err)).toBe(true);
   });
 
-  it('retries on 500 Internal Server Error', () => {
+  it('does NOT retry on 500 — React Query (retry:1) handles HTTP server errors', () => {
     const err = new axios.AxiosError('Internal Server Error');
     err.response = { status: 500 } as never;
-    expect(retryCondition(err)).toBe(true);
+    expect(retryCondition(err)).toBe(false);
   });
 
-  it('retries on 503 Service Unavailable', () => {
+  it('does NOT retry on 503 — would amplify load on an already-stressed server', () => {
     const err = new axios.AxiosError('Service Unavailable');
     err.response = { status: 503 } as never;
-    expect(retryCondition(err)).toBe(true);
+    expect(retryCondition(err)).toBe(false);
   });
 
-  it('retries on any 5xx (boundary: 599)', () => {
+  it('does NOT retry on any 5xx (boundary: 599)', () => {
     const err = new axios.AxiosError('Gateway Timeout');
     err.response = { status: 599 } as never;
-    expect(retryCondition(err)).toBe(true);
+    expect(retryCondition(err)).toBe(false);
+  });
+
+  it('does NOT retry on 429 Too Many Requests — retrying worsens rate-limiting', () => {
+    const err = new axios.AxiosError('Too Many Requests');
+    err.response = { status: 429 } as never;
+    expect(retryCondition(err)).toBe(false);
   });
 
   it('does NOT retry on 400 Bad Request', () => {

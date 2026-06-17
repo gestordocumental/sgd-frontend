@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import path from 'path';
+import { rmSync } from 'fs';
 
 // Sonner v2 unconditionally calls document.createElement('style') at module
 // load time, which requires CSP 'unsafe-inline' for style-src.  This plugin
@@ -23,6 +24,21 @@ function sonnerNoInjectCSS(): Plugin {
   };
 }
 
+// MSW's mockServiceWorker.js must live in public/ so the browser can register
+// the service worker, but it must NOT ship to production — it leaks internal
+// tooling details and adds dead weight to the CDN.
+// closeBundle runs after every `vite build`; the try/catch is a no-op when the
+// file is already absent (e.g. excluded by .vercelignore in the CI environment).
+function removeMockServiceWorker(): Plugin {
+  return {
+    name: 'remove-mock-service-worker',
+    apply: 'build',
+    closeBundle() {
+      rmSync(path.resolve(__dirname, 'dist/mockServiceWorker.js'), { force: true });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     TanStackRouterVite({
@@ -32,6 +48,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     sonnerNoInjectCSS(),
+    removeMockServiceWorker(),
   ],
   resolve: {
     alias: {

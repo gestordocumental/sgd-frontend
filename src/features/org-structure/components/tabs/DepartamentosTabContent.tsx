@@ -36,7 +36,7 @@ type OrgStructureHook = ReturnType<typeof useOrgStructure>;
 
 async function downloadTemplate(onError: () => void) {
   try {
-    const XLSX = await import('xlsx');
+    const { Workbook } = await import('exceljs');
     const headers = [
       'Departamento',
       'Descripción Departamento',
@@ -45,16 +45,7 @@ async function downloadTemplate(onError: () => void) {
       'Cargo',
       'Descripción Cargo',
     ];
-    const colWidths = [
-      { wch: 24 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 28 },
-      { wch: 26 },
-      { wch: 30 },
-    ];
-    const ws = XLSX.utils.aoa_to_sheet([headers]);
-    ws['!cols'] = colWidths;
+    const colWidths = [24, 30, 20, 28, 26, 30];
     const exampleRows = [
       [
         'Recursos Humanos',
@@ -83,12 +74,30 @@ async function downloadTemplate(onError: () => void) {
       ],
       ['Tecnología', '', '', '', 'CTO', 'Cargo nivel departamento — sin área asignada'],
     ];
-    const exampleSheet = XLSX.utils.aoa_to_sheet([headers, ...exampleRows]);
-    exampleSheet['!cols'] = colWidths;
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Estructura');
-    XLSX.utils.book_append_sheet(wb, exampleSheet, 'Ejemplo');
-    XLSX.writeFile(wb, 'plantilla-estructura-organizacional.xlsx');
+
+    const wb = new Workbook();
+
+    const addSheet = (name: string, rowData: string[][]) => {
+      const sheet = wb.addWorksheet(name);
+      rowData.forEach((row) => sheet.addRow(row));
+      colWidths.forEach((w, i) => {
+        sheet.getColumn(i + 1).width = w;
+      });
+    };
+
+    addSheet('Estructura', [headers]);
+    addSheet('Ejemplo', [headers, ...exampleRows]);
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla-estructura-organizacional.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
   } catch {
     onError();
   }

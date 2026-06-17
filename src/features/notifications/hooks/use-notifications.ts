@@ -152,7 +152,7 @@ export function useNotifications() {
   const { data: unreadData } = useQuery({
     queryKey: ['notifications-unread-count', userId, companyId],
     queryFn: ({ signal }) => notificationsApi.unreadCount(signal),
-    staleTime: 0,
+    staleTime: 30_000,
     enabled: !!accessToken,
   });
 
@@ -170,7 +170,7 @@ export function useNotifications() {
       const totalPages = Math.ceil(lastPage.total / lastPage.limit);
       return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
     },
-    staleTime: 0,
+    staleTime: 30_000,
     enabled: !!accessToken,
   });
 
