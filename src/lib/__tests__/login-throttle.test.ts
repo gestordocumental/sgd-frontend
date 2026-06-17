@@ -13,7 +13,10 @@ import {
 const STORAGE_KEY = 'sgd-login-throttle';
 
 describe('login-throttle', () => {
-  beforeEach(() => sessionStorage.clear());
+  beforeEach(() => {
+    recordSuccess(); // resets module-level memoryState between tests
+    sessionStorage.clear();
+  });
 
   // ── readState ──────────────────────────────────────────────────────────────
 

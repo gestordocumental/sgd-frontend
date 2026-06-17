@@ -267,7 +267,7 @@ El backend protege todos los endpoints de escritura con el patrón **Double-Subm
 
 1. Al hacer login, el backend devuelve `{ accessToken, csrfToken }`. El `csrfToken` se guarda en tres capas para sobrevivir recargas y modos de navegación distintos:
 
-   ```
+   ```text
    Prioridad  Dónde                   Cuándo se usa
    ──────────────────────────────────────────────────────────
    1ª         Memoria (_csrfToken)    Petición normal sin recarga
@@ -281,7 +281,7 @@ El backend protege todos los endpoints de escritura con el patrón **Double-Subm
 
 ### Retry de red (no de HTTP)
 
-```
+```text
 axiosRetry → retries: 3, exponential backoff
 retryCondition: solo axiosRetry.isNetworkError()
 ```
@@ -294,7 +294,7 @@ Los errores de red puros (ECONNRESET, DNS, timeout de conexión antes del `respo
 
 Cuando el interceptor de 401 inicia un refresh, las peticiones que llegan mientras el refresh está en vuelo no se descartan — se encolan en `pendingQueue`. Cuando el refresh completa, todas se reintentan con el nuevo `accessToken`.
 
-```
+```text
 Petición A  ──► 401 ──► inicia refresh ──────────────────► reintenta A
 Petición B  ──► 401 ──► entra en cola ──────────────────► reintenta B
 Petición C  ──► 401 ──► entra en cola ──────────────────► reintenta C
@@ -352,7 +352,7 @@ Estas credenciales están hardcodeadas en `src/mocks/handlers/auth.ts`. Cualquie
 
 Un archivo por dominio, cada uno exporta un array nombrado:
 
-```
+```text
 src/mocks/
 ├── browser.ts          # Punto de entrada — compone todos los handlers
 └── handlers/
@@ -415,7 +415,7 @@ npm run storybook:build  # build estático en storybook-static/
 
 Las stories se colocan **junto al componente** que documentan:
 
-```
+```text
 src/components/ui/
 ├── button.tsx
 └── button.stories.tsx   ← story del mismo componente
@@ -496,7 +496,7 @@ Al importar el módulo, `hydrate()` lee `localStorage` y repuebla `user`, `isAut
 
 **`exitCompany()`** — restaura el contexto global. Devuelve `Promise<boolean>` (`false` si la restauración falla). Sigue dos estrategias en orden:
 
-```
+```text
 1. ¿_superAdminToken en memoria y no expirado?
    └─► usarlo directamente (fast path, sin red)
 
@@ -558,7 +558,7 @@ Hay dos workflows en `.github/workflows/`:
 
 Los jobs corren en este orden:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  job: ci                                                    │
 │  Typecheck → Lint → Build → Unit tests                      │
@@ -573,7 +573,7 @@ Los jobs corren en este orden:
 
 **Build en CI** usa variables fijas:
 
-```
+```env
 VITE_API_URL=/api/v1     # URL relativa — el proxy de Vercel gestiona el destino real
 VITE_USE_MOCKS=false     # MSW desactivado para que el build sea idéntico a producción
 ```
