@@ -96,13 +96,14 @@ describe('formatDate', () => {
     expect(formatDate('2024-03-15T00:00:00.000Z', 'es-CO')).toContain('2024');
   });
 
-  it('produces different output for different locales', () => {
+  it('produces locale-specific output when locales are supported', () => {
     const iso = '2024-03-15T00:00:00.000Z';
+    const supportsBoth = Intl.DateTimeFormat.supportedLocalesOf(['es-CO', 'en-US']).length === 2;
     const es = formatDate(iso, 'es-CO');
     const en = formatDate(iso, 'en-US');
-    // Both valid — just assert they are non-empty strings
-    expect(typeof es).toBe('string');
-    expect(typeof en).toBe('string');
+    expect(es).not.toBe('—');
+    expect(en).not.toBe('—');
+    if (supportsBoth) expect(es).not.toBe(en);
   });
 });
 

@@ -57,6 +57,17 @@ describe('decodeJwt', () => {
     expect(result?.sub).toBe('user-456');
   });
 
+  it('decodes URL-safe payload when segment length is not multiple of 4', () => {
+    // { sub: 'u-1', exp: 9999999999, pad: 'x' } serialises to 40 bytes →
+    // base64url without padding produces 54 chars (54 % 4 === 2), exercising
+    // the re-padding branch inside decodeJwt.
+    const payload = { sub: 'u-1', exp: 9999999999, pad: 'x' };
+    const token = buildTokenUrlSafe(payload);
+    const body = token.split('.')[1];
+    expect(body.length % 4).not.toBe(0);
+    expect(decodeJwt(token)?.sub).toBe('u-1');
+  });
+
   it('decodes isSuperAdmin flag correctly', () => {
     const payload = {
       sub: 'admin-1',

@@ -9,22 +9,30 @@ export interface LoginThrottleState {
   lockedUntil: number; // epoch ms; 0 = not locked
 }
 
+// In-memory fallback for when sessionStorage is unavailable (private mode, quota exceeded).
+// Keeps throttle state alive for the duration of the page session so the lockout
+// is not silently bypassed when storage writes fail.
+let memoryState: LoginThrottleState = { count: 0, lockedUntil: 0 };
+
 function writeState(state: LoginThrottleState): void {
+  memoryState = state;
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // unavailable (private mode / quota) — best effort
+    // unavailable (private mode / quota) — memoryState is the source of truth
   }
 }
 
 export function readState(): LoginThrottleState {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return { count: 0, lockedUntil: 0 };
+    if (!raw) return memoryState;
     const parsed = JSON.parse(raw) as LoginThrottleState;
+    const count = Number(parsed.count);
+    const lockedUntil = Number(parsed.lockedUntil);
     const state: LoginThrottleState = {
-      count: parsed.count ?? 0,
-      lockedUntil: parsed.lockedUntil ?? 0,
+      count: Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0,
+      lockedUntil: Number.isFinite(lockedUntil) && lockedUntil > 0 ? lockedUntil : 0,
     };
     // Auto-reset after lockout period passes so users get a clean slate
     if (state.lockedUntil > 0 && state.lockedUntil <= Date.now()) {
@@ -32,9 +40,10 @@ export function readState(): LoginThrottleState {
       writeState(reset);
       return reset;
     }
+    memoryState = state;
     return state;
   } catch {
-    return { count: 0, lockedUntil: 0 };
+    return memoryState;
   }
 }
 

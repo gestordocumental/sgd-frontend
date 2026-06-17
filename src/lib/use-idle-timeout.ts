@@ -99,8 +99,16 @@ export function useIdleTimeout() {
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel('sgd-session');
-      bc.onmessage = (e: MessageEvent<{ type: string }>) => {
-        if (e.data.type === 'sgd:idle-logout') doLogout();
+      bc.onmessage = (e: MessageEvent<unknown>) => {
+        const data = e.data;
+        if (
+          typeof data === 'object' &&
+          data !== null &&
+          'type' in data &&
+          (data as { type?: string }).type === 'sgd:idle-logout'
+        ) {
+          doLogout();
+        }
       };
     } catch {
       // BroadcastChannel not supported (Safari < 15.4, some WebViews)
