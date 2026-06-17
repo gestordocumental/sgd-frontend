@@ -13,7 +13,10 @@ import {
 const STORAGE_KEY = 'sgd-login-throttle';
 
 describe('login-throttle', () => {
-  beforeEach(() => sessionStorage.clear());
+  beforeEach(() => {
+    recordSuccess(); // resets module-level memoryState between tests
+    sessionStorage.clear();
+  });
 
   // ── readState ──────────────────────────────────────────────────────────────
 
@@ -80,14 +83,16 @@ describe('login-throttle', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
 
-      for (let i = 0; i < FAIL_LOCK_THRESHOLD - 1; i++) recordFailure();
-      const before = Date.now();
-      const state = recordFailure();
+      try {
+        for (let i = 0; i < FAIL_LOCK_THRESHOLD - 1; i++) recordFailure();
+        const before = Date.now();
+        const state = recordFailure();
 
-      expect(state.count).toBe(FAIL_LOCK_THRESHOLD);
-      expect(state.lockedUntil).toBe(before + LOCK_DURATION_MS);
-
-      vi.useRealTimers();
+        expect(state.count).toBe(FAIL_LOCK_THRESHOLD);
+        expect(state.lockedUntil).toBe(before + LOCK_DURATION_MS);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('persists the new state to sessionStorage after each call', () => {

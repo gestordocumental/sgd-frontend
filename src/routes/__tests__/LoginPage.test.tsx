@@ -303,6 +303,35 @@ describe('LoginPage — brute-force protection', () => {
       lockedUntil: 0,
     });
   });
+
+  it('does not reset throttle counter when 2xx response has invalid payload', async () => {
+    sessionStorage.setItem(THROTTLE_KEY, JSON.stringify({ count: 2, lockedUntil: 0 }));
+
+    // 2xx but no usable token or user — onSuccess aborts early before trackSuccess()
+    server.use(
+      http.post('*/auth/login', () => HttpResponse.json({ accessToken: null, user: null })),
+    );
+
+    const user = userEvent.setup();
+    render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.type(screen.getByLabelText('Email'), 'admin@test.com');
+    await user.type(screen.getByLabelText('Password'), 'Admin123!');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Error connecting to the server. Please try again.'),
+      ).toBeInTheDocument(),
+    );
+
+    // trackSuccess() was NOT reached — counter must remain at 2
+    expect(JSON.parse(sessionStorage.getItem(THROTTLE_KEY) ?? '{}')).toEqual({
+      count: 2,
+      lockedUntil: 0,
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });
 
 describe('LoginPage — password visibility toggle', () => {

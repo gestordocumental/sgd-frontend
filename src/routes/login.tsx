@@ -104,7 +104,6 @@ function LoginPage() {
   const { mutate: login, isPending } = useMutation({
     mutationFn: authApi.login,
     onSuccess: async (data) => {
-      trackSuccess();
       const token = data.accessToken;
       const payload = token ? decodeJwt(token) : null;
       const isSuperAdmin = payload?.isSuperAdmin === true;
@@ -124,6 +123,7 @@ function LoginPage() {
 
       if (isSuperAdmin) {
         setAuth(baseUser, token, true);
+        trackSuccess();
         navigate({ to: '/dashboard/admin' });
         return;
       }
@@ -149,6 +149,7 @@ function LoginPage() {
         setIsSwitchingCompany(false);
       }
 
+      trackSuccess();
       navigate({ to: '/dashboard' });
     },
     onError: (error: AxiosError<{ message: string | string[] }>) => {
