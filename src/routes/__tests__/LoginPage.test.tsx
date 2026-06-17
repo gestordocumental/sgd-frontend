@@ -133,6 +133,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
+  sessionStorage.clear();
 });
 afterAll(() => server.close());
 
@@ -237,6 +238,65 @@ describe('LoginPage — error handling', () => {
       expect(
         screen.getByText('Error connecting to the server. Please try again.'),
       ).toBeInTheDocument();
+    });
+  });
+});
+
+describe('LoginPage — brute-force protection', () => {
+  const THROTTLE_KEY = 'sgd-login-throttle';
+
+  it('shows attempt warning when sessionStorage records 3 prior failures', () => {
+    sessionStorage.setItem(THROTTLE_KEY, JSON.stringify({ count: 3, lockedUntil: 0 }));
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByText(/3 of 5 failed attempts/i)).toBeInTheDocument();
+  });
+
+  it('disables the submit button and shows lockout message when pre-seeded as locked', () => {
+    sessionStorage.setItem(
+      THROTTLE_KEY,
+      JSON.stringify({ count: 5, lockedUntil: Date.now() + 30_000 }),
+    );
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByText(/Too many failed attempts/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Paused/i })).toBeDisabled();
+  });
+
+  it('does not show lockout UI when a pre-seeded lockout has already expired', () => {
+    sessionStorage.setItem(THROTTLE_KEY, JSON.stringify({ count: 5, lockedUntil: Date.now() - 1 }));
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.queryByText(/Too many failed attempts/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Paused/i })).not.toBeInTheDocument();
+  });
+
+  it('locks the button after a 5th consecutive failure', async () => {
+    // Seed count=4 so the next failure (the 5th) triggers the lockout
+    sessionStorage.setItem(THROTTLE_KEY, JSON.stringify({ count: 4, lockedUntil: 0 }));
+    const user = userEvent.setup();
+    render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.type(screen.getByLabelText('Email'), 'wrong@test.com');
+    await user.type(screen.getByLabelText('Password'), 'WrongPass1!');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Too many failed attempts/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /Paused/i })).toBeDisabled();
+  });
+
+  it('resets the attempt count in sessionStorage after a successful login', async () => {
+    sessionStorage.setItem(THROTTLE_KEY, JSON.stringify({ count: 3, lockedUntil: 0 }));
+    const user = userEvent.setup();
+    render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.type(screen.getByLabelText('Email'), 'admin@test.com');
+    await user.type(screen.getByLabelText('Password'), 'Admin123!');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => expect(mockSetAuth).toHaveBeenCalled());
+    expect(JSON.parse(sessionStorage.getItem(THROTTLE_KEY) ?? '{}')).toEqual({
+      count: 0,
+      lockedUntil: 0,
     });
   });
 });

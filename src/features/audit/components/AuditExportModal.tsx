@@ -92,7 +92,7 @@ export function AuditExportModal({
     setError(null);
     setLoading(true);
     try {
-      const XLSX = await import('xlsx');
+      const { Workbook } = await import('exceljs');
       const data = byCorrelation
         ? await fetchAllByCorrelation(trimmedCorrelationId)
         : await auditApi.exportLogs({
@@ -134,18 +134,20 @@ export function AuditExportModal({
         };
       });
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, t('audit.title'));
-
-      const colWidths = Object.keys(rows[0]).map((key) => ({
-        wch: Math.max(
+      const wb = new Workbook();
+      const ws = wb.addWorksheet(t('audit.title'));
+      const headers = Object.keys(rows[0]);
+      ws.addRow(headers);
+      for (const row of rows) {
+        ws.addRow(headers.map((h) => row[h as keyof typeof row]));
+      }
+      headers.forEach((key, i) => {
+        ws.getColumn(i + 1).width = Math.max(
           key.length,
           ...rows.map((r) => String(r[key as keyof typeof r] ?? '').length),
           10,
-        ),
-      }));
-      ws['!cols'] = colWidths;
+        );
+      });
 
       let filename: string;
       if (correlationId.trim()) {
@@ -157,7 +159,16 @@ export function AuditExportModal({
         const toLabel = to ? new Date(to).toISOString().slice(0, 10) : t('audit.export.endLabel');
         filename = `${t('audit.export.filePrefix')}_${fromLabel}_${toLabel}.xlsx`;
       }
-      XLSX.writeFile(wb, filename);
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
 
       onClose();
     } catch {

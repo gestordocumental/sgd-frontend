@@ -13,7 +13,7 @@ import {
 import { requiredString, optionalString } from '@/lib/validations/schemas';
 import { resolveApiError } from '@/lib/utils/api-error';
 
-const structureSchema = z.object({
+export const structureSchema = z.object({
   name: requiredString(),
   description: optionalString,
 });

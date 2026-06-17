@@ -86,7 +86,7 @@
     "myProfile": "My profile",
     "switchContext": "Switch to",
     "changeAvatar": "Change profile photo",
-    "exitCompanyFailed": "Could not restore super-admin session. Please log in again.",
+    "exitCompanyFailed": "Could not restore the super-admin session. Reload the page to try again.",
     "sessionRevoked": {
       "unknownCompany": "the company",
       "switchToGlobal": "You were removed from {{company}}. Returning to global view.",
@@ -112,6 +112,10 @@
     "devMode": "Development mode — mocks active",
     "devCredentials": "admin@sgd.helisa.com · admin123",
     "footer": "SGD v0.1.0 — Helisa S.A.S",
+    "loginAttemptsWarning": "{{count}} of {{threshold}} failed attempts — a 30-second pause will apply at the limit.",
+    "loginLocked": "Too many failed attempts. Please wait {{seconds}} seconds before trying again.",
+    "loginLockedButton": "Paused ({{seconds}}s)",
+    "idleLogoutNotice": "Your session was automatically closed due to inactivity.",
     "forgotPasswordPage": {
       "title": "Recover password",
       "subtitle": "Enter your email address and we will send you a link to reset your password.",
@@ -265,6 +269,8 @@
       "USER_CREATED": "User created",
       "USER_UPDATED": "User updated",
       "USER_DELETED": "User deleted",
+      "USER_DISABLED": "User disabled",
+      "USER_ENABLED": "User enabled",
       "USER_RESTORED": "User restored",
       "USER_ORG_ASSIGNED": "User assigned to org",
       "USER_ORG_ROLE_UPDATED": "User org role updated",
@@ -909,6 +915,11 @@
       "selectOptionalReviewer": "Optional reviewer",
       "selectOptionalReviewerPlaceholder": "Select optional reviewer..."
     }
+  },
+  "session": {
+    "idleWarning": "Session expiring",
+    "idleWarningDescription": "Your session will close in 2 minutes due to inactivity.",
+    "stayLoggedIn": "Stay logged in"
   },
   "crash": {
     "title": "Something went wrong",
