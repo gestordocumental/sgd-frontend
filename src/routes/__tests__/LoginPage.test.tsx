@@ -85,12 +85,14 @@ const SUPER_ADMIN_JWT = fakeJwt({
   sub: 'u-admin',
   email: 'admin@test.com',
   isSuperAdmin: true,
+  exp: 9999999999,
 });
 
 const REGULAR_JWT = fakeJwt({
   sub: 'u-regular',
   email: 'user@test.com',
   isSuperAdmin: false,
+  exp: 9999999999,
 });
 
 const COMPANY_JWT = fakeJwt({
@@ -98,6 +100,7 @@ const COMPANY_JWT = fakeJwt({
   email: 'user@test.com',
   isSuperAdmin: false,
   companyId: 'company-1',
+  exp: 9999999999,
 });
 
 const server = setupServer(
