@@ -134,6 +134,7 @@ afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
   sessionStorage.clear();
+  localStorage.clear();
 });
 afterAll(() => server.close());
 

@@ -10,7 +10,15 @@ import type { JwtPayload } from '@/types/auth';
 function isJwtPayload(value: unknown): value is JwtPayload {
   if (typeof value !== 'object' || value === null) return false;
   const p = value as Record<string, unknown>;
-  return typeof p['sub'] === 'string' && p['sub'].length > 0 && typeof p['exp'] === 'number';
+  const sub = p['sub'];
+  const exp = p['exp'];
+  return (
+    typeof sub === 'string' &&
+    sub.trim().length > 0 &&
+    typeof exp === 'number' &&
+    Number.isFinite(exp) &&
+    exp > 0
+  );
 }
 
 export function decodeJwt(token: string): JwtPayload | null {

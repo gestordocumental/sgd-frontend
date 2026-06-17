@@ -36,7 +36,7 @@ describe('isExactlyOneIncrement', () => {
     // Edge cases
     ['v1.0', 'v1.0', false, 'same version is not an increment'],
     ['v0.9', 'v1.0', false, 'going backwards is not an increment'],
-  ] as const)('isExactlyOneIncrement(%s, %s) → %s (%s)', (newVer, oldVer, expected) => {
+  ] as const)('isExactlyOneIncrement(%s, %s) → %s (%s)', (newVer, oldVer, expected, _label) => {
     expect(isExactlyOneIncrement(newVer, oldVer)).toBe(expected);
   });
 
@@ -66,7 +66,7 @@ describe('versionGte (deprecated)', () => {
     ['0.9', '1.0', false, 'strictly less'],
     ['2', '1', true, 'integer comparison'],
     ['1.1.0', '1.0.9', true, 'minor wins over patch'],
-  ] as const)('versionGte(%s, %s) → %s (%s)', (a, b, expected) => {
+  ] as const)('versionGte(%s, %s) → %s (%s)', (a, b, expected, _label) => {
     expect(versionGte(a, b)).toBe(expected);
   });
 });

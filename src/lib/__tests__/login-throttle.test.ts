@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   readState,
   recordFailure,
@@ -76,15 +76,18 @@ describe('login-throttle', () => {
       expect(state.lockedUntil).toBe(0);
     });
 
-    it(`sets lockedUntil ~${LOCK_DURATION_MS / 1000}s ahead when count reaches ${FAIL_LOCK_THRESHOLD}`, () => {
+    it(`sets lockedUntil exactly ${LOCK_DURATION_MS / 1000}s ahead when count reaches ${FAIL_LOCK_THRESHOLD}`, () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
       for (let i = 0; i < FAIL_LOCK_THRESHOLD - 1; i++) recordFailure();
       const before = Date.now();
       const state = recordFailure();
-      const after = Date.now();
 
       expect(state.count).toBe(FAIL_LOCK_THRESHOLD);
-      expect(state.lockedUntil).toBeGreaterThanOrEqual(before + LOCK_DURATION_MS - 5);
-      expect(state.lockedUntil).toBeLessThanOrEqual(after + LOCK_DURATION_MS + 5);
+      expect(state.lockedUntil).toBe(before + LOCK_DURATION_MS);
+
+      vi.useRealTimers();
     });
 
     it('persists the new state to sessionStorage after each call', () => {

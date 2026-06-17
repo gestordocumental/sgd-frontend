@@ -142,11 +142,11 @@ export function AuditExportModal({
         ws.addRow(headers.map((h) => row[h as keyof typeof row]));
       }
       headers.forEach((key, i) => {
-        ws.getColumn(i + 1).width = Math.max(
-          key.length,
-          ...rows.map((r) => String(r[key as keyof typeof r] ?? '').length),
-          10,
-        );
+        const maxLen = rows.reduce((acc, r) => {
+          const len = String(r[key as keyof typeof r] ?? '').length;
+          return len > acc ? len : acc;
+        }, key.length);
+        ws.getColumn(i + 1).width = Math.max(maxLen, 10);
       });
 
       let filename: string;

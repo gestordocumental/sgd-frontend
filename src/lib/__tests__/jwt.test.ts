@@ -108,6 +108,10 @@ describe('isJwtPayload — structural validation', () => {
     expect(isJwtPayload({ ...VALID, sub: '' })).toBe(false);
   });
 
+  it('rejects payload where sub is a whitespace-only string', () => {
+    expect(isJwtPayload({ ...VALID, sub: '   ' })).toBe(false);
+  });
+
   // ── exp field ────────────────────────────────────────────────────────────
 
   it('rejects payload with missing exp — prevents treating token as perpetually valid', () => {
@@ -121,6 +125,19 @@ describe('isJwtPayload — structural validation', () => {
 
   it('rejects payload where exp is null', () => {
     expect(isJwtPayload({ ...VALID, exp: null })).toBe(false);
+  });
+
+  it('rejects payload where exp is Infinity — would bypass expiry check', () => {
+    expect(isJwtPayload({ ...VALID, exp: Number.POSITIVE_INFINITY })).toBe(false);
+  });
+
+  it('rejects payload where exp is NaN', () => {
+    expect(isJwtPayload({ ...VALID, exp: NaN })).toBe(false);
+  });
+
+  it('rejects payload where exp is 0 or negative — not a valid timestamp', () => {
+    expect(isJwtPayload({ ...VALID, exp: 0 })).toBe(false);
+    expect(isJwtPayload({ ...VALID, exp: -1 })).toBe(false);
   });
 
   // ── non-object inputs ────────────────────────────────────────────────────

@@ -34,11 +34,7 @@ function removeMockServiceWorker(): Plugin {
     name: 'remove-mock-service-worker',
     apply: 'build',
     closeBundle() {
-      try {
-        rmSync(path.resolve(__dirname, 'dist/mockServiceWorker.js'));
-      } catch {
-        // absent — nothing to remove
-      }
+      rmSync(path.resolve(__dirname, 'dist/mockServiceWorker.js'), { force: true });
     },
   };
 }

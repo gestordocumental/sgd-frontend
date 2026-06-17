@@ -155,7 +155,9 @@ function LoginPage() {
       const raw = error.response?.data?.message;
       const msg = Array.isArray(raw) ? raw[0] : (raw ?? t('auth.serverErrorFallback'));
       setServerError(msg);
-      trackFailure();
+      if (error.response?.status === 401) {
+        trackFailure();
+      }
     },
   });
 
