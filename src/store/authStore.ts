@@ -219,7 +219,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
             `${_baseURL()}/auth/exit-company`,
             undefined,
             {
-              timeout: 15000,
+              // 8 s — shorter than the default 15 s so the caller can show a
+              // recoverable error toast before the user gives up.
+              timeout: 8_000,
               withCredentials: true,
               headers: { ...(csrfToken && { 'x-csrf-token': csrfToken }) },
             },

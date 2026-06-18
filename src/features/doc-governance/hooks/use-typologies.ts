@@ -182,11 +182,19 @@ export function useTypologies(orgId: string, enabled = true) {
     queryFn: ({ signal }) =>
       typologiesApi.history(orgId, historyTypology!.datosDeclarados.codigo!, signal),
     enabled: enabled && !!orgId && !!historyTypology?.datosDeclarados.codigo,
-    staleTime: 0,
+    staleTime: 30_000,
   });
 
   // ── Invalidation ───────────────────────────────────────────────────────
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['typologies', orgId] });
+  // Clears the typology list AND the version history for this org so that
+  // re-opening the history dialog after a mutation always shows fresh data.
+  // history key prefix: ['typologies-history', orgId, <codigo>] → partial match
+  const invalidate = () => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['typologies-history', orgId] }),
+    ]);
+  };
 
   // ── Preview extract mutation (auto-fill fields when a file is selected) ─
   const previewExtractMutation = useMutation({

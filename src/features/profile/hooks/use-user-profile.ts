@@ -158,7 +158,17 @@ export function useUserProfile() {
   const switchToSuperAdmin = useCallback(async () => {
     const restored = await exitCompany();
     if (!restored) {
-      toast.error(t('profile.exitCompanyFailed'));
+      // Both recovery paths failed (in-memory token expired + /auth/exit-company
+      // unreachable).  Show a persistent error with an explicit reload action —
+      // page reload triggers a fresh silent-refresh cycle which should restore
+      // the super-admin token from the server-side session.
+      toast.error(t('profile.exitCompanyFailed'), {
+        duration: Infinity,
+        action: {
+          label: t('crash.reload'),
+          onClick: () => window.location.reload(),
+        },
+      });
       return;
     }
     // No longer in company context — the cached company list is no longer needed.

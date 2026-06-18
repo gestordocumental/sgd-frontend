@@ -86,7 +86,7 @@
     "myProfile": "Mi perfil",
     "switchContext": "Cambiar a",
     "changeAvatar": "Cambiar foto de perfil",
-    "exitCompanyFailed": "No se pudo restaurar la sesión de super-admin. Por favor, inicia sesión nuevamente.",
+    "exitCompanyFailed": "No se pudo restaurar la sesión de super-admin. Recarga la página para intentarlo de nuevo.",
     "sessionRevoked": {
       "unknownCompany": "la empresa",
       "switchToGlobal": "Fuiste removido de {{company}}. Regresando a la vista global.",
@@ -112,6 +112,10 @@
     "devMode": "Modo desarrollo — mocks activos",
     "devCredentials": "admin@sgd.helisa.com · admin123",
     "footer": "SGD v0.1.0 — Helisa S.A.S",
+    "loginAttemptsWarning": "{{count}} de {{threshold}} intentos fallidos — se aplicará una pausa de 30 s al llegar al límite.",
+    "loginLocked": "Demasiados intentos fallidos. Espera {{seconds}} segundos para volver a intentarlo.",
+    "loginLockedButton": "Pausado ({{seconds}}s)",
+    "idleLogoutNotice": "Tu sesión se cerró automáticamente por inactividad.",
     "forgotPasswordPage": {
       "title": "Recuperar contraseña",
       "subtitle": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
@@ -265,6 +269,8 @@
       "USER_CREATED": "Usuario creado",
       "USER_UPDATED": "Usuario actualizado",
       "USER_DELETED": "Usuario eliminado",
+      "USER_DISABLED": "Usuario deshabilitado",
+      "USER_ENABLED": "Usuario habilitado",
       "USER_RESTORED": "Usuario restaurado",
       "USER_ORG_ASSIGNED": "Usuario asignado a org",
       "USER_ORG_ROLE_UPDATED": "Rol de usuario actualizado",
@@ -909,6 +915,11 @@
       "selectOptionalReviewer": "Revisor opcional",
       "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional..."
     }
+  },
+  "session": {
+    "idleWarning": "Sesión por expirar",
+    "idleWarningDescription": "Por inactividad tu sesión se cerrará en 2 minutos.",
+    "stayLoggedIn": "Continuar sesión"
   },
   "crash": {
     "title": "Algo salió mal",

@@ -54,6 +54,32 @@ export default defineConfig({
           functions: 60,
           lines: 60,
         },
+        // Business-logic utilities — pure functions, no React deps
+        'src/features/audit/components/audit-table.utils.ts': {
+          statements: 90,
+          branches: 85,
+          functions: 90,
+          lines: 90,
+        },
+        'src/features/doc-governance/components/dialogs/typology-dialog-shared.ts': {
+          statements: 90,
+          branches: 85,
+          functions: 90,
+          lines: 90,
+        },
+        'src/features/workflows/hooks/workflow-schemas.ts': {
+          statements: 90,
+          branches: 85,
+          functions: 90,
+          lines: 90,
+        },
+        // Brute-force throttle — pure functions, no React deps
+        'src/lib/login-throttle.ts': {
+          statements: 90,
+          branches: 85,
+          functions: 90,
+          lines: 90,
+        },
       },
     },
   },
