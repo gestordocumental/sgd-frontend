@@ -252,6 +252,7 @@ El formulario de login lleva su propio contador de intentos fallidos en `session
 
 - **WARN_THRESHOLD = 3**: a partir del tercer intento fallido se muestra un aviso visible.
 - **FAIL_LOCK_THRESHOLD = 5**: al quinto intento consecutivo se bloquea el formulario 30 segundos.
+- Solo se registra un intento fallido cuando el servidor devuelve **401** (credenciales inválidas), no en otros errores de red o servidor.
 - El estado se saneea al leer de storage: tipos inválidos, valores negativos e `Infinity` se colapsan a cero para evitar manipulación externa.
 - `trackSuccess()` solo se llama cuando el login completó íntegramente (JWT válido decodificado + navegación exitosa), no en el primer 2xx de la respuesta.
 
@@ -275,6 +276,8 @@ El backend protege todos los endpoints de escritura con el patrón **Double-Subm
    3ª         Cookie sgd_csrf_token   Fallback si sessionStorage falla
    ```
 
+   El interceptor en `client.ts` lee en orden: primero intenta memoria, luego `sessionStorage`, finalmente la cookie. El backend compara el header `x-csrf-token` contra la cookie del request.
+
 2. En cada request `POST / PUT / PATCH / DELETE` autenticado el interceptor lee `getCsrfToken()` y lo adjunta como header `x-csrf-token`. El backend compara el header con la cookie — un atacante cross-origin puede disparar la cookie pero no puede leer ni inyectar el header.
 
 3. **Limpieza de cookie legada**: al cargar el módulo se expira el cookie `sgd_csrf_token` con `path=/api/v1/auth`. Versiones anteriores del backend lo emitían con esa ruta más específica; el browser lo enviaba junto al nuevo cookie de `path=/`, provocando un `401 Invalid CSRF token`. El `max-age=0` elimina el cookie viejo sin afectar el nuevo.
@@ -287,6 +290,11 @@ retryCondition: solo axiosRetry.isNetworkError()
 ```
 
 Los errores HTTP 5xx **no se reintentan** a nivel de Axios intencionalmente. React Query está configurado con `retry: 1` global — si Axios también reintentara los 5xx, una sola query fallida dispararía hasta 8 intentos y el usuario tardaría 2+ minutos en ver el error cuando el backend está lento pero alcanzable.
+
+**Resumen de capas de reintento:**
+
+- **Axios (`axiosRetry`)**: solo reintentos de errores de red (ECONNRESET, DNS, timeout de conexión). No actúa ante respuestas HTTP.
+- **React Query**: reintentos de queries fallidas configurados globalmente (`retry: 1`), manejando respuestas HTTP erróneas como 5xx.
 
 Los errores de red puros (ECONNRESET, DNS, timeout de conexión antes del `response`) sí se reintentan porque no llegan a React Query.
 
@@ -336,6 +344,8 @@ if (import.meta.env.VITE_USE_MOCKS === 'true') {
 ```
 
 `onUnhandledRequest: 'bypass'` significa que las peticiones que no tienen handler MSW pasan directamente al backend real. Esto permite activar los mocks para algunos dominios mientras se trabaja con endpoints reales en otros.
+
+**Alternativa:** `onUnhandledRequest: 'warn'` (predeterminado de MSW) emite un warning en consola en lugar de pasar la petición al backend, útil para detectar peticiones sin handler durante el desarrollo.
 
 ### Credenciales de prueba
 
@@ -509,6 +519,15 @@ Al importar el módulo, `hydrate()` lee `localStorage` y repuebla `user`, `isAut
 
 Antes de aplicar el token devuelto, `exitCompany` lo valida: debe ser token de super-admin (`isSuperAdmin: true`) sin `companyId`. Si la validación falla, devuelve `false` y el caller puede mostrar un error recuperable.
 
+**Ejemplo de manejo:**
+
+```ts
+const success = await exitCompany();
+if (!success) {
+  toast.error('No se pudo restaurar el contexto global. Por favor, recargue la página.');
+}
+```
+
 ### Sentry
 
 `setUser()` se llama en `setAuth` y `enterCompany` con `{ id, email, companyId }`. `setUser(null)` se llama en `clearAuth`. Esto asocia los errores de Sentry al usuario autenticado sin exponer el access token.
@@ -547,7 +566,7 @@ Los permisos son verificados en el cliente (**UI gating**) a través de `useMyPe
 
 ## CI/CD
 
-Hay dos workflows en `.github/workflows/`:
+Hay dos workflows en `.github/workflows/`: `ci.yml` valida el código antes del merge y ejecuta tests; `deploy.yml` se dispara tras un merge exitoso para desplegar en el entorno correspondiente.
 
 | Archivo      | Disparador                       | Propósito                         |
 | ------------ | -------------------------------- | --------------------------------- |
