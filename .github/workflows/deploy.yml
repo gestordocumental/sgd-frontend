@@ -62,4 +62,10 @@ jobs:
           VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
           VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        run: vercel deploy --prebuilt ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ALIAS: ${{ vars.VERCEL_ALIAS }}
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt ${{ github.ref_name == 'master' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Deployed to: $DEPLOYMENT_URL"
+          if [ -n "$VERCEL_ALIAS" ]; then
+            vercel alias set "$DEPLOYMENT_URL" "$VERCEL_ALIAS" --token=${{ secrets.VERCEL_TOKEN }}
+          fi
