@@ -65,15 +65,11 @@ export function isExactlyOneIncrement(newVer: string, oldVer: string): boolean {
  */
 export function getTypologyMismatchErrors(
   values: { nombre?: string; codigo?: string; version?: string },
-  existing: {
-    nombre: string | null | undefined;
-    codigo: string | null | undefined;
-    version: string | null | undefined;
-  },
+  existing: { nombre?: string; codigo?: string; version?: string },
   t: (key: string, opts?: Record<string, unknown>) => string,
-): Partial<Record<'nombre' | 'codigo' | 'version', string>> {
+): MismatchErrors {
   const normalize = (s: string) => s.trim().toLowerCase();
-  const errors: Partial<Record<'nombre' | 'codigo' | 'version', string>> = {};
+  const errors: MismatchErrors = {};
   if (values.nombre && existing.nombre && normalize(values.nombre) !== normalize(existing.nombre)) {
     errors.nombre = t('docGovernance.form.nombreMismatchError');
   }
@@ -88,6 +84,20 @@ export function getTypologyMismatchErrors(
     errors.version = t('docGovernance.form.versionIncrementError', { version: existing.version });
   }
   return errors;
+}
+
+type MismatchErrors = Partial<Record<'nombre' | 'codigo' | 'version', string>>;
+
+export function applyFieldErrors(
+  form: { setError: (field: 'nombre' | 'codigo' | 'version', error: { message: string }) => void },
+  errors: MismatchErrors,
+): void {
+  for (const [field, message] of Object.entries(errors) as [
+    'nombre' | 'codigo' | 'version',
+    string,
+  ][]) {
+    form.setError(field, { message });
+  }
 }
 
 // ── Schemas ────────────────────────────────────────────────────────────────
@@ -251,13 +261,16 @@ export function useTypologies(orgId: string, enabled = true) {
 
       // In edit mode: validate that the extracted values match the existing typology
       if (editTypology) {
-        const errors = getTypologyMismatchErrors(result, editTypology.datosDeclarados, t);
-        for (const [field, message] of Object.entries(errors) as [
-          'nombre' | 'codigo' | 'version',
-          string,
-        ][]) {
-          form.setError(field, { message });
-        }
+        const { nombre: rn, codigo: rc, version: rv } = result;
+        const { nombre: en, codigo: ec, version: ev } = editTypology.datosDeclarados;
+        applyFieldErrors(
+          form,
+          getTypologyMismatchErrors(
+            { nombre: rn ?? undefined, codigo: rc ?? undefined, version: rv ?? undefined },
+            { nombre: en ?? undefined, codigo: ec ?? undefined, version: ev ?? undefined },
+            t,
+          ),
+        );
       }
     },
   });

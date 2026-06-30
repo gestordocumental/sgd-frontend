@@ -10,7 +10,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
-import { getTypologyMismatchErrors } from '@/features/doc-governance/hooks/use-typologies';
+import {
+  getTypologyMismatchErrors,
+  applyFieldErrors,
+} from '@/features/doc-governance/hooks/use-typologies';
 import { type TypologiesHook } from './typology-dialog-shared';
 import { FilePicker } from './FilePicker';
 import { OrgStructureSelectors } from './OrgStructureSelectors';
@@ -46,13 +49,13 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
 
   const handleSubmit = form.handleSubmit((values) => {
     if (isEditing && editFile) {
-      const errors = getTypologyMismatchErrors(values, editTypology!.datosDeclarados, t);
-      for (const [field, message] of Object.entries(errors) as [
-        'nombre' | 'codigo' | 'version',
-        string,
-      ][]) {
-        form.setError(field, { message });
-      }
+      const { nombre: en, codigo: ec, version: ev } = editTypology!.datosDeclarados;
+      const errors = getTypologyMismatchErrors(
+        values,
+        { nombre: en ?? undefined, codigo: ec ?? undefined, version: ev ?? undefined },
+        t,
+      );
+      applyFieldErrors(form, errors);
       if (Object.keys(errors).length > 0) return;
       newVersionMutation.mutate({ dto: values, file: editFile });
     } else if (isEditing) {
