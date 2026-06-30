@@ -57,6 +57,35 @@ export function isExactlyOneIncrement(newVer: string, oldVer: string): boolean {
   return true;
 }
 
+/**
+ * Returns field-level error messages for nombre/codigo/version when the
+ * values extracted from a document don't match an existing typology.
+ * Used both right after extraction (for immediate feedback) and on submit
+ * (as a safety net), so the rules stay in sync between both layers.
+ */
+export function getTypologyMismatchErrors(
+  values: { nombre?: string; codigo?: string; version?: string },
+  existing: { nombre?: string | null; codigo?: string | null; version?: string | null },
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): Partial<Record<'nombre' | 'codigo' | 'version', string>> {
+  const normalize = (s: string) => s.trim().toLowerCase();
+  const errors: Partial<Record<'nombre' | 'codigo' | 'version', string>> = {};
+  if (values.nombre && existing.nombre && normalize(values.nombre) !== normalize(existing.nombre)) {
+    errors.nombre = t('docGovernance.form.nombreMismatchError');
+  }
+  if (values.codigo && existing.codigo && normalize(values.codigo) !== normalize(existing.codigo)) {
+    errors.codigo = t('docGovernance.form.codigoMismatchError');
+  }
+  if (
+    values.version &&
+    existing.version &&
+    !isExactlyOneIncrement(values.version, existing.version)
+  ) {
+    errors.version = t('docGovernance.form.versionIncrementError', { version: existing.version });
+  }
+  return errors;
+}
+
 // ── Schemas ────────────────────────────────────────────────────────────────
 
 const typologySchema = z.object({
@@ -218,21 +247,12 @@ export function useTypologies(orgId: string, enabled = true) {
 
       // In edit mode: validate that the extracted values match the existing typology
       if (editTypology) {
-        const existing = editTypology.datosDeclarados;
-        if (result.nombre && existing.nombre && result.nombre !== existing.nombre) {
-          form.setError('nombre', { message: t('docGovernance.form.nombreMismatchError') });
-        }
-        if (result.codigo && existing.codigo && result.codigo !== existing.codigo) {
-          form.setError('codigo', { message: t('docGovernance.form.codigoMismatchError') });
-        }
-        if (
-          result.version &&
-          existing.version &&
-          !isExactlyOneIncrement(result.version, existing.version)
-        ) {
-          form.setError('version', {
-            message: t('docGovernance.form.versionIncrementError', { version: existing.version }),
-          });
+        const errors = getTypologyMismatchErrors(result, editTypology.datosDeclarados, t);
+        for (const [field, message] of Object.entries(errors) as [
+          'nombre' | 'codigo' | 'version',
+          string,
+        ][]) {
+          form.setError(field, { message });
         }
       }
     },
@@ -380,7 +400,14 @@ export function useTypologies(orgId: string, enabled = true) {
 
   // ── Helpers ────────────────────────────────────────────────────────────
   const resetForm = () => {
-    form.reset();
+    form.reset({
+      departamentoId: '',
+      areaId: '',
+      cargoId: '',
+      nombre: '',
+      codigo: '',
+      version: '',
+    });
     setFormDeptId('');
     setFormAreaId('');
   };

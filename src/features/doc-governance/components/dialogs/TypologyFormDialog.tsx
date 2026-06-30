@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
-import { isExactlyOneIncrement } from '@/features/doc-governance/hooks/use-typologies';
+import { getTypologyMismatchErrors } from '@/features/doc-governance/hooks/use-typologies';
 import { type TypologiesHook } from './typology-dialog-shared';
 import { FilePicker } from './FilePicker';
 import { OrgStructureSelectors } from './OrgStructureSelectors';
@@ -46,21 +46,14 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
 
   const handleSubmit = form.handleSubmit((values) => {
     if (isEditing && editFile) {
-      let hasError = false;
-      const existingNombre = editTypology!.datosDeclarados.nombre ?? '';
-      if (values.nombre && existingNombre && values.nombre !== existingNombre) {
-        form.setError('nombre', { message: t('docGovernance.form.nombreMismatchError') });
-        hasError = true;
+      const errors = getTypologyMismatchErrors(values, editTypology!.datosDeclarados, t);
+      for (const [field, message] of Object.entries(errors) as [
+        'nombre' | 'codigo' | 'version',
+        string,
+      ][]) {
+        form.setError(field, { message });
       }
-      if (currentVersion && values.version) {
-        if (!isExactlyOneIncrement(values.version, currentVersion)) {
-          form.setError('version', {
-            message: t('docGovernance.form.versionIncrementError', { version: currentVersion }),
-          });
-          hasError = true;
-        }
-      }
-      if (hasError) return;
+      if (Object.keys(errors).length > 0) return;
       newVersionMutation.mutate({ dto: values, file: editFile });
     } else if (isEditing) {
       editMutation.mutate(values);
@@ -192,9 +185,9 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
                     previewExtractMutation.reset();
                     const existing = editTypology!.datosDeclarados;
                     form.clearErrors(['nombre', 'codigo', 'version']);
-                    form.setValue('nombre', existing.nombre ?? '');
-                    form.setValue('codigo', existing.codigo ?? '');
-                    form.setValue('version', existing.version ?? '');
+                    form.setValue('nombre', existing.nombre ?? '', { shouldValidate: true });
+                    form.setValue('codigo', existing.codigo ?? '', { shouldValidate: true });
+                    form.setValue('version', existing.version ?? '', { shouldValidate: true });
                   }}
                 />
                 {extracting && (
