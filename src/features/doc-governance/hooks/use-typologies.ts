@@ -57,6 +57,49 @@ export function isExactlyOneIncrement(newVer: string, oldVer: string): boolean {
   return true;
 }
 
+/**
+ * Returns field-level error messages for nombre/codigo/version when the
+ * values extracted from a document don't match an existing typology.
+ * Used both right after extraction (for immediate feedback) and on submit
+ * (as a safety net), so the rules stay in sync between both layers.
+ */
+export function getTypologyMismatchErrors(
+  values: { nombre?: string; codigo?: string; version?: string },
+  existing: { nombre?: string; codigo?: string; version?: string },
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): MismatchErrors {
+  const normalize = (s: string) => s.trim().toLowerCase();
+  const errors: MismatchErrors = {};
+  if (values.nombre && existing.nombre && normalize(values.nombre) !== normalize(existing.nombre)) {
+    errors.nombre = t('docGovernance.form.nombreMismatchError');
+  }
+  if (values.codigo && existing.codigo && normalize(values.codigo) !== normalize(existing.codigo)) {
+    errors.codigo = t('docGovernance.form.codigoMismatchError');
+  }
+  if (
+    values.version &&
+    existing.version &&
+    !isExactlyOneIncrement(values.version, existing.version)
+  ) {
+    errors.version = t('docGovernance.form.versionIncrementError', { version: existing.version });
+  }
+  return errors;
+}
+
+type MismatchErrors = Partial<Record<'nombre' | 'codigo' | 'version', string>>;
+
+export function applyFieldErrors(
+  form: { setError: (field: 'nombre' | 'codigo' | 'version', error: { message: string }) => void },
+  errors: MismatchErrors,
+): void {
+  for (const [field, message] of Object.entries(errors) as [
+    'nombre' | 'codigo' | 'version',
+    string,
+  ][]) {
+    form.setError(field, { message });
+  }
+}
+
 // ── Schemas ────────────────────────────────────────────────────────────────
 
 const typologySchema = z.object({
@@ -202,10 +245,33 @@ export function useTypologies(orgId: string, enabled = true) {
     onSuccess: (result, file) => {
       // Discard stale results: if the dialog closed or the user selected a
       // different file before this response arrived, do not pollute the form.
-      if (!createOpen || file !== createFile) return;
+      if (createOpen) {
+        if (file !== createFile) return;
+      } else if (editTypology) {
+        if (file !== editFile) return;
+      } else {
+        return;
+      }
+
+      form.clearErrors(['nombre', 'codigo', 'version']);
+
       if (result.nombre) form.setValue('nombre', result.nombre, { shouldValidate: true });
       if (result.codigo) form.setValue('codigo', result.codigo, { shouldValidate: true });
       if (result.version) form.setValue('version', result.version, { shouldValidate: true });
+
+      // In edit mode: validate that the extracted values match the existing typology
+      if (editTypology) {
+        const { nombre: rn, codigo: rc, version: rv } = result;
+        const { nombre: en, codigo: ec, version: ev } = editTypology.datosDeclarados;
+        applyFieldErrors(
+          form,
+          getTypologyMismatchErrors(
+            { nombre: rn ?? undefined, codigo: rc ?? undefined, version: rv ?? undefined },
+            { nombre: en ?? undefined, codigo: ec ?? undefined, version: ev ?? undefined },
+            t,
+          ),
+        );
+      }
     },
   });
 
@@ -351,7 +417,14 @@ export function useTypologies(orgId: string, enabled = true) {
 
   // ── Helpers ────────────────────────────────────────────────────────────
   const resetForm = () => {
-    form.reset();
+    form.reset({
+      departamentoId: '',
+      areaId: '',
+      cargoId: '',
+      nombre: '',
+      codigo: '',
+      version: '',
+    });
     setFormDeptId('');
     setFormAreaId('');
   };
