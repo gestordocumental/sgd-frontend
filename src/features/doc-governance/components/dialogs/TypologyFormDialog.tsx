@@ -1,22 +1,22 @@
-import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { FormField } from '@/components/ui/form-field'
-import { isExactlyOneIncrement } from '@/features/doc-governance/hooks/use-typologies'
-import { type TypologiesHook } from './typology-dialog-shared'
-import { FilePicker } from './FilePicker'
-import { OrgStructureSelectors } from './OrgStructureSelectors'
+} from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import { isExactlyOneIncrement } from '@/features/doc-governance/hooks/use-typologies';
+import { type TypologiesHook } from './typology-dialog-shared';
+import { FilePicker } from './FilePicker';
+import { OrgStructureSelectors } from './OrgStructureSelectors';
 
 export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const {
     form,
     createOpen,
@@ -33,44 +33,56 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
     uploadMutation,
     previewExtractMutation,
     extracting,
-  } = hook
+  } = hook;
 
-  const isEditing      = !!editTypology
-  const open           = createOpen || isEditing
-  const currentVersion = editTypology?.datosDeclarados.version ?? null
+  const isEditing = !!editTypology;
+  const open = createOpen || isEditing;
+  const currentVersion = editTypology?.datosDeclarados.version ?? null;
   const pending =
     createMutation.isPending ||
     editMutation.isPending ||
     newVersionMutation.isPending ||
-    uploadMutation.isPending
+    uploadMutation.isPending;
 
   const handleSubmit = form.handleSubmit((values) => {
     if (isEditing && editFile) {
+      let hasError = false;
+      const existingNombre = editTypology!.datosDeclarados.nombre ?? '';
+      if (values.nombre && existingNombre && values.nombre !== existingNombre) {
+        form.setError('nombre', { message: t('docGovernance.form.nombreMismatchError') });
+        hasError = true;
+      }
       if (currentVersion && values.version) {
         if (!isExactlyOneIncrement(values.version, currentVersion)) {
           form.setError('version', {
             message: t('docGovernance.form.versionIncrementError', { version: currentVersion }),
-          })
-          return
+          });
+          hasError = true;
         }
       }
-      newVersionMutation.mutate({ dto: values, file: editFile })
+      if (hasError) return;
+      newVersionMutation.mutate({ dto: values, file: editFile });
     } else if (isEditing) {
-      editMutation.mutate(values)
+      editMutation.mutate(values);
     } else {
-      createMutation.mutate(values)
+      createMutation.mutate(values);
     }
-  })
+  });
 
   const closeForm = () => {
-    setCreateOpen(false)
-    setEditTypology(null)
-    setCreateFile(null)
-    setEditFile(null)
-  }
+    setCreateOpen(false);
+    setEditTypology(null);
+    setCreateFile(null);
+    setEditFile(null);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) closeForm() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) closeForm();
+      }}
+    >
       <DialogContent className="w-full max-w-[95vw] sm:max-w-xl flex flex-col max-h-[90vh]">
         <DialogHeader className="shrink-0">
           <DialogTitle>
@@ -78,7 +90,10 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 pt-2 overflow-y-auto min-h-0 pr-1">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 pt-2 overflow-y-auto min-h-0 pr-1"
+        >
           <OrgStructureSelectors hook={hook} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -134,8 +149,14 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
               <>
                 <FilePicker
                   file={createFile}
-                  onChange={(f) => { setCreateFile(f); previewExtractMutation.mutate(f) }}
-                  onClear={() => { setCreateFile(null); previewExtractMutation.reset() }}
+                  onChange={(f) => {
+                    setCreateFile(f);
+                    previewExtractMutation.mutate(f);
+                  }}
+                  onClear={() => {
+                    setCreateFile(null);
+                    previewExtractMutation.reset();
+                  }}
                 />
                 {extracting && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -153,15 +174,28 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
                 extracting
                   ? undefined
                   : editFile
-                    ? t('docGovernance.form.editDocumentHintAfterSelect', { version: currentVersion ?? '—' })
+                    ? t('docGovernance.form.editDocumentHintAfterSelect', {
+                        version: currentVersion ?? '—',
+                      })
                     : t('docGovernance.form.editDocumentHintBeforeSelect')
               }
             >
               <>
                 <FilePicker
                   file={editFile}
-                  onChange={(f) => { setEditFile(f); previewExtractMutation.mutate(f) }}
-                  onClear={() => { setEditFile(null); previewExtractMutation.reset() }}
+                  onChange={(f) => {
+                    setEditFile(f);
+                    previewExtractMutation.mutate(f);
+                  }}
+                  onClear={() => {
+                    setEditFile(null);
+                    previewExtractMutation.reset();
+                    const existing = editTypology!.datosDeclarados;
+                    form.clearErrors(['nombre', 'codigo', 'version']);
+                    form.setValue('nombre', existing.nombre ?? '');
+                    form.setValue('codigo', existing.codigo ?? '');
+                    form.setValue('version', existing.version ?? '');
+                  }}
                 />
                 {extracting && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -174,9 +208,7 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
           )}
 
           {form.formState.errors.root && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.root.message}
-            </p>
+            <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
           )}
 
           <DialogFooter className="pt-2 shrink-0">
@@ -200,5 +232,5 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

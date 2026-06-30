@@ -678,6 +678,8 @@
       "editDocumentHintBeforeSelect": "Attach a file to create a new version and re-extract metadata automatically.",
       "extracting": "Extracting document information…",
       "versionIncrementError": "Version must be incremented by exactly one unit from the current version ({{version}})",
+      "nombreMismatchError": "The document name does not match this typology",
+      "codigoMismatchError": "The document code does not match this typology",
       "createNewVersion": "Create new version",
       "creatingNewVersion": "Creating new version…",
       "saving": "Saving…",

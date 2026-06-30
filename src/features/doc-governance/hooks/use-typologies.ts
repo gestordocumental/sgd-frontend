@@ -202,10 +202,39 @@ export function useTypologies(orgId: string, enabled = true) {
     onSuccess: (result, file) => {
       // Discard stale results: if the dialog closed or the user selected a
       // different file before this response arrived, do not pollute the form.
-      if (!createOpen || file !== createFile) return;
+      if (createOpen) {
+        if (file !== createFile) return;
+      } else if (editTypology) {
+        if (file !== editFile) return;
+      } else {
+        return;
+      }
+
+      form.clearErrors(['nombre', 'codigo', 'version']);
+
       if (result.nombre) form.setValue('nombre', result.nombre, { shouldValidate: true });
       if (result.codigo) form.setValue('codigo', result.codigo, { shouldValidate: true });
       if (result.version) form.setValue('version', result.version, { shouldValidate: true });
+
+      // In edit mode: validate that the extracted values match the existing typology
+      if (editTypology) {
+        const existing = editTypology.datosDeclarados;
+        if (result.nombre && existing.nombre && result.nombre !== existing.nombre) {
+          form.setError('nombre', { message: t('docGovernance.form.nombreMismatchError') });
+        }
+        if (result.codigo && existing.codigo && result.codigo !== existing.codigo) {
+          form.setError('codigo', { message: t('docGovernance.form.codigoMismatchError') });
+        }
+        if (
+          result.version &&
+          existing.version &&
+          !isExactlyOneIncrement(result.version, existing.version)
+        ) {
+          form.setError('version', {
+            message: t('docGovernance.form.versionIncrementError', { version: existing.version }),
+          });
+        }
+      }
     },
   });
 
