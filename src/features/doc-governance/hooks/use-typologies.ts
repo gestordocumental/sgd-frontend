@@ -65,7 +65,11 @@ export function isExactlyOneIncrement(newVer: string, oldVer: string): boolean {
  */
 export function getTypologyMismatchErrors(
   values: { nombre?: string; codigo?: string; version?: string },
-  existing: { nombre?: string | null; codigo?: string | null; version?: string | null },
+  existing: {
+    nombre: string | null | undefined;
+    codigo: string | null | undefined;
+    version: string | null | undefined;
+  },
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): Partial<Record<'nombre' | 'codigo' | 'version', string>> {
   const normalize = (s: string) => s.trim().toLowerCase();
