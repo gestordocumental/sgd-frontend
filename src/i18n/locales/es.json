@@ -678,6 +678,8 @@
       "editDocumentHintBeforeSelect": "Adjunta un archivo para crear una nueva versión y re-extraer la metadata automáticamente.",
       "extracting": "Extrayendo información del documento…",
       "versionIncrementError": "Debe incrementarse en exactamente una unidad respecto a la versión actual ({{version}})",
+      "nombreMismatchError": "El nombre del documento no coincide con el de esta tipología",
+      "codigoMismatchError": "El código del documento no coincide con el de esta tipología",
       "createNewVersion": "Crear nueva versión",
       "creatingNewVersion": "Creando nueva versión…",
       "saving": "Guardando…",
