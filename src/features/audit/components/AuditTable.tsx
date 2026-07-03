@@ -95,6 +95,16 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
     to: isoToLocal(filters.to),
   });
 
+  const emptyDraft = {
+    action: '',
+    resourceType: '',
+    actorId: '',
+    resourceId: '',
+    correlationId: '',
+    from: '',
+    to: '',
+  };
+
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const hasFilters = Object.values(filters).some(Boolean);
 
@@ -112,15 +122,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
   }
 
   function handleClear() {
-    setDraft({
-      action: '',
-      resourceType: '',
-      actorId: '',
-      resourceId: '',
-      correlationId: '',
-      from: '',
-      to: '',
-    });
+    setDraft(emptyDraft);
     clearFilters();
   }
 
@@ -383,16 +385,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   title={t('audit.detail.filterByCorrelation')}
                                   aria-label={t('audit.detail.filterByCorrelation')}
                                   onClick={() => {
-                                    const correlationOnly = {
-                                      action: '',
-                                      resourceType: '',
-                                      actorId: '',
-                                      resourceId: '',
-                                      correlationId: log.correlationId!,
-                                      from: '',
-                                      to: '',
-                                    };
-                                    setDraft(correlationOnly);
+                                    setDraft({ ...emptyDraft, correlationId: log.correlationId! });
                                     applyFilters({ correlationId: log.correlationId! });
                                   }}
                                 >
@@ -472,15 +465,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
           open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           onFilterByCorrelation={(correlationId) => {
-            setDraft({
-              action: '',
-              resourceType: '',
-              actorId: '',
-              resourceId: '',
-              correlationId,
-              from: '',
-              to: '',
-            });
+            setDraft({ ...emptyDraft, correlationId });
             applyFilters({ correlationId });
           }}
         />
