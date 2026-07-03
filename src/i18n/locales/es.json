@@ -253,7 +253,9 @@
       "to": "Hasta",
       "all": "Todos",
       "correlationId": "ID de correlación",
-      "correlationIdPlaceholder": "Pega un ID de correlación..."
+      "correlationIdPlaceholder": "Pega un ID de correlación...",
+      "resourceId": "ID de recurso",
+      "resourceIdPlaceholder": "Pega un ID de recurso (tipología, workflow…)"
     },
     "columns": {
       "timestamp": "Fecha y hora",
@@ -653,7 +655,8 @@
       "uploadDocument": "Cargar documento",
       "extractionFailed": "No se pudo extraer la información del documento",
       "retryExtraction": "Reintentar extracción",
-      "newTypology": "Nueva tipología"
+      "newTypology": "Nueva tipología",
+      "resourceId": "ID de recurso"
     },
     "form": {
       "createTitle": "Nueva tipología",

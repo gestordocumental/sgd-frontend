@@ -89,10 +89,21 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
     action: filters.action ?? '',
     resourceType: filters.resourceType ?? '',
     actorId: filters.actorId ?? '',
+    resourceId: filters.resourceId ?? '',
     correlationId: filters.correlationId ?? '',
     from: isoToLocal(filters.from),
     to: isoToLocal(filters.to),
   });
+
+  const emptyDraft = {
+    action: '',
+    resourceType: '',
+    actorId: '',
+    resourceId: '',
+    correlationId: '',
+    from: '',
+    to: '',
+  };
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const hasFilters = Object.values(filters).some(Boolean);
@@ -103,6 +114,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
       action: draft.action || undefined,
       resourceType: draft.resourceType || undefined,
       actorId: draft.actorId || undefined,
+      resourceId: draft.resourceId || undefined,
       correlationId: draft.correlationId || undefined,
       from: draft.from ? new Date(draft.from).toISOString() : undefined,
       to: draft.to ? new Date(draft.to).toISOString() : undefined,
@@ -110,7 +122,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
   }
 
   function handleClear() {
-    setDraft({ action: '', resourceType: '', actorId: '', correlationId: '', from: '', to: '' });
+    setDraft(emptyDraft);
     clearFilters();
   }
 
@@ -202,6 +214,18 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
               </option>
             ))}
           </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="audit-filter-resource-id" className="text-xs text-muted-foreground">
+            {t('audit.filters.resourceId')}
+          </label>
+          <Input
+            id="audit-filter-resource-id"
+            className="h-8 w-72 text-xs font-mono"
+            placeholder={t('audit.filters.resourceIdPlaceholder')}
+            value={draft.resourceId}
+            onChange={(e) => setDraft((d) => ({ ...d, resourceId: e.target.value }))}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="audit-filter-correlation-id" className="text-xs text-muted-foreground">
@@ -361,15 +385,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   title={t('audit.detail.filterByCorrelation')}
                                   aria-label={t('audit.detail.filterByCorrelation')}
                                   onClick={() => {
-                                    const correlationOnly = {
-                                      action: '',
-                                      resourceType: '',
-                                      actorId: '',
-                                      correlationId: log.correlationId!,
-                                      from: '',
-                                      to: '',
-                                    };
-                                    setDraft(correlationOnly);
+                                    setDraft({ ...emptyDraft, correlationId: log.correlationId! });
                                     applyFilters({ correlationId: log.correlationId! });
                                   }}
                                 >
@@ -449,14 +465,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
           open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           onFilterByCorrelation={(correlationId) => {
-            setDraft({
-              action: '',
-              resourceType: '',
-              actorId: '',
-              correlationId,
-              from: '',
-              to: '',
-            });
+            setDraft({ ...emptyDraft, correlationId });
             applyFilters({ correlationId });
           }}
         />

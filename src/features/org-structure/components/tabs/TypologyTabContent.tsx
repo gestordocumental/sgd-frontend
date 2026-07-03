@@ -140,7 +140,7 @@ export function TypologyTabContent({ typologiesHook, canWrite = false }: Typolog
                   <TableHead>{t('docGovernance.table.areaPosition')}</TableHead>
                   <TableHead>{t('docGovernance.table.status')}</TableHead>
                   <TableHead>{t('docGovernance.table.extraction')}</TableHead>
-                  <TableHead>{t('audit.columns.correlationId')}</TableHead>
+                  <TableHead>{t('docGovernance.table.resourceId')}</TableHead>
                   <TableHead className="w-28 text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>

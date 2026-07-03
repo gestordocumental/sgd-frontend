@@ -253,7 +253,9 @@
       "to": "To",
       "all": "All",
       "correlationId": "Correlation ID",
-      "correlationIdPlaceholder": "Paste a correlation ID..."
+      "correlationIdPlaceholder": "Paste a correlation ID...",
+      "resourceId": "Resource ID",
+      "resourceIdPlaceholder": "Paste a resource ID (typology, workflow…)"
     },
     "columns": {
       "timestamp": "Timestamp",
@@ -653,7 +655,8 @@
       "uploadDocument": "Upload document",
       "extractionFailed": "Could not extract information from the document",
       "retryExtraction": "Retry extraction",
-      "newTypology": "New typology"
+      "newTypology": "New typology",
+      "resourceId": "Resource ID"
     },
     "form": {
       "createTitle": "New typology",
