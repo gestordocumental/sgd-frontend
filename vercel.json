@@ -1,0 +1,28 @@
+{
+  "routes": [
+    {
+      "src": "/(.*)",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.ingest.sentry.io; img-src 'self' data: https://*.r2.cloudflarestorage.com https://*.r2.dev; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), accelerometer=(), gyroscope=()"
+      },
+      "continue": true
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "${RAILWAY_API_URL}/api/$1",
+      "env": ["RAILWAY_API_URL"]
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

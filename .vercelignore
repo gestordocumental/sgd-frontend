@@ -1,0 +1,2 @@
+# MSW service worker — needed locally for mocked API dev, must not ship to prod
+public/mockServiceWorker.js
