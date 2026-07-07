@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { authApi } from '@/lib/api/auth';
+import { resolveApiError } from '@/lib/utils/api-error';
 import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 import { loginSchema, type LoginFormValues } from '@/lib/validations/schemas';
@@ -152,10 +153,9 @@ function LoginPage() {
       trackSuccess();
       navigate({ to: '/dashboard' });
     },
-    onError: (error: AxiosError<{ message: string | string[] }>) => {
-      const raw = error.response?.data?.message;
-      const msg = Array.isArray(raw) ? raw[0] : (raw ?? t('auth.serverErrorFallback'));
-      setServerError(msg);
+    onError: (error: AxiosError<{ message: string | string[]; errorCode?: string }>) => {
+      const fallback = t('auth.serverErrorFallback');
+      setServerError(resolveApiError(error, t, fallback) ?? fallback);
       if (error.response?.status === 401) {
         trackFailure();
       }

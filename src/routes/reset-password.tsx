@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { authApi } from '@/lib/api/auth';
+import { resolveApiError } from '@/lib/utils/api-error';
 import { newPasswordField } from '@/lib/validations/schemas';
 
 // ── Route ────────────────────────────────────────────────────────────────────
@@ -60,12 +61,9 @@ function ResetPasswordPage() {
   const { mutate: resetPwd, isPending } = useMutation({
     mutationFn: (values: FormValues) => authApi.resetPassword(token!, values.password),
     onSuccess: () => setSuccess(true),
-    onError: (error: AxiosError<{ message: string | string[] }>) => {
-      const raw = error.response?.data?.message;
-      const msg = Array.isArray(raw)
-        ? raw[0]
-        : (raw ?? t('auth.resetPasswordPage.serverErrorFallback'));
-      setServerError(msg);
+    onError: (error: AxiosError<{ message: string | string[]; errorCode?: string }>) => {
+      const fallback = t('auth.resetPasswordPage.serverErrorFallback');
+      setServerError(resolveApiError(error, t, fallback) ?? fallback);
     },
   });
 

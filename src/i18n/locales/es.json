@@ -123,7 +123,7 @@
       "backToSignIn": "Volver al inicio de sesión",
       "serverErrorFallback": "Error al enviar el correo. Por favor intenta de nuevo.",
       "success": {
-        "title": "¡Correo enviado!",
+        "title": "Revisa tu correo",
         "description": "Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos. Revisa también tu carpeta de spam.",
         "goToSignIn": "Ir al inicio de sesión"
       }
@@ -992,6 +992,29 @@
     }
   },
   "errors": {
-    "FILE_CONTENT_MISMATCH": "El contenido del archivo no coincide con el formato declarado. Verifique que el archivo sea realmente un PDF, DOCX, XLSX o imagen válida."
+    "FILE_CONTENT_MISMATCH": "El contenido del archivo no coincide con el formato declarado. Verifique que el archivo sea realmente un PDF, DOCX, XLSX o imagen válida.",
+    "MALWARE_DETECTED": "El archivo fue rechazado: se detectó una amenaza de seguridad.",
+    "INVALID_CREDENTIALS": "Correo electrónico o contraseña incorrectos.",
+    "ACCOUNT_LOCKED": "Cuenta bloqueada temporalmente por demasiados intentos fallidos. Intente nuevamente más tarde.",
+    "RESET_TOKEN_INVALID": "El enlace para restablecer la contraseña es inválido o ha expirado.",
+    "INVITATION_TOKEN_INVALID": "El enlace de invitación es inválido o ha expirado.",
+    "REGISTRATION_DATA_INVALID": "Los datos de registro no son válidos.",
+    "REGISTRATION_FAILED": "No se pudo completar el registro. Intente nuevamente.",
+    "DEPARTMENT_ALREADY_EXISTS": "El departamento \"{{name}}\" ya existe en esta organización.",
+    "DEPARTMENT_NOT_FOUND": "El departamento no fue encontrado.",
+    "AREA_ALREADY_EXISTS": "El área \"{{name}}\" ya existe en este departamento.",
+    "AREA_NOT_FOUND": "El área no fue encontrada.",
+    "CARGO_ALREADY_EXISTS_IN_AREA": "El cargo \"{{name}}\" ya existe en esta área.",
+    "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "El cargo \"{{name}}\" ya existe en este departamento.",
+    "CARGO_NOT_FOUND": "El cargo no fue encontrado.",
+    "TYPOLOGY_CODE_ALREADY_EXISTS": "Ya existe una tipología activa con el código \"{{codigo}}\" en esta organización. Solo se permite una tipología activa por código.",
+    "TYPOLOGY_NOT_FOUND": "La tipología no fue encontrada.",
+    "TYPOLOGY_INVALID_ID": "El identificador de la tipología no es válido.",
+    "TYPOLOGY_VERSION_INVALID": "La nueva versión ({{newVersion}}) debe ser igual o exactamente un incremento sobre la versión actual ({{oldVersion}}).",
+    "TYPOLOGY_NO_PENDING_ACTION": "No hay una discrepancia o confirmación pendiente para esta tipología.",
+    "USER_PREVIOUSLY_DELETED": "Este usuario fue eliminado previamente. Use la opción de restaurar para reactivarlo.",
+    "USER_ALREADY_IN_ANOTHER_ORG": "Ya existe un usuario con este correo electrónico en otra organización.",
+    "USER_ALREADY_EXISTS": "Ya existe un usuario con este correo electrónico.",
+    "ROLE_NOT_FOUND": "El rol seleccionado no fue encontrado."
   }
 }

@@ -123,7 +123,7 @@
       "backToSignIn": "Back to sign in",
       "serverErrorFallback": "Error sending the email. Please try again.",
       "success": {
-        "title": "Email sent!",
+        "title": "Check your email",
         "description": "If your email is registered, you will receive a reset link within the next few minutes. Check your spam folder too.",
         "goToSignIn": "Go to sign in"
       }
@@ -992,6 +992,29 @@
     }
   },
   "errors": {
-    "FILE_CONTENT_MISMATCH": "The file content does not match the declared format. Make sure the file is a valid PDF, DOCX, XLSX or image."
+    "FILE_CONTENT_MISMATCH": "The file content does not match the declared format. Make sure the file is a valid PDF, DOCX, XLSX or image.",
+    "MALWARE_DETECTED": "The file was rejected: a security threat was detected.",
+    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "ACCOUNT_LOCKED": "Account temporarily locked due to too many failed attempts. Please try again later.",
+    "RESET_TOKEN_INVALID": "The password reset link is invalid or has expired.",
+    "INVITATION_TOKEN_INVALID": "The invitation link is invalid or has expired.",
+    "REGISTRATION_DATA_INVALID": "The registration data is invalid.",
+    "REGISTRATION_FAILED": "Registration could not be completed. Please try again.",
+    "DEPARTMENT_ALREADY_EXISTS": "The department \"{{name}}\" already exists in this organization.",
+    "DEPARTMENT_NOT_FOUND": "The department was not found.",
+    "AREA_ALREADY_EXISTS": "The area \"{{name}}\" already exists in this department.",
+    "AREA_NOT_FOUND": "The area was not found.",
+    "CARGO_ALREADY_EXISTS_IN_AREA": "The position \"{{name}}\" already exists in this area.",
+    "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "The position \"{{name}}\" already exists in this department.",
+    "CARGO_NOT_FOUND": "The position was not found.",
+    "TYPOLOGY_CODE_ALREADY_EXISTS": "An active typology with code \"{{codigo}}\" already exists in this organization. Only one active typology per code is allowed.",
+    "TYPOLOGY_NOT_FOUND": "The typology was not found.",
+    "TYPOLOGY_INVALID_ID": "The typology identifier is not valid.",
+    "TYPOLOGY_VERSION_INVALID": "The new version ({{newVersion}}) must be equal to or exactly one increment above the current version ({{oldVersion}}).",
+    "TYPOLOGY_NO_PENDING_ACTION": "There is no pending discrepancy or confirmation for this typology.",
+    "USER_PREVIOUSLY_DELETED": "This user was previously deleted. Use the restore option to reactivate them.",
+    "USER_ALREADY_IN_ANOTHER_ORG": "A user with this email already exists in another organization.",
+    "USER_ALREADY_EXISTS": "A user with this email already exists.",
+    "ROLE_NOT_FOUND": "The selected role was not found."
   }
 }

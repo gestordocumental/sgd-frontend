@@ -19,7 +19,7 @@ import {
 } from './audit-table.utils';
 
 const MAX_LIMIT_OPTIONS = [500, 1000, 2500, 5000];
-const CORRELATION_PAGE_SIZE = 500;
+const CORRELATION_EXPORT_LIMIT = 5000;
 
 interface AuditExportModalProps {
   open: boolean;
@@ -63,21 +63,12 @@ export function AuditExportModal({
   const trimmedCorrelationId = correlationId.trim();
   const byCorrelation = !!trimmedCorrelationId;
 
-  async function fetchAllByCorrelation(corrId: string): Promise<AuditLogEntry[]> {
-    const all: AuditLogEntry[] = [];
-    let currentPage = 1;
-    while (true) {
-      const result = await auditApi.getLogs({
-        correlationId: corrId,
-        orgId: companyId || undefined,
-        page: currentPage,
-        limit: CORRELATION_PAGE_SIZE,
-      });
-      all.push(...result.data);
-      if (all.length >= result.total || result.data.length === 0) break;
-      currentPage++;
-    }
-    return all;
+  function fetchAllByCorrelation(corrId: string): Promise<AuditLogEntry[]> {
+    return auditApi.exportLogs({
+      correlationId: corrId,
+      orgId: companyId || undefined,
+      limit: CORRELATION_EXPORT_LIMIT,
+    });
   }
 
   function isoToLocal(iso: string): string {
