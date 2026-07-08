@@ -1,8 +1,9 @@
 type ApiErrorShape = {
   response?: {
     data?: {
-      message?: string;
+      message?: string | string[];
       errorCode?: string;
+      params?: Record<string, unknown>;
     };
   };
 };
@@ -11,7 +12,8 @@ type ApiErrorShape = {
  * Resolves a human-readable, translated message from an API error.
  *
  * Resolution order:
- *  1. If the response includes an `errorCode`, look up `errors.<errorCode>` in i18n.
+ *  1. If the response includes an `errorCode`, look up `errors.<errorCode>` in i18n,
+ *     interpolating `params` (e.g. `{{name}}`) when present.
  *  2. Fall back to the raw `message` string from the response body.
  *  3. Fall back to the provided `fallback` string.
  *
@@ -20,14 +22,20 @@ type ApiErrorShape = {
  */
 export function resolveApiError(
   e: unknown,
-  t: (key: string) => string,
+  t: (key: string, params?: Record<string, unknown>) => string,
   fallback?: string,
 ): string | undefined {
-  const data = (e as ApiErrorShape).response?.data;
+  const data = (e as ApiErrorShape | null | undefined)?.response?.data;
   if (data?.errorCode) {
     const key = `errors.${data.errorCode}`;
-    const translated = t(key);
+    const translated = t(key, data.params);
     if (translated !== key) return translated;
   }
-  return data?.message ?? fallback;
+  const rawMessage = data?.message;
+  const message = Array.isArray(rawMessage)
+    ? rawMessage.length > 0
+      ? rawMessage.join('; ')
+      : undefined
+    : rawMessage;
+  return message ?? fallback;
 }

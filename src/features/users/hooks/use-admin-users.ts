@@ -252,8 +252,10 @@ export function useAdminUsers() {
         created = await usersApi.create(dto);
         userId = created.id;
       } catch (err: unknown) {
-        const apiErr = err as { response?: { status?: number; data?: { userId?: string } } };
-        const existingUserId = apiErr?.response?.data?.userId;
+        const apiErr = err as {
+          response?: { status?: number; data?: { params?: { userId?: string } } };
+        };
+        const existingUserId = apiErr?.response?.data?.params?.userId;
         if (apiErr?.response?.status === 409 && existingUserId) {
           userId = existingUserId;
           // If assigning to a company, link the existing user to the org

@@ -221,8 +221,10 @@ export function useCompanyUsers(companyId: string) {
       try {
         return await usersApi.create(dto);
       } catch (err: unknown) {
-        const apiErr = err as { response?: { status?: number; data?: { userId?: string } } };
-        const existingUserId = apiErr?.response?.data?.userId;
+        const apiErr = err as {
+          response?: { status?: number; data?: { params?: { userId?: string } } };
+        };
+        const existingUserId = apiErr?.response?.data?.params?.userId;
         if (apiErr?.response?.status === 409 && existingUserId && dto.orgId) {
           await usersApi.assignUserToOrg(existingUserId, dto.orgId, dto.roleId);
           return null;
