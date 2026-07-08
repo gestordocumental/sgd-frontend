@@ -25,13 +25,17 @@ export function resolveApiError(
   t: (key: string, params?: Record<string, unknown>) => string,
   fallback?: string,
 ): string | undefined {
-  const data = (e as ApiErrorShape).response?.data;
+  const data = (e as ApiErrorShape | null | undefined)?.response?.data;
   if (data?.errorCode) {
     const key = `errors.${data.errorCode}`;
     const translated = t(key, data.params);
     if (translated !== key) return translated;
   }
   const rawMessage = data?.message;
-  const message = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
+  const message = Array.isArray(rawMessage)
+    ? rawMessage.length > 0
+      ? rawMessage.join('; ')
+      : undefined
+    : rawMessage;
   return message ?? fallback;
 }

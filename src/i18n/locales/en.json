@@ -1000,6 +1000,8 @@
     "INVITATION_TOKEN_INVALID": "The invitation link is invalid or has expired.",
     "REGISTRATION_DATA_INVALID": "The registration data is invalid.",
     "REGISTRATION_FAILED": "Registration could not be completed. Please try again.",
+    "EMAIL_ALREADY_REGISTERED": "This email is already registered for another account.",
+    "CREDENTIALS_DISABLED": "This account's credentials are disabled.",
     "DEPARTMENT_ALREADY_EXISTS": "The department \"{{name}}\" already exists in this organization.",
     "DEPARTMENT_NOT_FOUND": "The department was not found.",
     "AREA_ALREADY_EXISTS": "The area \"{{name}}\" already exists in this department.",
