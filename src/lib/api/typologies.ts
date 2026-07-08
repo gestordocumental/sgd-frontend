@@ -70,6 +70,15 @@ export interface UpdateTypologyDto {
   version?: string;
 }
 
+export type ResolveAction = 'KEEP_DECLARED' | 'ADOPT_EXTRACTED' | 'MANUAL_OVERRIDE';
+
+export interface ResolveExtractionDto {
+  action: ResolveAction;
+  nombre?: string;
+  codigo?: string;
+  version?: string;
+}
+
 const base = (orgId: string) => `/documents/${orgId}/typologies`;
 
 export interface TypologyStats {
@@ -153,6 +162,11 @@ export const typologiesApi = {
         message: string;
         extractionStatus: string;
       }>(`${base(orgId)}/${typologyId}/retry-extraction`)
+      .then((r) => r.data),
+
+  resolveExtraction: (orgId: string, typologyId: string, dto: ResolveExtractionDto) =>
+    apiClient
+      .patch<ApiTypology>(`${base(orgId)}/${typologyId}/resolve-extraction`, dto)
       .then((r) => r.data),
 
   history: (orgId: string, codigo: string, signal?: AbortSignal) =>

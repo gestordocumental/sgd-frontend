@@ -5,7 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { typologiesApi, type ApiTypology, type UpdateTypologyDto } from '@/lib/api/typologies';
+import {
+  typologiesApi,
+  type ApiTypology,
+  type UpdateTypologyDto,
+  type ResolveExtractionDto,
+} from '@/lib/api/typologies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { useAuthStore } from '@/store/authStore';
 import { resolveApiError } from '@/lib/utils/api-error';
@@ -120,6 +125,15 @@ const uploadDocSchema = z.object({
 
 export type UploadDocForm = z.infer<typeof uploadDocSchema>;
 
+const resolveExtractionSchema = z.object({
+  action: z.enum(['KEEP_DECLARED', 'ADOPT_EXTRACTED', 'MANUAL_OVERRIDE']),
+  nombre: z.string().optional(),
+  codigo: z.string().optional(),
+  version: z.string().optional(),
+});
+
+export type ResolveExtractionForm = z.infer<typeof resolveExtractionSchema>;
+
 // ── Hook ───────────────────────────────────────────────────────────────────
 
 export function useTypologies(orgId: string, enabled = true) {
@@ -145,6 +159,9 @@ export function useTypologies(orgId: string, enabled = true) {
   const [uploadDocTypology, setUploadDocTypology] = useState<ApiTypology | null>(null);
   const [uploadDocFile, setUploadDocFile] = useState<File | null>(null);
 
+  // ── Resolve extraction dialog (discrepancy / pending confirmation) ─────
+  const [resolveTypology, setResolveTypology] = useState<ApiTypology | null>(null);
+
   // ── Cascading selectors inside the create/edit form ────────────────────
   const [formDeptId, setFormDeptId] = useState('');
   const [formAreaId, setFormAreaId] = useState('');
@@ -167,6 +184,12 @@ export function useTypologies(orgId: string, enabled = true) {
     resolver: zodResolver(uploadDocSchema),
     mode: 'onChange',
     defaultValues: { nombre: '', version: '' },
+  });
+
+  const resolveExtractionForm = useForm<ResolveExtractionForm>({
+    resolver: zodResolver(resolveExtractionSchema),
+    mode: 'onChange',
+    defaultValues: { action: 'KEEP_DECLARED', nombre: '', codigo: '', version: '' },
   });
 
   // ── Queries ────────────────────────────────────────────────────────────
@@ -356,6 +379,21 @@ export function useTypologies(orgId: string, enabled = true) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
   });
 
+  // ── Resolve extraction mutation (discrepancy / pending confirmation) ────
+  const resolveExtractionMutation = useMutation({
+    mutationFn: (dto: ResolveExtractionDto) =>
+      typologiesApi.resolveExtraction(orgId, resolveTypology!.id, dto),
+    onSuccess: () => {
+      invalidate();
+      setResolveTypology(null);
+      resolveExtractionForm.reset();
+    },
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
+      if (msg) resolveExtractionForm.setError('root', { message: msg });
+    },
+  });
+
   // ── View document (fetch signed URL and open in new tab) ──────────────
   const viewDocumentMutation = useMutation({
     mutationFn: (typologyId: string) => typologiesApi.signedUrl(orgId, typologyId),
@@ -462,6 +500,16 @@ export function useTypologies(orgId: string, enabled = true) {
     });
   };
 
+  const openResolve = (typo: ApiTypology) => {
+    setResolveTypology(typo);
+    resolveExtractionForm.reset({
+      action: 'KEEP_DECLARED',
+      nombre: typo.metadataExtraida.nombre ?? typo.datosDeclarados.nombre ?? '',
+      codigo: typo.metadataExtraida.codigo ?? typo.datosDeclarados.codigo ?? '',
+      version: typo.metadataExtraida.version ?? typo.datosDeclarados.version ?? '',
+    });
+  };
+
   const handleFormDeptChange = (id: string) => {
     setFormDeptId(id);
     setFormAreaId('');
@@ -516,6 +564,13 @@ export function useTypologies(orgId: string, enabled = true) {
     uploadDocFile,
     setUploadDocFile,
     uploadDocForm,
+
+    // Resolve extraction dialog
+    resolveTypology,
+    setResolveTypology,
+    openResolve,
+    resolveExtractionForm,
+    resolveExtractionMutation,
 
     // Edit file (triggers new-version flow when set)
     editFile,

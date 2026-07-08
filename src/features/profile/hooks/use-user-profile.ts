@@ -304,6 +304,22 @@ export function useUserProfile() {
     return () => window.removeEventListener('sgd:super-admin-revoked', handler);
   }, [queryClient]); // queryClient is stable for the life of the provider
 
+  // An admin disabled this account — log out unconditionally, regardless of
+  // super-admin status or other company memberships, since the account itself
+  // is no longer allowed to authenticate.
+  useEffect(() => {
+    const handler = () => {
+      const { clearAuth: doLogout, navigate: go } = ctxRef.current;
+      localStorage.setItem('sgd-account-disabled', '1');
+      localStorage.removeItem(COMPANIES_CACHE_KEY);
+      queryClient.clear();
+      doLogout();
+      void go({ to: '/login', replace: true });
+    };
+    window.addEventListener('sgd:account-disabled', handler);
+    return () => window.removeEventListener('sgd:account-disabled', handler);
+  }, [queryClient]); // queryClient is stable for the life of the provider
+
   // Relay revocation events from other tabs via BroadcastChannel.
   // BroadcastChannel does not deliver back to the posting tab, so this only
   // fires in tabs that did NOT receive the original SSE event. Retransmitting
@@ -321,6 +337,8 @@ export function useUserProfile() {
         window.dispatchEvent(new CustomEvent('sgd:session-revoked', { detail: data }));
       } else if (data.type === 'sgd:super-admin-revoked') {
         window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
+      } else if (data.type === 'sgd:account-disabled') {
+        window.dispatchEvent(new CustomEvent('sgd:account-disabled'));
       }
     };
     return () => bc?.close();

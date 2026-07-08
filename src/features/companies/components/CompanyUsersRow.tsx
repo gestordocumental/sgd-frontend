@@ -9,6 +9,7 @@ import {
   CheckCircle as CheckIcon,
   XCircle as XIcon,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -299,8 +300,8 @@ export function CompanyUsersRow({
                               <DropdownMenuItem onClick={() => onToggleUserStatus(u, companyId)}>
                                 {isDeleted(u) || !!u.orgRemovedAt ? (
                                   <>
-                                    <CheckIcon className="size-4" />{' '}
-                                    {t('companies.actions.activateUser')}
+                                    <RotateCcw className="size-4" />{' '}
+                                    {t('companies.actions.restoreUser')}
                                   </>
                                 ) : u.isActive ? (
                                   <>

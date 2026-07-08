@@ -116,6 +116,7 @@
     "loginLocked": "Demasiados intentos fallidos. Espera {{seconds}} segundos para volver a intentarlo.",
     "loginLockedButton": "Pausado ({{seconds}}s)",
     "idleLogoutNotice": "Tu sesión se cerró automáticamente por inactividad.",
+    "accountDisabledMessage": "Tu cuenta fue desactivada por un administrador.",
     "forgotPasswordPage": {
       "title": "Recuperar contraseña",
       "subtitle": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
@@ -455,6 +456,7 @@
       "editUser": "Editar usuario",
       "activateUser": "Activar usuario",
       "deactivateUser": "Desactivar usuario",
+      "restoreUser": "Restablecer usuario",
       "deleteUser": "Eliminar usuario",
       "expandCompany": "Expandir {{name}}",
       "collapseCompany": "Colapsar {{name}}",
@@ -655,6 +657,7 @@
       "uploadDocument": "Cargar documento",
       "extractionFailed": "No se pudo extraer la información del documento",
       "retryExtraction": "Reintentar extracción",
+      "resolveExtraction": "Resolver discrepancia",
       "newTypology": "Nueva tipología",
       "resourceId": "ID de recurso"
     },
@@ -713,6 +716,36 @@
       "loading": "Cargando historial…",
       "empty": "Sin registros.",
       "deletedSuffix": "· eliminada"
+    },
+    "resolve": {
+      "title": "Revisar información del documento",
+      "discrepancyIntro": "Los datos que registraste para esta tipología no coinciden con lo que se extrajo automáticamente del documento. Revisa la comparación y decide cómo continuar antes de poder usar esta tipología.",
+      "pendingIntro": "Aún no habías registrado nombre, código o versión para esta tipología, pero el sistema los extrajo automáticamente del documento cargado. Confirma esta información o corrígela antes de continuar.",
+      "fieldColumn": "Campo",
+      "declaredColumn": "Lo que registraste",
+      "extractedColumn": "Lo que se extrajo del documento",
+      "fieldNames": {
+        "nombre": "Nombre",
+        "codigo": "Código",
+        "version": "Versión"
+      },
+      "actionLabel": "¿Qué deseas hacer?",
+      "actions": {
+        "KEEP_DECLARED": {
+          "label": "Mantener lo que registré",
+          "description": "Conserva el nombre, código y versión que ingresaste manualmente; ignora lo extraído del documento."
+        },
+        "ADOPT_EXTRACTED": {
+          "label": "Usar lo extraído del documento",
+          "description": "Reemplaza tus datos registrados por el nombre, código y versión que se leyeron del documento."
+        },
+        "MANUAL_OVERRIDE": {
+          "label": "Escribir los valores correctos",
+          "description": "Ingresa manualmente el nombre, código y/o versión definitivos, distintos a los dos anteriores."
+        }
+      },
+      "submit": "Confirmar",
+      "submitting": "Guardando…"
     },
     "file": {
       "selectLabel": "Seleccionar archivo",
@@ -1017,6 +1050,10 @@
     "USER_PREVIOUSLY_DELETED": "Este usuario fue eliminado previamente. Use la opción de restaurar para reactivarlo.",
     "USER_ALREADY_IN_ANOTHER_ORG": "Ya existe un usuario con este correo electrónico en otra organización.",
     "USER_ALREADY_EXISTS": "Ya existe un usuario con este correo electrónico.",
-    "ROLE_NOT_FOUND": "El rol seleccionado no fue encontrado."
+    "ROLE_NOT_FOUND": "El rol seleccionado no fue encontrado.",
+    "USER_CANNOT_DELETE_SELF": "No puedes eliminar tu propia cuenta.",
+    "USER_CANNOT_DISABLE_SELF": "No puedes desactivar tu propia cuenta.",
+    "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "No puedes cambiar tu propio estado de super administrador.",
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "No puedes quitarte a ti mismo de una organización."
   }
 }

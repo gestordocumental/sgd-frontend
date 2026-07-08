@@ -93,6 +93,12 @@ function LoginPage() {
     return !!flag;
   });
 
+  const [accountDisabled] = useState(() => {
+    const flag = localStorage.getItem('sgd-account-disabled');
+    if (flag) localStorage.removeItem('sgd-account-disabled');
+    return !!flag;
+  });
+
   const {
     register,
     handleSubmit,
@@ -232,6 +238,14 @@ function LoginPage() {
               <div className="flex items-start gap-2.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2.5 text-sm text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
                 <Info className="size-4 mt-0.5 shrink-0" />
                 <span>{t('auth.idleLogoutNotice')}</span>
+              </div>
+            )}
+
+            {/* Aviso de cuenta desactivada por un administrador */}
+            {accountDisabled && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
+                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                <span>{t('auth.accountDisabledMessage')}</span>
               </div>
             )}
 

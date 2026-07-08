@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@/i18n';
 import { UsersTable } from '../UsersTable';
 import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users';
 import type { ApiUser } from '@/lib/api/users';
+import { useAuthStore } from '@/store/authStore';
 
 // jsdom has zero-height elements — the virtualizer renders 0 items unless we
 // make it believe all items are visible regardless of scroll position.
@@ -295,5 +297,40 @@ describe('UsersTable — pagination', () => {
     );
     const pagerBtns = getPagerButtons();
     expect(pagerBtns[pagerBtns.length - 1]).toBeDisabled();
+  });
+});
+
+describe('UsersTable — self row actions', () => {
+  afterEach(() => {
+    useAuthStore.setState({ user: null });
+  });
+
+  it("shows all actions for another user's row", async () => {
+    const user = userEvent.setup();
+    const other = makeUser({ id: 'u-1', firstName: 'Alice' });
+    render(<UsersTable hook={makeHook({ superAdmins: [other] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
+
+    expect(await screen.findByRole('menuitem', { name: /^Edit$/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Disable/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Super Admin/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeInTheDocument();
+  });
+
+  it("shows only Edit for the logged-in user's own row", async () => {
+    useAuthStore.setState({
+      user: { id: 'u-1', email: 'alice@co.com', name: 'Alice', role: 'user' },
+    });
+    const user = userEvent.setup();
+    const self = makeUser({ id: 'u-1', firstName: 'Alice' });
+    render(<UsersTable hook={makeHook({ superAdmins: [self] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
+
+    expect(await screen.findByRole('menuitem', { name: /^Edit$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Disable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Super Admin/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
   });
 });
