@@ -188,7 +188,7 @@ describe('CreateUserDialog — submit', () => {
 
   it('handles 409 conflict by promoting the existing user to super-admin', async () => {
     mockCreate.mockRejectedValue({
-      response: { status: 409, data: { userId: 'existing-u' } },
+      response: { status: 409, data: { params: { userId: 'existing-u' } } },
     });
     mockToggleSuperAdmin.mockResolvedValue({});
 
