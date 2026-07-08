@@ -18,7 +18,7 @@ import { companiesApi } from '@/lib/api/companies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas';
 import { ROLE_NAMES } from '@/lib/constants/roles';
-import { resolveApiError } from '@/lib/utils/api-error';
+import { resolveApiError, getExistingUserIdFrom409 } from '@/lib/utils/api-error';
 
 // Native <select> elements send "" when the placeholder option is selected.
 // z.string().uuid() rejects "" (not a UUID, not undefined), so accept "" explicitly.
@@ -221,11 +221,8 @@ export function useCompanyUsers(companyId: string) {
       try {
         return await usersApi.create(dto);
       } catch (err: unknown) {
-        const apiErr = err as {
-          response?: { status?: number; data?: { params?: { userId?: string } } };
-        };
-        const existingUserId = apiErr?.response?.data?.params?.userId;
-        if (apiErr?.response?.status === 409 && existingUserId && dto.orgId) {
+        const existingUserId = getExistingUserIdFrom409(err);
+        if (existingUserId && dto.orgId) {
           await usersApi.assignUserToOrg(existingUserId, dto.orgId, dto.roleId);
           return null;
         }

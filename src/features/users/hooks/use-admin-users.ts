@@ -16,6 +16,7 @@ import { rolesApi } from '@/lib/api/roles';
 import { ROLE_NAMES } from '@/lib/constants/roles';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas';
+import { getExistingUserIdFrom409 } from '@/lib/utils/api-error';
 
 // HTML selects always produce "" when nothing is selected — convert to undefined
 // before UUID validation so the form stays valid when fields are left blank.
@@ -252,11 +253,8 @@ export function useAdminUsers() {
         created = await usersApi.create(dto);
         userId = created.id;
       } catch (err: unknown) {
-        const apiErr = err as {
-          response?: { status?: number; data?: { params?: { userId?: string } } };
-        };
-        const existingUserId = apiErr?.response?.data?.params?.userId;
-        if (apiErr?.response?.status === 409 && existingUserId) {
+        const existingUserId = getExistingUserIdFrom409(err);
+        if (existingUserId) {
           userId = existingUserId;
           // If assigning to a company, link the existing user to the org
           if (orgId) {
