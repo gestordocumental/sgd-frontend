@@ -1,10 +1,12 @@
+export type ApiErrorData = {
+  message?: string | string[];
+  errorCode?: string;
+  params?: Record<string, unknown>;
+};
+
 type ApiErrorShape = {
   response?: {
-    data?: {
-      message?: string | string[];
-      errorCode?: string;
-      params?: Record<string, unknown>;
-    };
+    data?: ApiErrorData;
   };
 };
 
@@ -38,4 +40,15 @@ export function resolveApiError(
       : undefined
     : rawMessage;
   return message ?? fallback;
+}
+
+/**
+ * Extracts the existing user's ID from a 409 conflict response when creating
+ * a user that already exists — used to promote/link them instead of failing.
+ */
+export function getExistingUserIdFrom409(err: unknown): string | undefined {
+  const apiErr = err as {
+    response?: { status?: number; data?: { params?: { userId?: string } } };
+  };
+  return apiErr?.response?.status === 409 ? apiErr?.response?.data?.params?.userId : undefined;
 }
