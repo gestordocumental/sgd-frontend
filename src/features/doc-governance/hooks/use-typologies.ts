@@ -125,12 +125,21 @@ const uploadDocSchema = z.object({
 
 export type UploadDocForm = z.infer<typeof uploadDocSchema>;
 
-const resolveExtractionSchema = z.object({
-  action: z.enum(['KEEP_DECLARED', 'ADOPT_EXTRACTED', 'MANUAL_OVERRIDE']),
-  nombre: z.string().optional(),
-  codigo: z.string().optional(),
-  version: z.string().optional(),
-});
+const resolveExtractionSchema = z
+  .object({
+    action: z.enum(['KEEP_DECLARED', 'ADOPT_EXTRACTED', 'MANUAL_OVERRIDE']),
+    nombre: z.string().optional(),
+    codigo: z.string().optional(),
+    version: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action !== 'MANUAL_OVERRIDE') return;
+    (['nombre', 'codigo', 'version'] as const).forEach((field) => {
+      if (!data[field]?.trim()) {
+        ctx.addIssue({ code: 'custom', path: [field], message: 'validation.required' });
+      }
+    });
+  });
 
 export type ResolveExtractionForm = z.infer<typeof resolveExtractionSchema>;
 
@@ -502,8 +511,11 @@ export function useTypologies(orgId: string, enabled = true) {
 
   const openResolve = (typo: ApiTypology) => {
     setResolveTypology(typo);
+    // PENDING_CONFIRMATION typologies have no declared data to keep — KEEP_DECLARED
+    // is hidden from the radiogroup in that case, so it can't be the default.
+    const isPendingConfirmation = typo.documento.extractionStatus === 'PENDING_CONFIRMATION';
     resolveExtractionForm.reset({
-      action: 'KEEP_DECLARED',
+      action: isPendingConfirmation ? 'ADOPT_EXTRACTED' : 'KEEP_DECLARED',
       nombre: typo.metadataExtraida.nombre ?? typo.datosDeclarados.nombre ?? '',
       codigo: typo.metadataExtraida.codigo ?? typo.datosDeclarados.codigo ?? '',
       version: typo.metadataExtraida.version ?? typo.datosDeclarados.version ?? '',

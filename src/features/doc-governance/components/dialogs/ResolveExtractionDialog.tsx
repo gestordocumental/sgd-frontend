@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +28,40 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
   const discrepancies = typo?.metadataExtraida.discrepancias ?? [];
   const action = resolveExtractionForm.watch('action');
 
+  const visibleActionOptions = ACTION_OPTIONS.filter(
+    (opt) => !(isPendingConfirmation && opt === 'KEEP_DECLARED'),
+  );
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const selectAction = (opt: ResolveAction) =>
+    resolveExtractionForm.setValue('action', opt, { shouldValidate: true, shouldDirty: true });
+
+  // ARIA APG roving-tabindex pattern: arrow keys move focus AND selection
+  // between radio options, since this radiogroup isn't backed by native
+  // <input type="radio"> elements.
+  const handleOptionKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      nextIndex = (index + 1) % visibleActionOptions.length;
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      nextIndex = (index - 1 + visibleActionOptions.length) % visibleActionOptions.length;
+    } else if (e.key === 'Home') {
+      nextIndex = 0;
+    } else if (e.key === 'End') {
+      nextIndex = visibleActionOptions.length - 1;
+    }
+    if (nextIndex === null) return;
+    e.preventDefault();
+    optionRefs.current[nextIndex]?.focus();
+    selectAction(visibleActionOptions[nextIndex]);
+  };
+
+  // Blocked while the mutation is in flight — otherwise a late onSuccess from
+  // this resolution would call setResolveTypology(null) again after the user
+  // has already reopened the dialog for a different typology, closing it out
+  // from under them.
   const close = () => {
+    if (pending) return;
     setResolveTypology(null);
     resolveExtractionForm.reset();
   };
@@ -125,20 +159,22 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
               role="radiogroup"
               aria-label={t('docGovernance.resolve.actionLabel')}
             >
-              {ACTION_OPTIONS.filter(
-                (opt) => !(isPendingConfirmation && opt === 'KEEP_DECLARED'),
-              ).map((opt) => (
+              {visibleActionOptions.map((opt, index) => (
                 <button
                   key={opt}
+                  ref={(el) => {
+                    optionRefs.current[index] = el;
+                  }}
                   type="button"
                   role="radio"
                   aria-checked={action === opt}
-                  onClick={() =>
-                    resolveExtractionForm.setValue('action', opt, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    })
+                  tabIndex={
+                    action === opt || (!visibleActionOptions.includes(action) && index === 0)
+                      ? 0
+                      : -1
                   }
+                  onClick={() => selectAction(opt)}
+                  onKeyDown={(e) => handleOptionKeyDown(e, index)}
                   className={cn(
                     'w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors',
                     action === opt
@@ -202,7 +238,7 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
           )}
 
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={close}>
+            <Button type="button" variant="outline" disabled={pending} onClick={close}>
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={pending}>

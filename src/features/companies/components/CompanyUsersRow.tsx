@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usersApi, type ApiUserWithRoles } from '@/lib/api/users';
 import { initials, isDeleted } from '@/lib/formatters';
+import { useAuthStore } from '@/store/authStore';
 
 type UserStatusFilter = 'all' | 'active' | 'inactive' | 'pending';
 const USER_PAGE_SIZE = 10;
@@ -50,6 +51,7 @@ export function CompanyUsersRow({
   onToggleUserStatus,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const {
     data: usersPage,
     isLoading,
@@ -297,24 +299,26 @@ export function CompanyUsersRow({
                               <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
                                 <PencilIcon className="size-4" /> {t('companies.actions.editUser')}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onToggleUserStatus(u, companyId)}>
-                                {isDeleted(u) || !!u.orgRemovedAt ? (
-                                  <>
-                                    <RotateCcw className="size-4" />{' '}
-                                    {t('companies.actions.restoreUser')}
-                                  </>
-                                ) : u.isActive ? (
-                                  <>
-                                    <XIcon className="size-4" />{' '}
-                                    {t('companies.actions.deactivateUser')}
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckIcon className="size-4" />{' '}
-                                    {t('companies.actions.activateUser')}
-                                  </>
-                                )}
-                              </DropdownMenuItem>
+                              {u.id !== currentUserId && (
+                                <DropdownMenuItem onClick={() => onToggleUserStatus(u, companyId)}>
+                                  {isDeleted(u) || !!u.orgRemovedAt ? (
+                                    <>
+                                      <RotateCcw className="size-4" />{' '}
+                                      {t('companies.actions.restoreUser')}
+                                    </>
+                                  ) : u.isActive ? (
+                                    <>
+                                      <XIcon className="size-4" />{' '}
+                                      {t('companies.actions.deactivateUser')}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckIcon className="size-4" />{' '}
+                                      {t('companies.actions.activateUser')}
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

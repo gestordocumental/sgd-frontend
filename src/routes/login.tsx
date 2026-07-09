@@ -244,7 +244,7 @@ function LoginPage() {
             {/* Aviso de cuenta desactivada por un administrador */}
             {accountDisabled && (
               <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
-                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                <AlertCircle className="size-4 mt-0.5 shrink-0" />
                 <span>{t('auth.accountDisabledMessage')}</span>
               </div>
             )}

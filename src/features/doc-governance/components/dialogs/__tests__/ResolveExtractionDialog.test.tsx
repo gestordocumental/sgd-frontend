@@ -176,6 +176,44 @@ describe('ResolveExtractionDialog', () => {
     await screen.findByText('Review document information');
     expect(screen.getByText('Extracted Name')).toBeInTheDocument();
     expect(screen.queryByText('Keep what I entered')).not.toBeInTheDocument();
+    // KEEP_DECLARED is hidden for this status, so it can't be the default selection.
+    expect(
+      screen.getByRole('radio', { name: /Use what was extracted from the document/ }),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('defaults to ADOPT_EXTRACTED (not the hidden KEEP_DECLARED) for PENDING_CONFIRMATION', async () => {
+    mockResolveExtraction.mockResolvedValue(makeTypology());
+    const user = userEvent.setup();
+    const typo = makeTypology({
+      documento: {
+        r2Key: 'r2/key',
+        originalName: 'policy.pdf',
+        mimeType: 'application/pdf',
+        uploadedAt: '2026-01-01T00:00:00.000Z',
+        extractionStatus: 'PENDING_CONFIRMATION',
+      },
+      datosDeclarados: { nombre: null, codigo: null, version: null, fuente: 'MANUAL' },
+      metadataExtraida: {
+        nombre: 'Extracted Name',
+        codigo: 'EXT-001',
+        version: 'v1.0',
+        extractedAt: '2026-01-01T00:00:00.000Z',
+        discrepancias: [],
+      },
+    });
+
+    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
+    await screen.findByText('Review document information');
+
+    // Submit immediately, without touching the radiogroup.
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      expect(mockResolveExtraction).toHaveBeenCalledWith('org-1', 'typo-1', {
+        action: 'ADOPT_EXTRACTED',
+      });
+    });
   });
 
   it('submits { action: ADOPT_EXTRACTED } with no nombre/codigo/version', async () => {
@@ -227,6 +265,87 @@ describe('ResolveExtractionDialog', () => {
         version: 'v3.0',
       });
     });
+  });
+
+  it('requires nombre, codigo and version when MANUAL_OVERRIDE fields are left blank', async () => {
+    const user = userEvent.setup();
+    const typo = makeTypology();
+
+    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
+    await screen.findByText('Review document information');
+
+    await user.click(screen.getByText('Enter the correct values'));
+
+    await user.clear(screen.getByLabelText('Name'));
+    await user.clear(screen.getByLabelText('Code'));
+    await user.clear(screen.getByLabelText('Version'));
+
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('This field is required')).toHaveLength(3);
+    });
+    expect(mockResolveExtraction).not.toHaveBeenCalled();
+  });
+
+  it('disables Cancel and blocks closing while the resolve mutation is pending', async () => {
+    let resolvePending!: (v: ApiTypology) => void;
+    mockResolveExtraction.mockReturnValue(
+      new Promise<ApiTypology>((resolve) => {
+        resolvePending = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+    const typo = makeTypology();
+
+    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
+    await screen.findByText('Review document information');
+
+    await user.click(screen.getByText('Use what was extracted from the document'));
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+    expect(cancelButton).toBeDisabled();
+
+    // A disabled button ignores clicks — the dialog must stay open while pending.
+    await user.click(cancelButton);
+    expect(screen.getByText('Review document information')).toBeInTheDocument();
+
+    resolvePending(makeTypology());
+    await waitFor(() => {
+      expect(screen.queryByText('Review document information')).not.toBeInTheDocument();
+    });
+  });
+
+  it('moves focus and selection between radio options with arrow keys', async () => {
+    const user = userEvent.setup();
+    const typo = makeTypology();
+
+    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
+    await screen.findByText('Review document information');
+
+    const radios = screen.getAllByRole('radio');
+    radios[0].focus();
+    expect(radios[0]).toHaveAttribute('aria-checked', 'true');
+
+    await user.keyboard('{ArrowDown}');
+    expect(radios[1]).toHaveFocus();
+    expect(radios[1]).toHaveAttribute('aria-checked', 'true');
+    expect(radios[0]).toHaveAttribute('aria-checked', 'false');
+
+    await user.keyboard('{ArrowRight}');
+    expect(radios[2]).toHaveFocus();
+    expect(radios[2]).toHaveAttribute('aria-checked', 'true');
+
+    // Wraps around past the last option back to the first.
+    await user.keyboard('{ArrowDown}');
+    expect(radios[0]).toHaveFocus();
+    expect(radios[0]).toHaveAttribute('aria-checked', 'true');
+
+    // Wraps around backwards past the first option to the last.
+    await user.keyboard('{ArrowUp}');
+    expect(radios[radios.length - 1]).toHaveFocus();
+    expect(radios[radios.length - 1]).toHaveAttribute('aria-checked', 'true');
   });
 
   it('closes the dialog on Cancel without calling the API', async () => {
