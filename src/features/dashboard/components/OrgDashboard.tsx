@@ -4,6 +4,7 @@ import { FileText, GitBranch, HardDrive, CheckCircle, ClipboardList, Users } fro
 import type { TypologyStats } from '@/lib/api/typologies';
 import type { WorkflowStats } from '@/lib/api/workflows';
 import type { ApiUser } from '@/lib/api/users';
+import { isPendingRegistration } from '@/lib/formatters';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -406,7 +407,7 @@ export function OrgDashboard({
       activeUsers: users.filter((u) => u.isActive && !u.deletedAt).length,
       inactiveUsers: users.filter((u) => !u.isActive || !!u.deletedAt).length,
       registeredUsers: users.filter((u) => u.registrationStatus === 'active').length,
-      pendingUsers: users.filter((u) => u.registrationStatus === 'pending_credentials').length,
+      pendingUsers: users.filter((u) => isPendingRegistration(u)).length,
     }),
     [users],
   );

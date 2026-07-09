@@ -30,9 +30,10 @@ import {
 import { Pager } from '@/components/ui/pager';
 import { StatCard } from '@/components/ui/stat-card';
 import { RefreshCountdown } from '@/components/ui/refresh-countdown';
-import { initials, isDeleted } from '@/lib/formatters';
+import { initials, isDeleted, isPendingRegistration } from '@/lib/formatters';
 import type { ApiUser } from '@/lib/api/users';
 import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users';
+import { useAuthStore } from '@/store/authStore';
 
 type StatusFilter = 'all' | 'active' | 'inactive' | 'deleted' | 'pending';
 
@@ -63,6 +64,7 @@ export function UsersTable({ hook }: UsersTableProps) {
     superAdminsTotalPages,
   } = hook;
   const { t } = useTranslation();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const parentRef = useRef<HTMLDivElement>(null);
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -198,6 +200,7 @@ export function UsersTable({ hook }: UsersTableProps) {
                         <UserRow
                           key={u.id}
                           user={u}
+                          isSelf={u.id === currentUserId}
                           onEdit={() => openEdit(u)}
                           onDelete={() => setDeleteUser(u)}
                           onRestore={() => restoreMutation.mutate(u.id)}
@@ -242,6 +245,7 @@ export function UsersTable({ hook }: UsersTableProps) {
 
 interface UserRowProps {
   user: ApiUser;
+  isSelf: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onRestore: () => void;
@@ -253,6 +257,7 @@ interface UserRowProps {
 
 function UserRow({
   user: u,
+  isSelf,
   onEdit,
   onDelete,
   onRestore,
@@ -262,6 +267,7 @@ function UserRow({
   onResendInvitation,
 }: UserRowProps) {
   const { t } = useTranslation();
+  const isPending = isPendingRegistration(u);
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
       <TableCell>
@@ -291,7 +297,7 @@ function UserRow({
         )}
       </TableCell>
       <TableCell>
-        {u.registrationStatus === 'pending_credentials' ? (
+        {isPending ? (
           <Badge variant="default" className="gap-1 text-xs">
             <ShieldCheck className="size-3" /> {t('users.pendingCredentials')}
           </Badge>
@@ -333,41 +339,52 @@ function UserRow({
           <DropdownMenuContent align="end">
             {!isDeleted(u) && (
               <>
-                <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="size-4" /> {t('users.actions.edit')}
-                </DropdownMenuItem>
-                {u.isActive ? (
-                  <DropdownMenuItem onClick={onDisable}>
-                    <Ban className="size-4" /> {t('users.actions.disable')}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={onEnable}>
-                    <CircleCheck className="size-4" /> {t('users.actions.enable')}
+                {!isPending && (
+                  <DropdownMenuItem onClick={onEdit}>
+                    <Pencil className="size-4" /> {t('users.actions.edit')}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={onToggleSuperAdmin}>
-                  {u.isSuperAdmin ? (
-                    <>
-                      <ShieldOff className="size-4" /> {t('users.actions.removeSuperAdmin')}
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="size-4" /> {t('users.actions.grantSuperAdmin')}
-                    </>
-                  )}
-                </DropdownMenuItem>
-                {u.registrationStatus === 'pending_credentials' && (
-                  <DropdownMenuItem onClick={onResendInvitation}>
-                    <MailCheck className="size-4" /> {t('users.actions.resendInvitation')}
-                  </DropdownMenuItem>
+                {!isSelf && (
+                  <>
+                    {!isPending && (
+                      <>
+                        {u.isActive ? (
+                          <DropdownMenuItem onClick={onDisable}>
+                            <Ban className="size-4" /> {t('users.actions.disable')}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={onEnable}>
+                            <CircleCheck className="size-4" /> {t('users.actions.enable')}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={onToggleSuperAdmin}>
+                          {u.isSuperAdmin ? (
+                            <>
+                              <ShieldOff className="size-4" /> {t('users.actions.removeSuperAdmin')}
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="size-4" />{' '}
+                              {t('users.actions.grantSuperAdmin')}
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {isPending && (
+                      <DropdownMenuItem onClick={onResendInvitation}>
+                        <MailCheck className="size-4" /> {t('users.actions.resendInvitation')}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={onDelete}
+                    >
+                      <Trash2 className="size-4" /> {t('users.actions.delete')}
+                    </DropdownMenuItem>
+                  </>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={onDelete}
-                >
-                  <Trash2 className="size-4" /> {t('users.actions.delete')}
-                </DropdownMenuItem>
               </>
             )}
             {isDeleted(u) && (

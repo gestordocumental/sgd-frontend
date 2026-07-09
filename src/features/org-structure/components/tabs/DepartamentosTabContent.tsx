@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/table';
 import type { useOrgStructure } from '@/features/org-structure/hooks/use-org-structure';
 import type { BulkStructureResult } from '@/lib/api/org-structure';
+import { resolveApiError } from '@/lib/utils/api-error';
 import { PAGE_SIZE, Pager, SearchInput, EmptyState, Stat } from '../org-structure-shared';
 
 type OrgStructureHook = ReturnType<typeof useOrgStructure>;
@@ -161,10 +162,8 @@ export function DepartamentosTabContent({ hook, canWrite = false }: Departamento
         }
       },
       onError: (err: unknown) => {
-        const msg =
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          t('orgStructure.excel.importError');
-        toast.error(msg);
+        const fallback = t('orgStructure.excel.importError');
+        toast.error(resolveApiError(err, t, fallback) ?? fallback);
       },
     });
   };
