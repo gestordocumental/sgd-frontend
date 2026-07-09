@@ -10,7 +10,8 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollableTabsList } from '@/components/ui/scrollable-tabs-list';
 import { useAuthStore } from '@/store/authStore';
 import { UserProfileCard } from '@/features/profile/components/UserProfileCard';
 import { CompanyUserDialogs } from '@/features/company-users/components/CompanyUserDialogs';
@@ -19,7 +20,6 @@ import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStru
 import { WorkflowDialogs } from '@/features/workflows/components/WorkflowDialogs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCompanyDashboard, type TabId } from '@/features/dashboard/hooks/use-company-dashboard';
-import { useDragScroll } from '@/lib/use-drag-scroll';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FeatureErrorFallback } from '@/components/FeatureErrorFallback';
 
@@ -106,7 +106,6 @@ function CompanyDashboard() {
     activeUsers,
     handleWorkflowNotificationClick,
   } = useCompanyDashboard();
-  const { ref: tabsScrollRef, bind: tabsScrollBind } = useDragScroll<HTMLDivElement>();
 
   return (
     <Tabs
@@ -126,57 +125,51 @@ function CompanyDashboard() {
 
         <div className="w-px h-6 bg-border shrink-0" />
 
-        <div
-          ref={tabsScrollRef}
-          className="flex-1 min-w-0 overflow-x-auto cursor-grab select-none active:cursor-grabbing [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-          {...tabsScrollBind}
-        >
-          <TabsList className="w-max">
-            <TabsTrigger value="overview">
-              <LayoutDashboard className="size-4" />
-              <span className="hidden xl:inline">{t('dashboard.overview')}</span>
+        <ScrollableTabsList>
+          <TabsTrigger value="overview">
+            <LayoutDashboard className="size-4" />
+            <span className="hidden xl:inline">{t('dashboard.overview')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="company">
+            <Building2 className="size-4" />
+            <span className="hidden xl:inline">{t('dashboard.company')}</span>
+          </TabsTrigger>
+          {canViewUsers && (
+            <TabsTrigger value="users">
+              <Users className="size-4" />
+              <span className="hidden xl:inline">{t('common.users')}</span>
             </TabsTrigger>
-            <TabsTrigger value="company">
-              <Building2 className="size-4" />
-              <span className="hidden xl:inline">{t('dashboard.company')}</span>
+          )}
+          {canViewOrgs && (
+            <TabsTrigger value="roles">
+              <Shield className="size-4" />
+              <span className="hidden xl:inline">{t('dashboard.rolesAndPermissions')}</span>
             </TabsTrigger>
-            {canViewUsers && (
-              <TabsTrigger value="users">
-                <Users className="size-4" />
-                <span className="hidden xl:inline">{t('common.users')}</span>
-              </TabsTrigger>
-            )}
-            {canViewOrgs && (
-              <TabsTrigger value="roles">
-                <Shield className="size-4" />
-                <span className="hidden xl:inline">{t('dashboard.rolesAndPermissions')}</span>
-              </TabsTrigger>
-            )}
-            {canViewOrgStructure && (
-              <TabsTrigger value="org-structure">
-                <FolderTree className="size-4" />
-                <span className="hidden xl:inline">{t('dashboard.orgStructure')}</span>
-              </TabsTrigger>
-            )}
-            {canViewWorkflows && (
-              <TabsTrigger value="workflows">
-                <GitBranch className="size-4" />
-                <span className="hidden xl:inline">{t('dashboard.workflows')}</span>
-                {workflows.queries.myTasks.length > 0 && (
-                  <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand">
-                    {workflows.queries.myTasks.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
-            {canViewAudit && (
-              <TabsTrigger value="audit">
-                <ClipboardList className="size-4" />
-                <span className="hidden xl:inline">{t('dashboard.audit')}</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
-        </div>
+          )}
+          {canViewOrgStructure && (
+            <TabsTrigger value="org-structure">
+              <FolderTree className="size-4" />
+              <span className="hidden xl:inline">{t('dashboard.orgStructure')}</span>
+            </TabsTrigger>
+          )}
+          {canViewWorkflows && (
+            <TabsTrigger value="workflows">
+              <GitBranch className="size-4" />
+              <span className="hidden xl:inline">{t('dashboard.workflows')}</span>
+              {workflows.queries.myTasks.length > 0 && (
+                <span className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand">
+                  {workflows.queries.myTasks.length}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
+          {canViewAudit && (
+            <TabsTrigger value="audit">
+              <ClipboardList className="size-4" />
+              <span className="hidden xl:inline">{t('dashboard.audit')}</span>
+            </TabsTrigger>
+          )}
+        </ScrollableTabsList>
 
         <div className="flex items-center gap-2 shrink-0">
           <UserProfileCard variant="header" onWorkflowClick={handleWorkflowNotificationClick} />

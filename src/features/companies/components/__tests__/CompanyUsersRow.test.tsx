@@ -175,15 +175,15 @@ describe('CompanyUsersRow — status action menu', () => {
     );
   });
 
-  it('hides Edit and the status action for a user still completing registration', async () => {
-    const user = userEvent.setup();
+  it('hides the actions menu entirely for a user still completing registration', async () => {
     renderRow([makeUser({ registrationStatus: 'pending_credentials' })]);
 
     await screen.findByText('Alice Smith');
-    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
 
-    expect(screen.queryByRole('menuitem', { name: /Edit user/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /Activate user/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /Deactivate user/ })).not.toBeInTheDocument();
+    // No actions are available for a pending user, so the trigger itself
+    // shouldn't render — an empty popover would be a dead-end for admins.
+    expect(
+      screen.queryByRole('button', { name: 'Actions for Alice Smith' }),
+    ).not.toBeInTheDocument();
   });
 });

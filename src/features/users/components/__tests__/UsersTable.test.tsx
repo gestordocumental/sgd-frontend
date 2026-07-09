@@ -356,7 +356,10 @@ describe('UsersTable — pending-credentials row actions', () => {
     expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeInTheDocument();
   });
 
-  it('never removes a super admin role from a user still completing registration', async () => {
+  it('hides the Super Admin toggle even for a pending user already flagged as super admin', async () => {
+    // Regression case: this is the exact shape of user involved in the original
+    // incident — a pending invite created with isSuperAdmin=true — where removing
+    // the flag before they finished registration locked them out permanently.
     const user = userEvent.setup();
     const pendingSuperAdmin = makeUser({
       id: 'u-1',
@@ -364,20 +367,10 @@ describe('UsersTable — pending-credentials row actions', () => {
       isSuperAdmin: true,
       registrationStatus: 'pending_credentials',
     });
-    const toggleSuperAdminMutation = { mutate: vi.fn(), isPending: false };
-    render(
-      <UsersTable
-        hook={makeHook({
-          superAdmins: [pendingSuperAdmin],
-          toggleSuperAdminMutation:
-            toggleSuperAdminMutation as unknown as AdminUsersHook['toggleSuperAdminMutation'],
-        })}
-      />,
-    );
+    render(<UsersTable hook={makeHook({ superAdmins: [pendingSuperAdmin] })} />);
 
     await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
 
     expect(screen.queryByRole('menuitem', { name: /Super Admin/ })).not.toBeInTheDocument();
-    expect(toggleSuperAdminMutation.mutate).not.toHaveBeenCalled();
   });
 });

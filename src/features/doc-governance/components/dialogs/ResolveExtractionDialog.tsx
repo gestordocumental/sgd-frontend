@@ -122,39 +122,43 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
               {resolveExtractionForm.formState.errors.root.message}
             </p>
           )}
-
-          <DialogFooter className="pt-2 flex-col sm:flex-col gap-2">
-            <Button
-              type="button"
-              className="w-full"
-              disabled={pending}
-              onClick={handleAdoptExtracted}
-            >
-              {pending
-                ? t('docGovernance.resolve.submitting')
-                : t('docGovernance.resolve.adoptExtracted')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={pending}
-              onClick={handleUploadCorrected}
-            >
-              <FileUp className="size-4" />
-              {t('docGovernance.resolve.uploadCorrected')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={pending}
-              onClick={close}
-            >
-              {t('common.cancel')}
-            </Button>
-          </DialogFooter>
         </div>
+
+        {/* sm:flex-col overrides DialogFooter's own sm:flex-row default — needed so the
+            3 full-width buttons keep stacking instead of squeezing into one row. shrink-0
+            keeps the actions pinned below the scrollable content above, instead of being
+            scrolled out of view along with a long discrepancy list. */}
+        <DialogFooter className="pt-2 flex-col sm:flex-col shrink-0 gap-2">
+          <Button
+            type="button"
+            className="w-full"
+            disabled={pending}
+            onClick={handleAdoptExtracted}
+          >
+            {pending
+              ? t('docGovernance.resolve.submitting')
+              : t('docGovernance.resolve.adoptExtracted')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={pending}
+            onClick={handleUploadCorrected}
+          >
+            <FileUp className="size-4" />
+            {t('docGovernance.resolve.uploadCorrected')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={pending}
+            onClick={close}
+          >
+            {t('common.cancel')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

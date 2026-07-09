@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usersApi, type ApiUserWithRoles } from '@/lib/api/users';
-import { initials, isDeleted } from '@/lib/formatters';
+import { initials, isDeleted, isPendingRegistration } from '@/lib/formatters';
 import { useAuthStore } from '@/store/authStore';
 
 type UserStatusFilter = 'all' | 'active' | 'inactive' | 'pending';
@@ -85,11 +85,11 @@ export function CompanyUsersRow({
         : statusFilter === 'inactive'
           ? !isRemoved && !u.isActive
           : statusFilter === 'pending'
-            ? u.registrationStatus === 'pending_credentials' && !isRemoved
+            ? isPendingRegistration(u) && !isRemoved
             : /* active */ !isRemoved &&
               u.isActive &&
               u.roles.length > 0 &&
-              u.registrationStatus !== 'pending_credentials';
+              !isPendingRegistration(u);
 
     return matchesSearch && matchesStatus;
   });
@@ -210,7 +210,7 @@ export function CompanyUsersRow({
                   <TableBody>
                     {paginated.map((u) => {
                       const isSelf = u.id === currentUserId;
-                      const isPending = u.registrationStatus === 'pending_credentials';
+                      const isPending = isPendingRegistration(u);
                       return (
                         <TableRow
                           key={u.id}
@@ -260,7 +260,7 @@ export function CompanyUsersRow({
                             )}
                           </TableCell>
                           <TableCell>
-                            {u.registrationStatus === 'pending_credentials' ? (
+                            {isPending ? (
                               <Badge variant="default" className="gap-1 text-xs">
                                 <ShieldCheck className="size-3" />{' '}
                                 {t('companies.pendingCredentials')}
@@ -290,46 +290,46 @@ export function CompanyUsersRow({
                             )}
                           </TableCell>
                           <TableCell className="py-2.5">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                aria-label={t('companies.actions.openUserMenu', {
-                                  name: `${u.firstName} ${u.lastName}`,
-                                })}
-                                className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                              >
-                                <MoreHorizontal className="size-3.5" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {!isPending && (
+                            {!isPending && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  aria-label={t('companies.actions.openUserMenu', {
+                                    name: `${u.firstName} ${u.lastName}`,
+                                  })}
+                                  className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                                >
+                                  <MoreHorizontal className="size-3.5" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
                                     <PencilIcon className="size-4" />{' '}
                                     {t('companies.actions.editUser')}
                                   </DropdownMenuItem>
-                                )}
-                                {!isSelf && !isPending && (
-                                  <DropdownMenuItem
-                                    onClick={() => onToggleUserStatus(u, companyId)}
-                                  >
-                                    {isDeleted(u) || !!u.orgRemovedAt ? (
-                                      <>
-                                        <RotateCcw className="size-4" />{' '}
-                                        {t('companies.actions.restoreUser')}
-                                      </>
-                                    ) : u.isActive ? (
-                                      <>
-                                        <XIcon className="size-4" />{' '}
-                                        {t('companies.actions.deactivateUser')}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CheckIcon className="size-4" />{' '}
-                                        {t('companies.actions.activateUser')}
-                                      </>
-                                    )}
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                  {!isSelf && (
+                                    <DropdownMenuItem
+                                      onClick={() => onToggleUserStatus(u, companyId)}
+                                    >
+                                      {isDeleted(u) || !!u.orgRemovedAt ? (
+                                        <>
+                                          <RotateCcw className="size-4" />{' '}
+                                          {t('companies.actions.restoreUser')}
+                                        </>
+                                      ) : u.isActive ? (
+                                        <>
+                                          <XIcon className="size-4" />{' '}
+                                          {t('companies.actions.deactivateUser')}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckIcon className="size-4" />{' '}
+                                          {t('companies.actions.activateUser')}
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </TableCell>
                         </TableRow>
                       );

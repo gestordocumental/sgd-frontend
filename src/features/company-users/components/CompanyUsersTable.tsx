@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { initials, isDeleted } from '@/lib/formatters';
+import { initials, isDeleted, isPendingRegistration } from '@/lib/formatters';
 import type { ApiUserWithRoles } from '@/lib/api/users';
 import type { useCompanyUsers } from '@/features/company-users/hooks/use-company-users';
 import { useAuthStore } from '@/store/authStore';
@@ -279,7 +279,7 @@ function UserRow({
   onToggleOptionalReviewer,
 }: UserRowProps) {
   const { t } = useTranslation();
-  const isPending = u.registrationStatus === 'pending_credentials';
+  const isPending = isPendingRegistration(u);
   return (
     <TableRow className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}>
       <TableCell>
@@ -322,7 +322,7 @@ function UserRow({
         </div>
       </TableCell>
       <TableCell>
-        {u.registrationStatus === 'pending_credentials' ? (
+        {isPending ? (
           <Badge variant="default" className="text-xs">
             {t('common.pending')}
           </Badge>
