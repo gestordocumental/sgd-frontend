@@ -40,7 +40,12 @@ describe('useDragScroll', () => {
     expect(el.scrollLeft).toBe(80); // startScrollLeft(50) - delta(-30)
   });
 
-  it('prevents the default action on pointerdown to avoid native text selection while dragging', () => {
+  // Regression test: preventDefault() on pointerdown suppresses the browser's
+  // compatibility click event for that pointer, which silently broke clicking
+  // any interactive element wrapped by this hook (e.g. TabsTrigger buttons in
+  // ScrollableTabsList) in real browsers — jsdom doesn't model this behavior,
+  // so it only surfaced in Playwright e2e runs, not in this unit test suite.
+  it('does not call preventDefault on pointerdown, so wrapped clickable children keep working', () => {
     const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
     const el = makeElement();
     result.current.ref.current = el;
@@ -55,20 +60,49 @@ describe('useDragScroll', () => {
       }),
     );
 
-    expect(prevented).toBe(true);
+    expect(prevented).toBe(false);
   });
 
-  it('captures the pointer on pointerdown so drag keeps tracking outside the element bounds', () => {
+  // Regression test: capturing the pointer eagerly on pointerdown redirects the
+  // browser's click-target resolution to the capturing element, silently
+  // swallowing the click on any clickable child (e.g. a TabsTrigger button)
+  // for a plain, non-dragging click. Capture must only be acquired once a
+  // real drag is detected in onPointerMove.
+  it('does not capture the pointer on pointerdown alone', () => {
     const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
     const el = makeElement();
     result.current.ref.current = el;
 
     result.current.bind.onPointerDown(makePointerEvent({ pageX: 100, pointerId: 7 }));
 
+    expect(el.setPointerCapture).not.toHaveBeenCalled();
+  });
+
+  it('captures the pointer once movement crosses the drag threshold, so drag keeps tracking outside the element bounds', () => {
+    const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
+    const el = makeElement();
+    result.current.ref.current = el;
+
+    result.current.bind.onPointerDown(makePointerEvent({ pageX: 100, pointerId: 7 }));
+    expect(el.setPointerCapture).not.toHaveBeenCalled();
+
+    result.current.bind.onPointerMove(makePointerEvent({ pageX: 50, pointerId: 7 })); // past the threshold
     expect(el.setPointerCapture).toHaveBeenCalledWith(7);
   });
 
-  it('releases the pointer capture on pointerup', () => {
+  it('releases the pointer capture on pointerup after a real drag', () => {
+    const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
+    const el = makeElement();
+    result.current.ref.current = el;
+
+    result.current.bind.onPointerDown(makePointerEvent({ pageX: 100, pointerId: 7 }));
+    result.current.bind.onPointerMove(makePointerEvent({ pageX: 50, pointerId: 7 }));
+    result.current.bind.onPointerUp(makePointerEvent({ pointerId: 7 }));
+
+    expect(el.releasePointerCapture).toHaveBeenCalledWith(7);
+  });
+
+  it('does not release pointer capture on pointerup after a plain click (nothing was captured)', () => {
     const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
     const el = makeElement();
     result.current.ref.current = el;
@@ -76,7 +110,7 @@ describe('useDragScroll', () => {
     result.current.bind.onPointerDown(makePointerEvent({ pageX: 100, pointerId: 7 }));
     result.current.bind.onPointerUp(makePointerEvent({ pointerId: 7 }));
 
-    expect(el.releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(el.releasePointerCapture).not.toHaveBeenCalled();
   });
 
   it('does not scroll on pointermove before a pointerdown', () => {
