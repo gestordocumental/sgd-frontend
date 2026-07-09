@@ -22,6 +22,9 @@ export function useDragScroll<T extends HTMLElement>() {
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     const el = ref.current;
     if (!el || e.button !== 0) return;
+    // Prevents the browser from starting a native text selection while dragging
+    // over the tab labels.
+    e.preventDefault();
     el.setPointerCapture?.(e.pointerId);
     drag.current = { active: true, moved: false, startX: e.pageX, startScrollLeft: el.scrollLeft };
   }, []);

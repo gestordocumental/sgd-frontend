@@ -40,6 +40,24 @@ describe('useDragScroll', () => {
     expect(el.scrollLeft).toBe(80); // startScrollLeft(50) - delta(-30)
   });
 
+  it('prevents the default action on pointerdown to avoid native text selection while dragging', () => {
+    const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
+    const el = makeElement();
+    result.current.ref.current = el;
+
+    let prevented = false;
+    result.current.bind.onPointerDown(
+      makePointerEvent({
+        pageX: 100,
+        preventDefault: () => {
+          prevented = true;
+        },
+      }),
+    );
+
+    expect(prevented).toBe(true);
+  });
+
   it('captures the pointer on pointerdown so drag keeps tracking outside the element bounds', () => {
     const { result } = renderHook(() => useDragScroll<HTMLDivElement>());
     const el = makeElement();
