@@ -279,6 +279,7 @@ function UserRow({
   onToggleOptionalReviewer,
 }: UserRowProps) {
   const { t } = useTranslation();
+  const isPending = u.registrationStatus === 'pending_credentials';
   return (
     <TableRow className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}>
       <TableCell>
@@ -370,27 +371,33 @@ function UserRow({
             <DropdownMenuContent align="end">
               {!isDeleted(u) && !u.orgRemovedAt && (
                 <>
-                  <DropdownMenuItem onClick={onEdit}>
-                    <Pencil className="size-4" /> {t('users.actions.edit')}
-                  </DropdownMenuItem>
+                  {!isPending && (
+                    <DropdownMenuItem onClick={onEdit}>
+                      <Pencil className="size-4" /> {t('users.actions.edit')}
+                    </DropdownMenuItem>
+                  )}
                   {!isSelf && (
                     <>
-                      {u.isActive ? (
-                        <DropdownMenuItem onClick={onDisable}>
-                          <Ban className="size-4" /> {t('users.actions.disable')}
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={onEnable}>
-                          <CircleCheck className="size-4" /> {t('users.actions.enable')}
-                        </DropdownMenuItem>
+                      {!isPending && (
+                        <>
+                          {u.isActive ? (
+                            <DropdownMenuItem onClick={onDisable}>
+                              <Ban className="size-4" /> {t('users.actions.disable')}
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={onEnable}>
+                              <CircleCheck className="size-4" /> {t('users.actions.enable')}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={onToggleOptionalReviewer}>
+                            <UserCheck className="size-4" />
+                            {u.isOptionalReviewer
+                              ? t('users.actions.removeOptionalReviewer')
+                              : t('users.actions.markAsOptionalReviewer')}
+                          </DropdownMenuItem>
+                        </>
                       )}
-                      <DropdownMenuItem onClick={onToggleOptionalReviewer}>
-                        <UserCheck className="size-4" />
-                        {u.isOptionalReviewer
-                          ? t('users.actions.removeOptionalReviewer')
-                          : t('users.actions.markAsOptionalReviewer')}
-                      </DropdownMenuItem>
-                      {u.registrationStatus === 'pending_credentials' && (
+                      {isPending && (
                         <DropdownMenuItem onClick={onResendInvitation}>
                           <MailCheck className="size-4" /> {t('users.actions.resendInvitation')}
                         </DropdownMenuItem>

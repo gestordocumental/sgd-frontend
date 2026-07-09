@@ -210,6 +210,7 @@ export function CompanyUsersRow({
                   <TableBody>
                     {paginated.map((u) => {
                       const isSelf = u.id === currentUserId;
+                      const isPending = u.registrationStatus === 'pending_credentials';
                       return (
                         <TableRow
                           key={u.id}
@@ -299,11 +300,13 @@ export function CompanyUsersRow({
                                 <MoreHorizontal className="size-3.5" />
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
-                                  <PencilIcon className="size-4" />{' '}
-                                  {t('companies.actions.editUser')}
-                                </DropdownMenuItem>
-                                {!isSelf && (
+                                {!isPending && (
+                                  <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
+                                    <PencilIcon className="size-4" />{' '}
+                                    {t('companies.actions.editUser')}
+                                  </DropdownMenuItem>
+                                )}
+                                {!isSelf && !isPending && (
                                   <DropdownMenuItem
                                     onClick={() => onToggleUserStatus(u, companyId)}
                                   >

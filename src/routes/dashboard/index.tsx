@@ -19,6 +19,7 @@ import { OrgStructureDialogs } from '@/features/org-structure/components/OrgStru
 import { WorkflowDialogs } from '@/features/workflows/components/WorkflowDialogs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCompanyDashboard, type TabId } from '@/features/dashboard/hooks/use-company-dashboard';
+import { useDragScroll } from '@/lib/use-drag-scroll';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FeatureErrorFallback } from '@/components/FeatureErrorFallback';
 
@@ -105,6 +106,7 @@ function CompanyDashboard() {
     activeUsers,
     handleWorkflowNotificationClick,
   } = useCompanyDashboard();
+  const { ref: tabsScrollRef, bind: tabsScrollBind } = useDragScroll<HTMLDivElement>();
 
   return (
     <Tabs
@@ -124,7 +126,11 @@ function CompanyDashboard() {
 
         <div className="w-px h-6 bg-border shrink-0" />
 
-        <div className="flex-1 min-w-0 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div
+          ref={tabsScrollRef}
+          className="flex-1 min-w-0 overflow-x-auto cursor-grab select-none active:cursor-grabbing [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          {...tabsScrollBind}
+        >
           <TabsList className="w-max">
             <TabsTrigger value="overview">
               <LayoutDashboard className="size-4" />

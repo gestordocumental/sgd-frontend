@@ -37,6 +37,7 @@ import { typologiesApi } from '@/lib/api/typologies';
 import { workflowsApi } from '@/lib/api/workflows';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FeatureErrorFallback } from '@/components/FeatureErrorFallback';
+import { useDragScroll } from '@/lib/use-drag-scroll';
 
 export const Route = createFileRoute('/dashboard/admin')({
   beforeLoad: () => {
@@ -116,6 +117,7 @@ function AdminDashboardPage() {
   })();
 
   const storageLoading = typologyStorageLoading || workflowStorageLoading;
+  const { ref: tabsScrollRef, bind: tabsScrollBind } = useDragScroll<HTMLDivElement>();
 
   const { data: orgUserCounts = [], isLoading: orgUserCountsLoading } = useQuery({
     queryKey: ['admin-counts-by-org'],
@@ -145,7 +147,11 @@ function AdminDashboardPage() {
         <div className="w-px h-6 bg-border shrink-0" />
 
         {/* Pestañas — toma el espacio disponible y hace scroll si no caben */}
-        <div className="flex-1 min-w-0 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div
+          ref={tabsScrollRef}
+          className="flex-1 min-w-0 overflow-x-auto cursor-grab select-none active:cursor-grabbing [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          {...tabsScrollBind}
+        >
           <TabsList className="w-max">
             <TabsTrigger value="overview">
               <LayoutDashboard className="size-4" />

@@ -334,3 +334,50 @@ describe('UsersTable — self row actions', () => {
     expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
   });
 });
+
+describe('UsersTable — pending-credentials row actions', () => {
+  it('hides Edit, Disable/Enable and Super Admin toggle for a user still completing registration', async () => {
+    const user = userEvent.setup();
+    const pending = makeUser({
+      id: 'u-1',
+      firstName: 'Alice',
+      registrationStatus: 'pending_credentials',
+    });
+    render(<UsersTable hook={makeHook({ superAdmins: [pending] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
+
+    expect(screen.queryByRole('menuitem', { name: /^Edit$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Disable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Enable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Super Admin/ })).not.toBeInTheDocument();
+    // Resend invitation and Delete remain the only available actions.
+    expect(await screen.findByRole('menuitem', { name: /Resend invitation/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeInTheDocument();
+  });
+
+  it('never removes a super admin role from a user still completing registration', async () => {
+    const user = userEvent.setup();
+    const pendingSuperAdmin = makeUser({
+      id: 'u-1',
+      firstName: 'Alice',
+      isSuperAdmin: true,
+      registrationStatus: 'pending_credentials',
+    });
+    const toggleSuperAdminMutation = { mutate: vi.fn(), isPending: false };
+    render(
+      <UsersTable
+        hook={makeHook({
+          superAdmins: [pendingSuperAdmin],
+          toggleSuperAdminMutation:
+            toggleSuperAdminMutation as unknown as AdminUsersHook['toggleSuperAdminMutation'],
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
+
+    expect(screen.queryByRole('menuitem', { name: /Super Admin/ })).not.toBeInTheDocument();
+    expect(toggleSuperAdminMutation.mutate).not.toHaveBeenCalled();
+  });
+});
