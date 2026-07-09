@@ -159,4 +159,19 @@ describe('CompanyUsersRow — status action menu', () => {
       'org-1',
     );
   });
+
+  it('calls onToggleUserStatus with the user and companyId when Restore is clicked', async () => {
+    const onToggleUserStatus = vi.fn();
+    const user = userEvent.setup();
+    renderRow([makeUser({ orgRemovedAt: '2024-06-01T00:00:00Z' })], onToggleUserStatus);
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Restore user/ }));
+
+    expect(onToggleUserStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'u-1', orgRemovedAt: '2024-06-01T00:00:00Z' }),
+      'org-1',
+    );
+  });
 });
