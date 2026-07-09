@@ -118,7 +118,7 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
           </div>
 
           {resolveExtractionForm.formState.errors.root && (
-            <p className="text-sm text-destructive">
+            <p role="alert" className="text-sm text-destructive">
               {resolveExtractionForm.formState.errors.root.message}
             </p>
           )}
