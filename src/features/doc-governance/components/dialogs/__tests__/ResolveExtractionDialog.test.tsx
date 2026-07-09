@@ -53,6 +53,7 @@ vi.mock('@/lib/api/org-structure', () => ({
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
 import { ResolveExtractionDialog } from '../ResolveExtractionDialog';
+import { TypologyFormDialog } from '../TypologyFormDialog';
 import { useTypologies } from '@/features/doc-governance/hooks/use-typologies';
 import type { ApiTypology } from '@/lib/api/typologies';
 
@@ -107,6 +108,8 @@ function makeTypology(overrides: Partial<ApiTypology> = {}): ApiTypology {
   };
 }
 
+// Renders both dialogs so we can assert the resolve dialog hands off to the
+// edit dialog when the user chooses to upload a corrected document.
 function ResolveDialogHarness({ typo }: { typo: ApiTypology }) {
   const hook = useTypologies('org-1');
 
@@ -116,7 +119,12 @@ function ResolveDialogHarness({ typo }: { typo: ApiTypology }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <ResolveExtractionDialog hook={hook} />;
+  return (
+    <>
+      <ResolveExtractionDialog hook={hook} />
+      <TypologyFormDialog hook={hook} />
+    </>
+  );
 }
 
 beforeEach(() => {
@@ -126,7 +134,7 @@ beforeEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('ResolveExtractionDialog', () => {
-  it('shows the diff table for a DISCREPANCY typology', async () => {
+  it('shows the diff table and the extracted data that will be adopted', async () => {
     const typo = makeTypology({
       metadataExtraida: {
         nombre: 'Security Policy v2',
@@ -147,67 +155,35 @@ describe('ResolveExtractionDialog', () => {
 
     await screen.findByText('Review document information');
     expect(screen.getByText('Security Policy')).toBeInTheDocument();
-    expect(screen.getByText('Security Policy v2')).toBeInTheDocument();
-    // "Keep what I entered" is offered since there IS declared data
-    expect(screen.getByText('Keep what I entered')).toBeInTheDocument();
+    expect(screen.getAllByText('Security Policy v2').length).toBeGreaterThan(0);
   });
 
-  it('shows the extracted-values summary (no diff table, no keep-declared option) for PENDING_CONFIRMATION', async () => {
-    const typo = makeTypology({
-      documento: {
-        r2Key: 'r2/key',
-        originalName: 'policy.pdf',
-        mimeType: 'application/pdf',
-        uploadedAt: '2026-01-01T00:00:00.000Z',
-        extractionStatus: 'PENDING_CONFIRMATION',
-      },
-      datosDeclarados: { nombre: null, codigo: null, version: null, fuente: 'MANUAL' },
-      metadataExtraida: {
-        nombre: 'Extracted Name',
-        codigo: 'EXT-001',
-        version: 'v1.0',
-        extractedAt: '2026-01-01T00:00:00.000Z',
-        discrepancias: [],
-      },
-    });
-
+  it('only offers to adopt the extraction or upload a corrected document — no Keep/Manual options', async () => {
+    const typo = makeTypology();
     render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
 
     await screen.findByText('Review document information');
-    expect(screen.getByText('Extracted Name')).toBeInTheDocument();
-    expect(screen.queryByText('Keep what I entered')).not.toBeInTheDocument();
-    // KEEP_DECLARED is hidden for this status, so it can't be the default selection.
+
     expect(
-      screen.getByRole('radio', { name: /Use what was extracted from the document/ }),
-    ).toHaveAttribute('aria-checked', 'true');
+      screen.getByRole('button', { name: /Use what was extracted from the document/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Upload a corrected document/ })).toBeInTheDocument();
+    expect(screen.queryByText('Keep what I entered')).not.toBeInTheDocument();
+    expect(screen.queryByText('Enter the correct values')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
-  it('defaults to ADOPT_EXTRACTED (not the hidden KEEP_DECLARED) for PENDING_CONFIRMATION', async () => {
+  it('submits { action: ADOPT_EXTRACTED } when the primary action is clicked', async () => {
     mockResolveExtraction.mockResolvedValue(makeTypology());
     const user = userEvent.setup();
-    const typo = makeTypology({
-      documento: {
-        r2Key: 'r2/key',
-        originalName: 'policy.pdf',
-        mimeType: 'application/pdf',
-        uploadedAt: '2026-01-01T00:00:00.000Z',
-        extractionStatus: 'PENDING_CONFIRMATION',
-      },
-      datosDeclarados: { nombre: null, codigo: null, version: null, fuente: 'MANUAL' },
-      metadataExtraida: {
-        nombre: 'Extracted Name',
-        codigo: 'EXT-001',
-        version: 'v1.0',
-        extractedAt: '2026-01-01T00:00:00.000Z',
-        discrepancias: [],
-      },
-    });
+    const typo = makeTypology();
 
     render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
     await screen.findByText('Review document information');
 
-    // Submit immediately, without touching the radiogroup.
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await user.click(
+      screen.getByRole('button', { name: /Use what was extracted from the document/ }),
+    );
 
     await waitFor(() => {
       expect(mockResolveExtraction).toHaveBeenCalledWith('org-1', 'typo-1', {
@@ -216,79 +192,23 @@ describe('ResolveExtractionDialog', () => {
     });
   });
 
-  it('submits { action: ADOPT_EXTRACTED } with no nombre/codigo/version', async () => {
-    mockResolveExtraction.mockResolvedValue(makeTypology());
+  it('closes the resolve dialog and opens the edit dialog to upload a corrected document', async () => {
     const user = userEvent.setup();
     const typo = makeTypology();
 
     render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
     await screen.findByText('Review document information');
 
-    await user.click(screen.getByText('Use what was extracted from the document'));
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await user.click(screen.getByRole('button', { name: /Upload a corrected document/ }));
 
     await waitFor(() => {
-      expect(mockResolveExtraction).toHaveBeenCalledWith('org-1', 'typo-1', {
-        action: 'ADOPT_EXTRACTED',
-      });
+      expect(screen.queryByText('Review document information')).not.toBeInTheDocument();
     });
-  });
-
-  it('reveals manual fields for MANUAL_OVERRIDE and submits them', async () => {
-    mockResolveExtraction.mockResolvedValue(makeTypology());
-    const user = userEvent.setup();
-    const typo = makeTypology();
-
-    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
-    await screen.findByText('Review document information');
-
-    await user.click(screen.getByText('Enter the correct values'));
-
-    const nombreInput = screen.getByLabelText('Name');
-    const codigoInput = screen.getByLabelText('Code');
-    const versionInput = screen.getByLabelText('Version');
-
-    await user.clear(nombreInput);
-    await user.type(nombreInput, 'Final Name');
-    await user.clear(codigoInput);
-    await user.type(codigoInput, 'FINAL-001');
-    await user.clear(versionInput);
-    await user.type(versionInput, 'v3.0');
-
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
-
-    await waitFor(() => {
-      expect(mockResolveExtraction).toHaveBeenCalledWith('org-1', 'typo-1', {
-        action: 'MANUAL_OVERRIDE',
-        nombre: 'Final Name',
-        codigo: 'FINAL-001',
-        version: 'v3.0',
-      });
-    });
-  });
-
-  it('requires nombre, codigo and version when MANUAL_OVERRIDE fields are left blank', async () => {
-    const user = userEvent.setup();
-    const typo = makeTypology();
-
-    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
-    await screen.findByText('Review document information');
-
-    await user.click(screen.getByText('Enter the correct values'));
-
-    await user.clear(screen.getByLabelText('Name'));
-    await user.clear(screen.getByLabelText('Code'));
-    await user.clear(screen.getByLabelText('Version'));
-
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
-
-    await waitFor(() => {
-      expect(screen.getAllByText('This field is required')).toHaveLength(3);
-    });
+    expect(await screen.findByText('Edit typology')).toBeInTheDocument();
     expect(mockResolveExtraction).not.toHaveBeenCalled();
   });
 
-  it('disables Cancel and blocks closing while the resolve mutation is pending', async () => {
+  it('disables both actions and blocks closing while the resolve mutation is pending', async () => {
     let resolvePending!: (v: ApiTypology) => void;
     mockResolveExtraction.mockReturnValue(
       new Promise<ApiTypology>((resolve) => {
@@ -301,11 +221,13 @@ describe('ResolveExtractionDialog', () => {
     render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
     await screen.findByText('Review document information');
 
-    await user.click(screen.getByText('Use what was extracted from the document'));
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await user.click(
+      screen.getByRole('button', { name: /Use what was extracted from the document/ }),
+    );
 
     const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
     expect(cancelButton).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Upload a corrected document/ })).toBeDisabled();
 
     // A disabled button ignores clicks — the dialog must stay open while pending.
     await user.click(cancelButton);
@@ -315,37 +237,6 @@ describe('ResolveExtractionDialog', () => {
     await waitFor(() => {
       expect(screen.queryByText('Review document information')).not.toBeInTheDocument();
     });
-  });
-
-  it('moves focus and selection between radio options with arrow keys', async () => {
-    const user = userEvent.setup();
-    const typo = makeTypology();
-
-    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
-    await screen.findByText('Review document information');
-
-    const radios = screen.getAllByRole('radio');
-    radios[0].focus();
-    expect(radios[0]).toHaveAttribute('aria-checked', 'true');
-
-    await user.keyboard('{ArrowDown}');
-    expect(radios[1]).toHaveFocus();
-    expect(radios[1]).toHaveAttribute('aria-checked', 'true');
-    expect(radios[0]).toHaveAttribute('aria-checked', 'false');
-
-    await user.keyboard('{ArrowRight}');
-    expect(radios[2]).toHaveFocus();
-    expect(radios[2]).toHaveAttribute('aria-checked', 'true');
-
-    // Wraps around past the last option back to the first.
-    await user.keyboard('{ArrowDown}');
-    expect(radios[0]).toHaveFocus();
-    expect(radios[0]).toHaveAttribute('aria-checked', 'true');
-
-    // Wraps around backwards past the first option to the last.
-    await user.keyboard('{ArrowUp}');
-    expect(radios[radios.length - 1]).toHaveFocus();
-    expect(radios[radios.length - 1]).toHaveAttribute('aria-checked', 'true');
   });
 
   it('closes the dialog on Cancel without calling the API', async () => {
@@ -379,15 +270,16 @@ describe('ResolveExtractionDialog', () => {
     render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
     await screen.findByText('Review document information');
 
-    await user.click(screen.getByText('Use what was extracted from the document'));
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await user.click(
+      screen.getByRole('button', { name: /Use what was extracted from the document/ }),
+    );
 
     await screen.findByText(
       'An active typology with code "POL-SEC-002" already exists in this organization. Only one active typology per code is allowed.',
     );
   });
 
-  it('shows a guiding error when the backend rejects a still-mismatched KEEP_DECLARED resolution', async () => {
+  it('shows a guiding error if the backend still rejects the resolution as mismatched', async () => {
     mockResolveExtraction.mockRejectedValue({
       response: {
         data: {
@@ -403,8 +295,9 @@ describe('ResolveExtractionDialog', () => {
     render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
     await screen.findByText('Review document information');
 
-    // "Keep what I entered" is selected by default for a DISCREPANCY typology.
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await user.click(
+      screen.getByRole('button', { name: /Use what was extracted from the document/ }),
+    );
 
     await screen.findByText(
       'The declared data still doesn\'t match the content of the uploaded document. Choose "Use what was extracted from the document", or upload a document whose content matches the declared data.',
