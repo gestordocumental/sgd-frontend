@@ -141,3 +141,27 @@ describe('CompanyUsersTable — self row actions', () => {
     expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
   });
 });
+
+describe('CompanyUsersTable — pending-credentials row actions', () => {
+  it('hides Edit, Disable/Enable and optional-reviewer toggle for a user still completing registration', async () => {
+    mockFetchAllUsersByOrg.mockResolvedValue({
+      data: [makeUser({ registrationStatus: 'pending_credentials' })],
+      nextCursor: null,
+      hasMore: false,
+    });
+    const user = userEvent.setup();
+
+    render(<CompanyUsersTableHarness />, { wrapper: makeWrapper() });
+    await screen.findByText('Alice Smith');
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+
+    expect(screen.queryByRole('menuitem', { name: /^Edit$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Disable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Enable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /optional reviewer/i })).not.toBeInTheDocument();
+    // Resend invitation and Delete remain the only available actions.
+    expect(await screen.findByRole('menuitem', { name: /Resend invitation/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeInTheDocument();
+  });
+});

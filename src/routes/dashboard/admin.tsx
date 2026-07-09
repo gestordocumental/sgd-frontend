@@ -5,7 +5,8 @@ import { UserProfileCard } from '@/features/profile/components/UserProfileCard';
 import { Users, Building2, UserPlus, LayoutDashboard, ClipboardList } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollableTabsList } from '@/components/ui/scrollable-tabs-list';
 import { useAuthStore } from '@/store/authStore';
 import { isDeleted } from '@/lib/formatters';
 import { useAdminUsers } from '@/features/users/hooks/use-admin-users';
@@ -145,26 +146,24 @@ function AdminDashboardPage() {
         <div className="w-px h-6 bg-border shrink-0" />
 
         {/* Pestañas — toma el espacio disponible y hace scroll si no caben */}
-        <div className="flex-1 min-w-0 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <TabsList className="w-max">
-            <TabsTrigger value="overview">
-              <LayoutDashboard className="size-4" />
-              <span className="hidden lg:inline">{t('dashboard.overview')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="users">
-              <Users className="size-4" />
-              <span className="hidden lg:inline">{t('common.users')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="companies">
-              <Building2 className="size-4" />
-              <span className="hidden lg:inline">{t('companies.title')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="audit">
-              <ClipboardList className="size-4" />
-              <span className="hidden lg:inline">{t('audit.title')}</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <ScrollableTabsList>
+          <TabsTrigger value="overview">
+            <LayoutDashboard className="size-4" />
+            <span className="hidden lg:inline">{t('dashboard.overview')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="users">
+            <Users className="size-4" />
+            <span className="hidden lg:inline">{t('common.users')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="companies">
+            <Building2 className="size-4" />
+            <span className="hidden lg:inline">{t('companies.title')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="audit">
+            <ClipboardList className="size-4" />
+            <span className="hidden lg:inline">{t('audit.title')}</span>
+          </TabsTrigger>
+        </ScrollableTabsList>
 
         {/* Controles — nunca se encogen ni se solapan */}
         <div className="flex items-center gap-2 shrink-0">

@@ -334,3 +334,43 @@ describe('UsersTable — self row actions', () => {
     expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
   });
 });
+
+describe('UsersTable — pending-credentials row actions', () => {
+  it('hides Edit, Disable/Enable and Super Admin toggle for a user still completing registration', async () => {
+    const user = userEvent.setup();
+    const pending = makeUser({
+      id: 'u-1',
+      firstName: 'Alice',
+      registrationStatus: 'pending_credentials',
+    });
+    render(<UsersTable hook={makeHook({ superAdmins: [pending] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
+
+    expect(screen.queryByRole('menuitem', { name: /^Edit$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Disable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Enable/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Super Admin/ })).not.toBeInTheDocument();
+    // Resend invitation and Delete remain the only available actions.
+    expect(await screen.findByRole('menuitem', { name: /Resend invitation/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeInTheDocument();
+  });
+
+  it('hides the Super Admin toggle even for a pending user already flagged as super admin', async () => {
+    // Regression case: this is the exact shape of user involved in the original
+    // incident — a pending invite created with isSuperAdmin=true — where removing
+    // the flag before they finished registration locked them out permanently.
+    const user = userEvent.setup();
+    const pendingSuperAdmin = makeUser({
+      id: 'u-1',
+      firstName: 'Alice',
+      isSuperAdmin: true,
+      registrationStatus: 'pending_credentials',
+    });
+    render(<UsersTable hook={makeHook({ superAdmins: [pendingSuperAdmin] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice' }));
+
+    expect(screen.queryByRole('menuitem', { name: /Super Admin/ })).not.toBeInTheDocument();
+  });
+});

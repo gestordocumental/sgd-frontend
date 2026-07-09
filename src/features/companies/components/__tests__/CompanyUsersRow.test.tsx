@@ -174,4 +174,16 @@ describe('CompanyUsersRow — status action menu', () => {
       'org-1',
     );
   });
+
+  it('hides the actions menu entirely for a user still completing registration', async () => {
+    renderRow([makeUser({ registrationStatus: 'pending_credentials' })]);
+
+    await screen.findByText('Alice Smith');
+
+    // No actions are available for a pending user, so the trigger itself
+    // shouldn't render — an empty popover would be a dead-end for admins.
+    expect(
+      screen.queryByRole('button', { name: 'Actions for Alice Smith' }),
+    ).not.toBeInTheDocument();
+  });
 });
