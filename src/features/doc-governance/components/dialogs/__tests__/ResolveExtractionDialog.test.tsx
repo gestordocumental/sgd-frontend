@@ -386,4 +386,28 @@ describe('ResolveExtractionDialog', () => {
       'An active typology with code "POL-SEC-002" already exists in this organization. Only one active typology per code is allowed.',
     );
   });
+
+  it('shows a guiding error when the backend rejects a still-mismatched KEEP_DECLARED resolution', async () => {
+    mockResolveExtraction.mockRejectedValue({
+      response: {
+        data: {
+          errorCode: 'TYPOLOGY_DECLARED_STILL_MISMATCHED',
+          message: 'fallback',
+          params: { fields: ['nombre'] },
+        },
+      },
+    });
+    const user = userEvent.setup();
+    const typo = makeTypology();
+
+    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
+    await screen.findByText('Review document information');
+
+    // "Keep what I entered" is selected by default for a DISCREPANCY typology.
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await screen.findByText(
+      'The declared data still doesn\'t match the content of the uploaded document. Choose "Use what was extracted from the document", or upload a document whose content matches the declared data.',
+    );
+  });
 });

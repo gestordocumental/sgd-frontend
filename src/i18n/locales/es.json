@@ -1047,6 +1047,7 @@
     "TYPOLOGY_INVALID_ID": "El identificador de la tipología no es válido.",
     "TYPOLOGY_VERSION_INVALID": "La nueva versión ({{newVersion}}) debe ser igual o exactamente un incremento sobre la versión actual ({{oldVersion}}).",
     "TYPOLOGY_NO_PENDING_ACTION": "No hay una discrepancia o confirmación pendiente para esta tipología.",
+    "TYPOLOGY_DECLARED_STILL_MISMATCHED": "Los datos declarados siguen sin coincidir con el contenido del documento cargado. Elige \"Usar lo extraído del documento\" o sube un documento cuyo contenido coincida con los datos declarados.",
     "USER_PREVIOUSLY_DELETED": "Este usuario fue eliminado previamente. Use la opción de restaurar para reactivarlo.",
     "USER_ALREADY_IN_ANOTHER_ORG": "Ya existe un usuario con este correo electrónico en otra organización.",
     "USER_ALREADY_EXISTS": "Ya existe un usuario con este correo electrónico.",
