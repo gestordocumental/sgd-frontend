@@ -208,122 +208,129 @@ export function CompanyUsersRow({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginated.map((u) => (
-                      <TableRow
-                        key={u.id}
-                        className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="size-8">
-                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                {initials(u.firstName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium">
-                                {u.firstName} {u.lastName}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{u.email}</p>
+                    {paginated.map((u) => {
+                      const isSelf = u.id === currentUserId;
+                      return (
+                        <TableRow
+                          key={u.id}
+                          className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="size-8">
+                                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                  {initials(u.firstName)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {u.firstName} {u.lastName}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{u.email}</p>
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2.5">
-                          {isDeleted(u) || u.orgRemovedAt ? (
-                            <Badge variant="destructive" className="text-xs">
-                              {t('common.deleted')}
-                            </Badge>
-                          ) : !u.isActive ? (
-                            <Badge
-                              variant="outline"
-                              className="text-xs text-amber-600 border-amber-200 bg-amber-50"
-                            >
-                              {t('common.inactive')}
-                            </Badge>
-                          ) : u.roles.length === 0 ? (
-                            <Badge
-                              variant="outline"
-                              className="text-xs text-amber-600 border-amber-200 bg-amber-50"
-                            >
-                              {t('common.noRole')}
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
-                            >
-                              {t('common.active')}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {u.registrationStatus === 'pending_credentials' ? (
-                            <Badge variant="default" className="gap-1 text-xs">
-                              <ShieldCheck className="size-3" /> {t('companies.pendingCredentials')}
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
-                            >
-                              <ShieldCheck className="size-3" /> {t('common.registered')}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2.5">
-                          {u.roles.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {u.roles.map((r) => (
-                                <Badge key={r.roleId} variant="secondary" className="text-xs">
-                                  {r.roleName}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              {t('common.noRole')}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2.5">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              aria-label={t('companies.actions.openUserMenu', {
-                                name: `${u.firstName} ${u.lastName}`,
-                              })}
-                              className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                            >
-                              <MoreHorizontal className="size-3.5" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
-                                <PencilIcon className="size-4" /> {t('companies.actions.editUser')}
-                              </DropdownMenuItem>
-                              {u.id !== currentUserId && (
-                                <DropdownMenuItem onClick={() => onToggleUserStatus(u, companyId)}>
-                                  {isDeleted(u) || !!u.orgRemovedAt ? (
-                                    <>
-                                      <RotateCcw className="size-4" />{' '}
-                                      {t('companies.actions.restoreUser')}
-                                    </>
-                                  ) : u.isActive ? (
-                                    <>
-                                      <XIcon className="size-4" />{' '}
-                                      {t('companies.actions.deactivateUser')}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CheckIcon className="size-4" />{' '}
-                                      {t('companies.actions.activateUser')}
-                                    </>
-                                  )}
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            {isDeleted(u) || u.orgRemovedAt ? (
+                              <Badge variant="destructive" className="text-xs">
+                                {t('common.deleted')}
+                              </Badge>
+                            ) : !u.isActive ? (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-amber-600 border-amber-200 bg-amber-50"
+                              >
+                                {t('common.inactive')}
+                              </Badge>
+                            ) : u.roles.length === 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-amber-600 border-amber-200 bg-amber-50"
+                              >
+                                {t('common.noRole')}
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
+                              >
+                                {t('common.active')}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {u.registrationStatus === 'pending_credentials' ? (
+                              <Badge variant="default" className="gap-1 text-xs">
+                                <ShieldCheck className="size-3" />{' '}
+                                {t('companies.pendingCredentials')}
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50"
+                              >
+                                <ShieldCheck className="size-3" /> {t('common.registered')}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            {u.roles.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {u.roles.map((r) => (
+                                  <Badge key={r.roleId} variant="secondary" className="text-xs">
+                                    {r.roleName}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {t('common.noRole')}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                aria-label={t('companies.actions.openUserMenu', {
+                                  name: `${u.firstName} ${u.lastName}`,
+                                })}
+                                className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
+                                  <PencilIcon className="size-4" />{' '}
+                                  {t('companies.actions.editUser')}
                                 </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                                {!isSelf && (
+                                  <DropdownMenuItem
+                                    onClick={() => onToggleUserStatus(u, companyId)}
+                                  >
+                                    {isDeleted(u) || !!u.orgRemovedAt ? (
+                                      <>
+                                        <RotateCcw className="size-4" />{' '}
+                                        {t('companies.actions.restoreUser')}
+                                      </>
+                                    ) : u.isActive ? (
+                                      <>
+                                        <XIcon className="size-4" />{' '}
+                                        {t('companies.actions.deactivateUser')}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckIcon className="size-4" />{' '}
+                                        {t('companies.actions.activateUser')}
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
                 {totalPages > 1 && (
