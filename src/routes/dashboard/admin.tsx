@@ -229,7 +229,9 @@ function AdminDashboardPage() {
                 onToggleUserStatus={(u, companyId) =>
                   isDeleted(u) || !!u.orgRemovedAt
                     ? users.restoreToOrgMutation.mutate({ user: u, orgId: companyId })
-                    : users.removeFromOrgMutation.mutate({ userId: u.id, orgId: companyId })
+                    : u.isActive
+                      ? users.disableMutation.mutate(u.id)
+                      : users.enableMutation.mutate(u.id)
                 }
               />
             </Suspense>

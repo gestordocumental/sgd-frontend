@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Copy,
   Check,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
@@ -271,6 +272,19 @@ export function TypologyTabContent({ typologiesHook, canWrite = false }: Typolog
                         )}
                         {canWrite && (
                           <>
+                            {(typo.documento.extractionStatus === 'DISCREPANCY' ||
+                              typo.documento.extractionStatus === 'PENDING_CONFIRMATION') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 text-orange-600 hover:text-orange-700"
+                                title={t('docGovernance.table.resolveExtraction')}
+                                aria-label={t('docGovernance.table.resolveExtraction')}
+                                onClick={() => typologiesHook.openResolve(typo)}
+                              >
+                                <AlertTriangle className="size-3.5" />
+                              </Button>
+                            )}
                             {typo.documento.extractionStatus === 'NOT_UPLOADED' && (
                               <Button
                                 variant="ghost"

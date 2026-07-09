@@ -37,6 +37,7 @@ import {
 import { initials, isDeleted } from '@/lib/formatters';
 import type { ApiUserWithRoles } from '@/lib/api/users';
 import type { useCompanyUsers } from '@/features/company-users/hooks/use-company-users';
+import { useAuthStore } from '@/store/authStore';
 
 type CompanyUsersHook = ReturnType<typeof useCompanyUsers>;
 type StatusFilter = 'all' | 'active' | 'inactive' | 'deleted';
@@ -65,6 +66,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
     cargoMap,
   } = hook;
   const { t } = useTranslation();
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -211,6 +213,7 @@ export function CompanyUsersTable({ hook, canWrite = false }: CompanyUsersTableP
                   user={u}
                   cargoName={u.cargoId ? (cargoMap.get(u.cargoId) ?? '—') : '—'}
                   canWrite={canWrite}
+                  isSelf={u.id === currentUserId}
                   onEdit={() => openEdit(u)}
                   onDelete={() => setDeleteUser(u)}
                   onRestore={(user) =>
@@ -252,6 +255,7 @@ interface UserRowProps {
   user: ApiUserWithRoles;
   cargoName: string;
   canWrite: boolean;
+  isSelf: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onRestore: (u: ApiUserWithRoles) => void;
@@ -265,6 +269,7 @@ function UserRow({
   user: u,
   cargoName,
   canWrite,
+  isSelf,
   onEdit,
   onDelete,
   onRestore: onRestoreUser,
@@ -368,33 +373,37 @@ function UserRow({
                   <DropdownMenuItem onClick={onEdit}>
                     <Pencil className="size-4" /> {t('users.actions.edit')}
                   </DropdownMenuItem>
-                  {u.isActive ? (
-                    <DropdownMenuItem onClick={onDisable}>
-                      <Ban className="size-4" /> {t('users.actions.disable')}
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={onEnable}>
-                      <CircleCheck className="size-4" /> {t('users.actions.enable')}
-                    </DropdownMenuItem>
+                  {!isSelf && (
+                    <>
+                      {u.isActive ? (
+                        <DropdownMenuItem onClick={onDisable}>
+                          <Ban className="size-4" /> {t('users.actions.disable')}
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={onEnable}>
+                          <CircleCheck className="size-4" /> {t('users.actions.enable')}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={onToggleOptionalReviewer}>
+                        <UserCheck className="size-4" />
+                        {u.isOptionalReviewer
+                          ? t('users.actions.removeOptionalReviewer')
+                          : t('users.actions.markAsOptionalReviewer')}
+                      </DropdownMenuItem>
+                      {u.registrationStatus === 'pending_credentials' && (
+                        <DropdownMenuItem onClick={onResendInvitation}>
+                          <MailCheck className="size-4" /> {t('users.actions.resendInvitation')}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={onDelete}
+                      >
+                        <Trash2 className="size-4" /> {t('users.actions.delete')}
+                      </DropdownMenuItem>
+                    </>
                   )}
-                  <DropdownMenuItem onClick={onToggleOptionalReviewer}>
-                    <UserCheck className="size-4" />
-                    {u.isOptionalReviewer
-                      ? t('users.actions.removeOptionalReviewer')
-                      : t('users.actions.markAsOptionalReviewer')}
-                  </DropdownMenuItem>
-                  {u.registrationStatus === 'pending_credentials' && (
-                    <DropdownMenuItem onClick={onResendInvitation}>
-                      <MailCheck className="size-4" /> {t('users.actions.resendInvitation')}
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={onDelete}
-                  >
-                    <Trash2 className="size-4" /> {t('users.actions.delete')}
-                  </DropdownMenuItem>
                 </>
               )}
               {(isDeleted(u) || !!u.orgRemovedAt) && (

@@ -116,6 +116,7 @@
     "loginLocked": "Too many failed attempts. Please wait {{seconds}} seconds before trying again.",
     "loginLockedButton": "Paused ({{seconds}}s)",
     "idleLogoutNotice": "Your session was automatically closed due to inactivity.",
+    "accountDisabledMessage": "Your account was disabled by an administrator.",
     "forgotPasswordPage": {
       "title": "Recover password",
       "subtitle": "Enter your email address and we will send you a link to reset your password.",
@@ -455,6 +456,7 @@
       "editUser": "Edit user",
       "activateUser": "Activate user",
       "deactivateUser": "Deactivate user",
+      "restoreUser": "Restore user",
       "deleteUser": "Delete user",
       "expandCompany": "Expand {{name}}",
       "collapseCompany": "Collapse {{name}}",
@@ -655,6 +657,7 @@
       "uploadDocument": "Upload document",
       "extractionFailed": "Could not extract information from the document",
       "retryExtraction": "Retry extraction",
+      "resolveExtraction": "Resolve discrepancy",
       "newTypology": "New typology",
       "resourceId": "Resource ID"
     },
@@ -713,6 +716,36 @@
       "loading": "Loading history…",
       "empty": "No records.",
       "deletedSuffix": "· deleted"
+    },
+    "resolve": {
+      "title": "Review document information",
+      "discrepancyIntro": "The data you entered for this typology doesn't match what was automatically extracted from the document. Review the comparison and decide how to proceed before this typology can be used.",
+      "pendingIntro": "You hadn't yet entered a name, code, or version for this typology, but the system automatically extracted them from the uploaded document. Confirm this information or correct it before continuing.",
+      "fieldColumn": "Field",
+      "declaredColumn": "What you entered",
+      "extractedColumn": "What was extracted from the document",
+      "fieldNames": {
+        "nombre": "Name",
+        "codigo": "Code",
+        "version": "Version"
+      },
+      "actionLabel": "What would you like to do?",
+      "actions": {
+        "KEEP_DECLARED": {
+          "label": "Keep what I entered",
+          "description": "Keep the name, code, and version you entered manually; ignore what was extracted from the document."
+        },
+        "ADOPT_EXTRACTED": {
+          "label": "Use what was extracted from the document",
+          "description": "Replace your entered data with the name, code, and version read from the document."
+        },
+        "MANUAL_OVERRIDE": {
+          "label": "Enter the correct values",
+          "description": "Manually enter the final name, code, and/or version, different from the two options above."
+        }
+      },
+      "submit": "Confirm",
+      "submitting": "Saving…"
     },
     "file": {
       "selectLabel": "Select file",
@@ -1017,6 +1050,10 @@
     "USER_PREVIOUSLY_DELETED": "This user was previously deleted. Use the restore option to reactivate them.",
     "USER_ALREADY_IN_ANOTHER_ORG": "A user with this email already exists in another organization.",
     "USER_ALREADY_EXISTS": "A user with this email already exists.",
-    "ROLE_NOT_FOUND": "The selected role was not found."
+    "ROLE_NOT_FOUND": "The selected role was not found.",
+    "USER_CANNOT_DELETE_SELF": "You cannot delete your own account.",
+    "USER_CANNOT_DISABLE_SELF": "You cannot disable your own account.",
+    "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "You cannot change your own super admin status.",
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization."
   }
 }

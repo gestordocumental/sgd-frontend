@@ -81,6 +81,13 @@ export function useNotifications() {
         bc.postMessage({ type: 'sgd:super-admin-revoked' });
       });
 
+      // Emitted when an admin disables this user's account — forces an
+      // immediate logout instead of waiting for the next page refresh to
+      // discover the now-inactive account via a 401.
+      sse.addEventListener('account-disabled', () => {
+        bc.postMessage({ type: 'sgd:account-disabled' });
+      });
+
       // Tickets are one-time-use so we manage reconnection ourselves with
       // exponential backoff (max 30 s) instead of relying on EventSource auto-retry.
       sse.onerror = () => {
