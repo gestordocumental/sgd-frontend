@@ -719,8 +719,7 @@
     },
     "resolve": {
       "title": "Revisar información del documento",
-      "discrepancyIntro": "Los datos que registraste para esta tipología no coinciden con lo que se extrajo automáticamente del documento. Revisa la comparación y decide cómo continuar antes de poder usar esta tipología.",
-      "pendingIntro": "Aún no habías registrado nombre, código o versión para esta tipología, pero el sistema los extrajo automáticamente del documento cargado. Confirma esta información o corrígela antes de continuar.",
+      "intro": "El documento no coincide con los datos que registraste para esta tipología. Usa la información extraída del documento, o sube un documento cuyo contenido coincida con los datos que quieres declarar.",
       "fieldColumn": "Campo",
       "declaredColumn": "Lo que registraste",
       "extractedColumn": "Lo que se extrajo del documento",
@@ -729,22 +728,9 @@
         "codigo": "Código",
         "version": "Versión"
       },
-      "actionLabel": "¿Qué deseas hacer?",
-      "actions": {
-        "KEEP_DECLARED": {
-          "label": "Mantener lo que registré",
-          "description": "Conserva el nombre, código y versión que ingresaste manualmente; ignora lo extraído del documento."
-        },
-        "ADOPT_EXTRACTED": {
-          "label": "Usar lo extraído del documento",
-          "description": "Reemplaza tus datos registrados por el nombre, código y versión que se leyeron del documento."
-        },
-        "MANUAL_OVERRIDE": {
-          "label": "Escribir los valores correctos",
-          "description": "Ingresa manualmente el nombre, código y/o versión definitivos, distintos a los dos anteriores."
-        }
-      },
-      "submit": "Confirmar",
+      "extractedDataLabel": "Datos que se usarán",
+      "adoptExtracted": "Usar lo extraído del documento",
+      "uploadCorrected": "Subir un documento corregido",
       "submitting": "Guardando…"
     },
     "file": {

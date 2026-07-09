@@ -1,7 +1,6 @@
-import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -9,52 +8,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { FormField } from '@/components/ui/form-field';
-import { cn } from '@/lib/utils';
-import type { ResolveAction, ResolveExtractionDto } from '@/lib/api/typologies';
 import { type TypologiesHook } from './typology-dialog-shared';
-
-const ACTION_OPTIONS: ResolveAction[] = ['KEEP_DECLARED', 'ADOPT_EXTRACTED', 'MANUAL_OVERRIDE'];
 
 export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
   const { t } = useTranslation();
-  const { resolveTypology, setResolveTypology, resolveExtractionForm, resolveExtractionMutation } =
-    hook;
+  const {
+    resolveTypology,
+    setResolveTypology,
+    resolveExtractionForm,
+    resolveExtractionMutation,
+    openEdit,
+  } = hook;
 
   const typo = resolveTypology;
   const open = !!typo;
   const pending = resolveExtractionMutation.isPending;
-  const isPendingConfirmation = typo?.documento.extractionStatus === 'PENDING_CONFIRMATION';
   const discrepancies = typo?.metadataExtraida.discrepancias ?? [];
-  const action = resolveExtractionForm.watch('action');
-
-  const visibleActionOptions = ACTION_OPTIONS.filter(
-    (opt) => !(isPendingConfirmation && opt === 'KEEP_DECLARED'),
-  );
-  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  const selectAction = (opt: ResolveAction) =>
-    resolveExtractionForm.setValue('action', opt, { shouldValidate: true, shouldDirty: true });
-
-  // ARIA APG roving-tabindex pattern: arrow keys move focus AND selection
-  // between radio options, since this radiogroup isn't backed by native
-  // <input type="radio"> elements.
-  const handleOptionKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    let nextIndex: number | null = null;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      nextIndex = (index + 1) % visibleActionOptions.length;
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      nextIndex = (index - 1 + visibleActionOptions.length) % visibleActionOptions.length;
-    } else if (e.key === 'Home') {
-      nextIndex = 0;
-    } else if (e.key === 'End') {
-      nextIndex = visibleActionOptions.length - 1;
-    }
-    if (nextIndex === null) return;
-    e.preventDefault();
-    optionRefs.current[nextIndex]?.focus();
-    selectAction(visibleActionOptions[nextIndex]);
-  };
 
   // Blocked while the mutation is in flight — otherwise a late onSuccess from
   // this resolution would call setResolveTypology(null) again after the user
@@ -63,21 +32,24 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
   const close = () => {
     if (pending) return;
     setResolveTypology(null);
-    resolveExtractionForm.reset();
+    resolveExtractionForm.reset({});
   };
 
-  const handleSubmit = resolveExtractionForm.handleSubmit((values) => {
-    const dto: ResolveExtractionDto =
-      values.action === 'MANUAL_OVERRIDE'
-        ? {
-            action: values.action,
-            nombre: values.nombre,
-            codigo: values.codigo,
-            version: values.version,
-          }
-        : { action: values.action };
-    resolveExtractionMutation.mutate(dto);
-  });
+  // The declared data can only ever come from what's actually in the uploaded
+  // document — the backend rejects any resolution that would leave the
+  // typology declaring data that doesn't match the document's real content,
+  // since a later workflow re-check of that same document would always fail.
+  // So there are only two ways forward: adopt what was extracted, or leave to
+  // upload a document whose content matches what should be declared.
+  const handleAdoptExtracted = () => {
+    resolveExtractionMutation.mutate({ action: 'ADOPT_EXTRACTED' });
+  };
+
+  const handleUploadCorrected = () => {
+    if (!typo) return;
+    setResolveTypology(null);
+    openEdit(typo);
+  };
 
   return (
     <Dialog
@@ -91,12 +63,8 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
           <DialogTitle>{t('docGovernance.resolve.title')}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <p className="text-sm text-muted-foreground">
-            {isPendingConfirmation
-              ? t('docGovernance.resolve.pendingIntro')
-              : t('docGovernance.resolve.discrepancyIntro')}
-          </p>
+        <div className="space-y-4 pt-2">
+          <p className="text-sm text-muted-foreground">{t('docGovernance.resolve.intro')}</p>
 
           {discrepancies.length > 0 && (
             <div className="rounded-md border border-border overflow-hidden">
@@ -129,107 +97,25 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
             </div>
           )}
 
-          {isPendingConfirmation && (
-            <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm space-y-1">
-              <div>
-                <span className="text-muted-foreground">
-                  {t('docGovernance.upload.nameLabel')}:{' '}
-                </span>
-                {typo?.metadataExtraida.nombre ?? '—'}
-              </div>
-              <div>
-                <span className="text-muted-foreground">
-                  {t('docGovernance.upload.codeLabel')}:{' '}
-                </span>
-                {typo?.metadataExtraida.codigo ?? '—'}
-              </div>
-              <div>
-                <span className="text-muted-foreground">
-                  {t('docGovernance.form.versionLabel')}:{' '}
-                </span>
-                {typo?.metadataExtraida.version ?? '—'}
-              </div>
+          <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t('docGovernance.resolve.extractedDataLabel')}
+            </p>
+            <div>
+              <span className="text-muted-foreground">{t('docGovernance.upload.nameLabel')}: </span>
+              {typo?.metadataExtraida.nombre ?? '—'}
             </div>
-          )}
-
-          <div className="space-y-2">
-            <span className="text-sm font-medium">{t('docGovernance.resolve.actionLabel')}</span>
-            <div
-              className="grid gap-2"
-              role="radiogroup"
-              aria-label={t('docGovernance.resolve.actionLabel')}
-            >
-              {visibleActionOptions.map((opt, index) => (
-                <button
-                  key={opt}
-                  ref={(el) => {
-                    optionRefs.current[index] = el;
-                  }}
-                  type="button"
-                  role="radio"
-                  aria-checked={action === opt}
-                  tabIndex={
-                    action === opt || (!visibleActionOptions.includes(action) && index === 0)
-                      ? 0
-                      : -1
-                  }
-                  onClick={() => selectAction(opt)}
-                  onKeyDown={(e) => handleOptionKeyDown(e, index)}
-                  className={cn(
-                    'w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors',
-                    action === opt
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-input hover:bg-muted',
-                  )}
-                >
-                  <div className="font-medium">
-                    {t(`docGovernance.resolve.actions.${opt}.label`)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {t(`docGovernance.resolve.actions.${opt}.description`)}
-                  </div>
-                </button>
-              ))}
+            <div>
+              <span className="text-muted-foreground">{t('docGovernance.upload.codeLabel')}: </span>
+              {typo?.metadataExtraida.codigo ?? '—'}
+            </div>
+            <div>
+              <span className="text-muted-foreground">
+                {t('docGovernance.form.versionLabel')}:{' '}
+              </span>
+              {typo?.metadataExtraida.version ?? '—'}
             </div>
           </div>
-
-          {action === 'MANUAL_OVERRIDE' && (
-            <div className="space-y-3 rounded-lg border border-border p-3">
-              <FormField
-                id="resolve-nombre"
-                label={t('docGovernance.form.nameLabel')}
-                error={resolveExtractionForm.formState.errors.nombre?.message}
-              >
-                <Input
-                  id="resolve-nombre"
-                  maxLength={255}
-                  {...resolveExtractionForm.register('nombre')}
-                />
-              </FormField>
-              <FormField
-                id="resolve-codigo"
-                label={t('docGovernance.form.codeLabel')}
-                error={resolveExtractionForm.formState.errors.codigo?.message}
-              >
-                <Input
-                  id="resolve-codigo"
-                  maxLength={100}
-                  {...resolveExtractionForm.register('codigo')}
-                />
-              </FormField>
-              <FormField
-                id="resolve-version"
-                label={t('docGovernance.form.versionLabel')}
-                error={resolveExtractionForm.formState.errors.version?.message}
-              >
-                <Input
-                  id="resolve-version"
-                  maxLength={50}
-                  {...resolveExtractionForm.register('version')}
-                />
-              </FormField>
-            </div>
-          )}
 
           {resolveExtractionForm.formState.errors.root && (
             <p className="text-sm text-destructive">
@@ -237,15 +123,28 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
             </p>
           )}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-2 flex-col sm:flex-row sm:justify-between gap-2">
             <Button type="button" variant="outline" disabled={pending} onClick={close}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? t('docGovernance.resolve.submitting') : t('docGovernance.resolve.submit')}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={handleUploadCorrected}
+              >
+                <FileUp className="size-4" />
+                {t('docGovernance.resolve.uploadCorrected')}
+              </Button>
+              <Button type="button" disabled={pending} onClick={handleAdoptExtracted}>
+                {pending
+                  ? t('docGovernance.resolve.submitting')
+                  : t('docGovernance.resolve.adoptExtracted')}
+              </Button>
+            </div>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

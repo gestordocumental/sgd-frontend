@@ -719,8 +719,7 @@
     },
     "resolve": {
       "title": "Review document information",
-      "discrepancyIntro": "The data you entered for this typology doesn't match what was automatically extracted from the document. Review the comparison and decide how to proceed before this typology can be used.",
-      "pendingIntro": "You hadn't yet entered a name, code, or version for this typology, but the system automatically extracted them from the uploaded document. Confirm this information or correct it before continuing.",
+      "intro": "This document doesn't match the data you registered for this typology. Use the data extracted from the document, or upload a document whose content matches the data you want to declare.",
       "fieldColumn": "Field",
       "declaredColumn": "What you entered",
       "extractedColumn": "What was extracted from the document",
@@ -729,22 +728,9 @@
         "codigo": "Code",
         "version": "Version"
       },
-      "actionLabel": "What would you like to do?",
-      "actions": {
-        "KEEP_DECLARED": {
-          "label": "Keep what I entered",
-          "description": "Keep the name, code, and version you entered manually; ignore what was extracted from the document."
-        },
-        "ADOPT_EXTRACTED": {
-          "label": "Use what was extracted from the document",
-          "description": "Replace your entered data with the name, code, and version read from the document."
-        },
-        "MANUAL_OVERRIDE": {
-          "label": "Enter the correct values",
-          "description": "Manually enter the final name, code, and/or version, different from the two options above."
-        }
-      },
-      "submit": "Confirm",
+      "extractedDataLabel": "Data that will be used",
+      "adoptExtracted": "Use what was extracted from the document",
+      "uploadCorrected": "Upload a corrected document",
       "submitting": "Saving…"
     },
     "file": {
