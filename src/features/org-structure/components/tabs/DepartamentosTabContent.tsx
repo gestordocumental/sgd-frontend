@@ -223,7 +223,7 @@ export function DepartamentosTabContent({ hook, canWrite = false }: Departamento
                   <Button
                     size="sm"
                     onClick={() => {
-                      hook.deptForm.reset();
+                      hook.deptForm.reset({ name: '', description: '' });
                       setCreateDeptOpen(true);
                     }}
                   >

@@ -1,6 +1,5 @@
 import { useState, startTransition, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { isDeleted } from '@/lib/formatters';
 import { useMyPermissions } from '@/features/profile/hooks/use-my-permissions';
 import { useCompanyUsers } from '@/features/company-users/hooks/use-company-users';
 import { useRoles } from '@/features/roles/hooks/use-roles';
@@ -98,10 +97,15 @@ export function useCompanyDashboard() {
   const typologies = useTypologies(companyId, mountedTabs.has('org-structure'));
   const workflows = useWorkflows(companyId);
   const audit = useAudit(companyId, mountedTabs.has('audit'));
-  const orgDashboard = useOrgDashboard(companyId, mountedTabs.has('overview'));
+  const orgDashboard = useOrgDashboard(companyId, mountedTabs.has('overview'), {
+    canViewOrgStructure,
+    canViewWorkflows,
+  });
 
   // ── Derived state ──────────────────────────────────────────────────────────
-  const activeUsers = companyUsers.users.filter((u) => !isDeleted(u));
+  const activeUsers = companyUsers.users.filter(
+    (u) => u.isActive && !u.deletedAt && !u.orgRemovedAt,
+  );
 
   const handleWorkflowNotificationClick = useCallback(
     async (workflowId: string) => {

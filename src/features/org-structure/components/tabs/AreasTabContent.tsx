@@ -83,7 +83,7 @@ export function AreasTabContent({ hook, canWrite = false }: AreasTabContentProps
           <Button
             size="sm"
             onClick={() => {
-              hook.areaForm.reset();
+              hook.areaForm.reset({ name: '', description: '' });
               setCreateAreaOpen(true);
             }}
           >

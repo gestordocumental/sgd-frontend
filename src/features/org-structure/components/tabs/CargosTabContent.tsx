@@ -118,7 +118,7 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
           <Button
             size="sm"
             onClick={() => {
-              hook.deptCargoForm.reset();
+              hook.deptCargoForm.reset({ name: '', description: '' });
               setCreateDeptCargoOpen(true);
             }}
           >
@@ -130,7 +130,7 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
           <Button
             size="sm"
             onClick={() => {
-              hook.cargoForm.reset();
+              hook.cargoForm.reset({ name: '', description: '' });
               setCreateCargoOpen(true);
             }}
           >
