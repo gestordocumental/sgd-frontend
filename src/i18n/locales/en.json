@@ -614,6 +614,7 @@
       "rolePermissionsLabel": "Role permissions",
       "createButton": "Create role",
       "deleteButton": "Delete role",
+      "createRoleError": "The role could not be created. Please try again.",
       "editRoleError": "The role could not be saved. Please try again.",
       "deleteRoleError": "The role could not be deleted. Please try again.",
       "assignRoleTitle": "Assign role · {{roleName}}",

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -250,13 +251,16 @@ function RoleRow({
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">{role.name}</p>
             {role.isSystem && (
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0"
-                title={t('roles.systemRoleTooltip')}
-              >
-                {t('roles.systemBadge')}
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {t('roles.systemBadge')}
+                    </Badge>
+                  }
+                />
+                <TooltipContent>{t('roles.systemRoleTooltip')}</TooltipContent>
+              </Tooltip>
             )}
           </div>
           <p className="text-xs text-muted-foreground">

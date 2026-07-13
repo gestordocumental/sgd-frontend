@@ -4,7 +4,7 @@ import '@/i18n';
 import { OrgDashboard } from '../OrgDashboard';
 import type { TypologyStats } from '@/lib/api/typologies';
 import type { WorkflowStats } from '@/lib/api/workflows';
-import type { ApiUser } from '@/lib/api/users';
+import type { ApiUserWithRoles } from '@/lib/api/users';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -25,8 +25,8 @@ const WORKFLOW_STATS: WorkflowStats = {
   totalAttachments: 9,
 };
 
-const USERS: ApiUser[] = [
-  {
+function makeUser(overrides: Partial<ApiUserWithRoles> = {}): ApiUserWithRoles {
+  return {
     id: 'u-1',
     firstName: 'Ada',
     lastName: 'Lovelace',
@@ -43,8 +43,14 @@ const USERS: ApiUser[] = [
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     deletedAt: null,
-  },
-];
+    roles: [],
+    orgRemovedAt: null,
+    isOptionalReviewer: false,
+    ...overrides,
+  };
+}
+
+const USERS: ApiUserWithRoles[] = [makeUser()];
 
 function renderDashboard(overrides: Partial<Parameters<typeof OrgDashboard>[0]> = {}) {
   return render(
@@ -103,7 +109,7 @@ describe('OrgDashboard — permission-gated sections', () => {
     expect(screen.getByText('Total workflows')).toBeInTheDocument();
   });
 
-  it('renders nothing but the shared "documents/storage" cards as zero when no permission is granted', () => {
+  it('hides every section, including the combined "documents/storage" KPIs, when no permission is granted', () => {
     renderDashboard({ canViewOrgStructure: false, canViewWorkflows: false, canViewUsers: false });
 
     expect(screen.queryByText('Active typologies')).not.toBeInTheDocument();
@@ -122,5 +128,20 @@ describe('OrgDashboard — permission-gated sections', () => {
     // with WORKFLOWS:READ denied, only the permitted typology count (5) should show.
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.queryByText('14')).not.toBeInTheDocument();
+  });
+
+  it('excludes org-removed users from both the active and inactive counts, matching CompanyTab/RoleDialogs', () => {
+    renderDashboard({
+      users: [
+        makeUser({ id: 'u-1', isActive: true }),
+        // Still flagged isActive, but no longer a member of this org — must not
+        // count as "active" here, or this KPI would disagree with every other
+        // view (CompanyTab's active count, the role-assignment eligible list).
+        makeUser({ id: 'u-2', isActive: true, orgRemovedAt: '2024-02-01T00:00:00Z' }),
+        makeUser({ id: 'u-3', isActive: false }),
+      ],
+    });
+
+    expect(screen.getByText('1 active · 1 inactive')).toBeInTheDocument();
   });
 });

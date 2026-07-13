@@ -614,6 +614,7 @@
       "rolePermissionsLabel": "Permisos del rol",
       "createButton": "Crear rol",
       "deleteButton": "Eliminar rol",
+      "createRoleError": "No se pudo crear el rol. Intenta nuevamente.",
       "editRoleError": "No se pudo guardar el rol. Intenta nuevamente.",
       "deleteRoleError": "No se pudo eliminar el rol. Intenta nuevamente.",
       "assignRoleTitle": "Asignar rol · {{roleName}}",

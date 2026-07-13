@@ -61,6 +61,9 @@ export function useRoles(companyId: string) {
       invalidateRoles();
       setCreateRoleOpen(false);
     },
+    onError: (error: unknown) => {
+      toast.error(resolveApiError(error, t, t('roles.dialogs.createRoleError')));
+    },
   });
 
   const editRoleMutation = useMutation({

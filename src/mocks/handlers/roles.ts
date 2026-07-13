@@ -69,7 +69,7 @@ const MOCK_ROLES: ApiRole[] = [
       ].includes(p.id),
     ),
     orgId: 'org-001',
-    isSystem: false,
+    isSystem: true,
     createdAt: '2024-01-01T00:00:00Z',
   },
   {

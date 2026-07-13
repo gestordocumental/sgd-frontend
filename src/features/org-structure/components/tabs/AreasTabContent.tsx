@@ -29,7 +29,7 @@ export function AreasTabContent({ hook, canWrite = false }: AreasTabContentProps
     areasLoading,
     selectedDeptId,
     handleSelectDept,
-    setCreateAreaOpen,
+    openCreateArea,
     openEditArea,
     setDeleteArea,
   } = hook;
@@ -80,13 +80,7 @@ export function AreasTabContent({ hook, canWrite = false }: AreasTabContentProps
           />
         )}
         {selectedDeptId && canWrite && (
-          <Button
-            size="sm"
-            onClick={() => {
-              hook.areaForm.reset({ name: '', description: '' });
-              setCreateAreaOpen(true);
-            }}
-          >
+          <Button size="sm" onClick={openCreateArea}>
             <Plus className="size-4" />
             {t('orgStructure.newArea')}
           </Button>
