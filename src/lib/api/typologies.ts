@@ -104,8 +104,11 @@ export const typologiesApi = {
       .get<OrgStorageStat[]>('/documents/admin/storage-per-org', { signal })
       .then((r) => r.data),
 
-  list: (orgId: string, params?: { page?: number; limit?: number }, signal?: AbortSignal) =>
-    apiClient.get<ApiTypology[]>(base(orgId), { params, signal }).then((r) => r.data),
+  list: (
+    orgId: string,
+    params?: { page?: number; limit?: number; status?: TypologyStatus },
+    signal?: AbortSignal,
+  ) => apiClient.get<ApiTypology[]>(base(orgId), { params, signal }).then((r) => r.data),
 
   getById: (orgId: string, id: string, signal?: AbortSignal) =>
     apiClient.get<ApiTypology>(`${base(orgId)}/${id}`, { signal }).then((r) => r.data),

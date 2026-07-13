@@ -34,10 +34,10 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
     handleSelectDept,
     selectedAreaId,
     setSelectedAreaId,
-    setCreateCargoOpen,
+    openCreateCargo,
     openEditCargo,
     setDeleteCargo,
-    setCreateDeptCargoOpen,
+    openCreateDeptCargo,
     openEditDeptCargo,
     setDeleteDeptCargo,
   } = hook;
@@ -115,25 +115,13 @@ export function CargosTabContent({ hook, canWrite = false }: CargosTabContentPro
         )}
 
         {selectedDeptId && !selectedAreaId && canWrite && (
-          <Button
-            size="sm"
-            onClick={() => {
-              hook.deptCargoForm.reset();
-              setCreateDeptCargoOpen(true);
-            }}
-          >
+          <Button size="sm" onClick={openCreateDeptCargo}>
             <Plus className="size-4" />
             {t('orgStructure.newCargo')}
           </Button>
         )}
         {selectedDeptId && selectedAreaId && canWrite && (
-          <Button
-            size="sm"
-            onClick={() => {
-              hook.cargoForm.reset();
-              setCreateCargoOpen(true);
-            }}
-          >
+          <Button size="sm" onClick={openCreateCargo}>
             <Plus className="size-4" />
             {t('orgStructure.newCargo')}
           </Button>

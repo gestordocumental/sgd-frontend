@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import {
   typologiesApi,
   type ApiTypology,
+  type TypologyStatus,
   type UpdateTypologyDto,
   type ResolveExtractionDto,
 } from '@/lib/api/typologies';
@@ -166,6 +167,9 @@ export function useTypologies(orgId: string, enabled = true) {
   const [formDeptId, setFormDeptId] = useState('');
   const [formAreaId, setFormAreaId] = useState('');
 
+  // ── Table status filter — defaults to ACTIVE, 'all' shows every status ──
+  const [statusFilter, setStatusFilter] = useState<TypologyStatus | 'all'>('ACTIVE');
+
   // ── Forms ──────────────────────────────────────────────────────────────
   const form = useForm<TypologyForm>({
     resolver: zodResolver(typologySchema),
@@ -193,8 +197,13 @@ export function useTypologies(orgId: string, enabled = true) {
 
   // ── Queries ────────────────────────────────────────────────────────────
   const { data: typologies = [], isLoading } = useQuery({
-    queryKey: ['typologies', orgId],
-    queryFn: ({ signal }) => typologiesApi.list(orgId, undefined, signal),
+    queryKey: ['typologies', orgId, statusFilter],
+    queryFn: ({ signal }) =>
+      typologiesApi.list(
+        orgId,
+        { limit: 100, ...(statusFilter === 'all' ? {} : { status: statusFilter }) },
+        signal,
+      ),
     staleTime: 30_000,
     enabled: enabled && !!orgId,
     // Poll every 3 s while any typology is being processed — stops automatically
@@ -526,6 +535,8 @@ export function useTypologies(orgId: string, enabled = true) {
     // Data
     typologies,
     isLoading,
+    statusFilter,
+    setStatusFilter,
 
     // Form org-structure data
     departamentos,

@@ -34,6 +34,7 @@ const ROLE_WITH_PERMS: ApiRole = {
   name: 'Editor',
   description: null,
   orgId: 'org-1',
+  isSystem: false,
   createdAt: '2024-01-01T00:00:00Z',
   permissions: [
     { id: 'p-1', module: 'DOCUMENTS', action: 'READ', description: null },

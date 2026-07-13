@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FileText, GitBranch, HardDrive, CheckCircle, ClipboardList, Users } from 'lucide-react';
 import type { TypologyStats } from '@/lib/api/typologies';
 import type { WorkflowStats } from '@/lib/api/workflows';
-import type { ApiUser } from '@/lib/api/users';
+import type { ApiUserWithRoles } from '@/lib/api/users';
 import { isPendingRegistration } from '@/lib/formatters';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -383,8 +383,14 @@ interface OrgDashboardProps {
   typologyStats: TypologyStats | undefined;
   workflowStats: WorkflowStats | undefined;
   isLoading: boolean;
-  users: ApiUser[];
+  users: ApiUserWithRoles[];
   usersLoading: boolean;
+  // Each section is only rendered when the viewer holds the permission that
+  // backs its module — mirrors the guards already applied to the other tabs,
+  // so the overview can't leak counts/status data the role isn't authorized to see.
+  canViewOrgStructure: boolean;
+  canViewWorkflows: boolean;
+  canViewUsers: boolean;
 }
 
 export function OrgDashboard({
@@ -393,140 +399,185 @@ export function OrgDashboard({
   isLoading,
   users,
   usersLoading,
+  canViewOrgStructure,
+  canViewWorkflows,
+  canViewUsers,
 }: OrgDashboardProps) {
   const { t } = useTranslation();
   const noData = t('dashboard.noData');
 
   const totalStorageBytes =
-    (typologyStats?.storageTotalBytes ?? 0) + (workflowStats?.storageTotalBytes ?? 0);
+    (canViewOrgStructure ? (typologyStats?.storageTotalBytes ?? 0) : 0) +
+    (canViewWorkflows ? (workflowStats?.storageTotalBytes ?? 0) : 0);
   const totalAttachments =
-    (typologyStats?.uploadedDocuments ?? 0) + (workflowStats?.totalAttachments ?? 0);
+    (canViewOrgStructure ? (typologyStats?.uploadedDocuments ?? 0) : 0) +
+    (canViewWorkflows ? (workflowStats?.totalAttachments ?? 0) : 0);
 
-  const { activeUsers, inactiveUsers, registeredUsers, pendingUsers } = useMemo(
-    () => ({
-      activeUsers: users.filter((u) => u.isActive && !u.deletedAt).length,
-      inactiveUsers: users.filter((u) => !u.isActive || !!u.deletedAt).length,
+  const { activeUsers, inactiveUsers, registeredUsers, pendingUsers } = useMemo(() => {
+    // A user removed from the org (orgRemovedAt set) must not count as an active
+    // member here — matches the "active" definition used everywhere else (CompanyTab,
+    // RoleDialogs' assignable-users list), so this KPI doesn't disagree with them.
+    const isRemoved = (u: ApiUserWithRoles) => !!u.deletedAt || !!u.orgRemovedAt;
+    return {
+      activeUsers: users.filter((u) => u.isActive && !isRemoved(u)).length,
+      inactiveUsers: users.filter((u) => !u.isActive && !isRemoved(u)).length,
       registeredUsers: users.filter((u) => u.registrationStatus === 'active').length,
       pendingUsers: users.filter((u) => isPendingRegistration(u)).length,
-    }),
-    [users],
-  );
+    };
+  }, [users]);
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard
-          icon={FileText}
-          label={t('dashboard.kpi.activeTypologies')}
-          value={typologyStats?.activeTypologies ?? '—'}
-          sub={t('dashboard.kpi.typologiesTotal', { count: typologyStats?.totalTypologies ?? 0 })}
-          loading={isLoading}
-          colorIdx={0}
-        />
-        <KpiCard
-          icon={CheckCircle}
-          label={t('dashboard.kpi.uploadedDocuments')}
-          value={isLoading ? '—' : totalAttachments}
-          sub={t('dashboard.kpi.docsBreakdown', {
-            typologies: typologyStats?.uploadedDocuments ?? 0,
-            workflows: workflowStats?.totalAttachments ?? 0,
-          })}
-          loading={isLoading}
-          colorIdx={1}
-        />
-        <KpiCard
-          icon={HardDrive}
-          label={t('dashboard.kpi.storageUsed')}
-          value={isLoading ? '—' : formatBytes(totalStorageBytes)}
-          valueSize="text-lg"
-          valueNote={isLoading ? undefined : formatBytesToGB(totalStorageBytes)}
-          sub={t('dashboard.kpi.storageBreakdown', {
-            typologies: formatBytes(typologyStats?.storageTotalBytes ?? 0),
-            workflows: formatBytes(workflowStats?.storageTotalBytes ?? 0),
-          })}
-          loading={isLoading}
-          colorIdx={2}
-        />
-        <KpiCard
-          icon={GitBranch}
-          label={t('dashboard.kpi.totalWorkflows')}
-          value={workflowStats?.totalWorkflows ?? '—'}
-          loading={isLoading}
-          colorIdx={3}
-        />
-        <KpiCard
-          icon={ClipboardList}
-          label={t('dashboard.kpi.myPendingTasks')}
-          value={workflowStats?.myPendingTasks ?? '—'}
-          loading={isLoading}
-          colorIdx={4}
-        />
-        <KpiCard
-          icon={Users}
-          label={t('dashboard.kpi.users')}
-          value={usersLoading ? '—' : users.length}
-          sub={
-            usersLoading
-              ? undefined
-              : t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })
-          }
-          loading={usersLoading}
-          colorIdx={5}
-        />
-      </div>
+      {(canViewOrgStructure || canViewWorkflows || canViewUsers) && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {canViewOrgStructure && (
+            <KpiCard
+              icon={FileText}
+              label={t('dashboard.kpi.activeTypologies')}
+              value={typologyStats?.activeTypologies ?? '—'}
+              sub={t('dashboard.kpi.typologiesTotal', {
+                count: typologyStats?.totalTypologies ?? 0,
+              })}
+              loading={isLoading}
+              colorIdx={0}
+            />
+          )}
+          {(canViewOrgStructure || canViewWorkflows) && (
+            <KpiCard
+              icon={CheckCircle}
+              label={t('dashboard.kpi.uploadedDocuments')}
+              value={isLoading ? '—' : totalAttachments}
+              sub={t('dashboard.kpi.docsBreakdown', {
+                typologies: canViewOrgStructure ? (typologyStats?.uploadedDocuments ?? 0) : 0,
+                workflows: canViewWorkflows ? (workflowStats?.totalAttachments ?? 0) : 0,
+              })}
+              loading={isLoading}
+              colorIdx={1}
+            />
+          )}
+          {(canViewOrgStructure || canViewWorkflows) && (
+            <KpiCard
+              icon={HardDrive}
+              label={t('dashboard.kpi.storageUsed')}
+              value={isLoading ? '—' : formatBytes(totalStorageBytes)}
+              valueSize="text-lg"
+              valueNote={isLoading ? undefined : formatBytesToGB(totalStorageBytes)}
+              sub={t('dashboard.kpi.storageBreakdown', {
+                typologies: formatBytes(
+                  canViewOrgStructure ? (typologyStats?.storageTotalBytes ?? 0) : 0,
+                ),
+                workflows: formatBytes(
+                  canViewWorkflows ? (workflowStats?.storageTotalBytes ?? 0) : 0,
+                ),
+              })}
+              loading={isLoading}
+              colorIdx={2}
+            />
+          )}
+          {canViewWorkflows && (
+            <KpiCard
+              icon={GitBranch}
+              label={t('dashboard.kpi.totalWorkflows')}
+              value={workflowStats?.totalWorkflows ?? '—'}
+              loading={isLoading}
+              colorIdx={3}
+            />
+          )}
+          {canViewWorkflows && (
+            <KpiCard
+              icon={ClipboardList}
+              label={t('dashboard.kpi.myPendingTasks')}
+              value={workflowStats?.myPendingTasks ?? '—'}
+              loading={isLoading}
+              colorIdx={4}
+            />
+          )}
+          {canViewUsers && (
+            <KpiCard
+              icon={Users}
+              label={t('dashboard.kpi.users')}
+              value={usersLoading ? '—' : users.length}
+              sub={
+                usersLoading
+                  ? undefined
+                  : t('dashboard.kpi.usersActiveSub', {
+                      active: activeUsers,
+                      inactive: inactiveUsers,
+                    })
+              }
+              loading={usersLoading}
+              colorIdx={5}
+            />
+          )}
+        </div>
+      )}
 
       {/* Charts row 1: status donuts + weekly trend */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatusDonutChart
-          data={workflowStats?.statusCounts ?? {}}
-          colorMap={WORKFLOW_STATUS_COLORS}
-          labelKeyMap={WORKFLOW_STATUS_LABEL_KEYS}
-          title={t('dashboard.charts.workflowStatus')}
-          noDataLabel={noData}
-          loading={isLoading}
-        />
-        <StatusDonutChart
-          data={typologyStats?.extractionStatusCounts ?? {}}
-          colorMap={EXTRACTION_STATUS_COLORS}
-          labelKeyMap={EXTRACTION_STATUS_LABEL_KEYS}
-          title={t('dashboard.charts.extractionStatus')}
-          noDataLabel={noData}
-          loading={isLoading}
-        />
-        <WeeklyBarChart
-          data={workflowStats?.weeklyTrend ?? []}
-          title={t('dashboard.charts.weeklyTrend')}
-          noDataLabel={noData}
-          loading={isLoading}
-        />
-      </div>
+      {(canViewWorkflows || canViewOrgStructure) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {canViewWorkflows && (
+            <StatusDonutChart
+              data={workflowStats?.statusCounts ?? {}}
+              colorMap={WORKFLOW_STATUS_COLORS}
+              labelKeyMap={WORKFLOW_STATUS_LABEL_KEYS}
+              title={t('dashboard.charts.workflowStatus')}
+              noDataLabel={noData}
+              loading={isLoading}
+            />
+          )}
+          {canViewOrgStructure && (
+            <StatusDonutChart
+              data={typologyStats?.extractionStatusCounts ?? {}}
+              colorMap={EXTRACTION_STATUS_COLORS}
+              labelKeyMap={EXTRACTION_STATUS_LABEL_KEYS}
+              title={t('dashboard.charts.extractionStatus')}
+              noDataLabel={noData}
+              loading={isLoading}
+            />
+          )}
+          {canViewWorkflows && (
+            <WeeklyBarChart
+              data={workflowStats?.weeklyTrend ?? []}
+              title={t('dashboard.charts.weeklyTrend')}
+              noDataLabel={noData}
+              loading={isLoading}
+            />
+          )}
+        </div>
+      )}
 
       {/* Charts row 2: users active/inactive */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <DonutChart
-          slices={[
-            { label: t('dashboard.charts.usersActive'), value: activeUsers, color: '#6366f1' },
-            { label: t('dashboard.charts.usersInactive'), value: inactiveUsers, color: '#f87171' },
-          ]}
-          title={t('dashboard.charts.usersActiveTitle')}
-          centerLabel={t('dashboard.charts.usersCenterLabel')}
-          noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
-        />
-        <DonutChart
-          slices={[
-            {
-              label: t('dashboard.charts.usersRegistered'),
-              value: registeredUsers,
-              color: '#10b981',
-            },
-            { label: t('dashboard.charts.usersPending'), value: pendingUsers, color: '#f59e0b' },
-          ]}
-          title={t('dashboard.charts.usersRegistrationTitle')}
-          centerLabel={t('dashboard.charts.usersCenterLabel')}
-          noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
-        />
-      </div>
+      {canViewUsers && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DonutChart
+            slices={[
+              { label: t('dashboard.charts.usersActive'), value: activeUsers, color: '#6366f1' },
+              {
+                label: t('dashboard.charts.usersInactive'),
+                value: inactiveUsers,
+                color: '#f87171',
+              },
+            ]}
+            title={t('dashboard.charts.usersActiveTitle')}
+            centerLabel={t('dashboard.charts.usersCenterLabel')}
+            noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
+          />
+          <DonutChart
+            slices={[
+              {
+                label: t('dashboard.charts.usersRegistered'),
+                value: registeredUsers,
+                color: '#10b981',
+              },
+              { label: t('dashboard.charts.usersPending'), value: pendingUsers, color: '#f59e0b' },
+            ]}
+            title={t('dashboard.charts.usersRegistrationTitle')}
+            centerLabel={t('dashboard.charts.usersCenterLabel')}
+            noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
+          />
+        </div>
+      )}
     </div>
   );
 }

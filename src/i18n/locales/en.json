@@ -587,6 +587,8 @@
     "noUsersWithPermission": "No users have this permission",
     "direct": "Direct",
     "revokeDirectPermissionTitle": "Revoke direct permission",
+    "systemBadge": "System",
+    "systemRoleTooltip": "System roles are shared across all organizations and cannot be edited or deleted",
     "systemDescriptions": {
       "ADMIN": "Organization administrator",
       "MANAGER": "Manager with approval permissions",
@@ -612,6 +614,9 @@
       "rolePermissionsLabel": "Role permissions",
       "createButton": "Create role",
       "deleteButton": "Delete role",
+      "createRoleError": "The role could not be created. Please try again.",
+      "editRoleError": "The role could not be saved. Please try again.",
+      "deleteRoleError": "The role could not be deleted. Please try again.",
       "assignRoleTitle": "Assign role · {{roleName}}",
       "allUsersHaveRole": "All active users already have this role",
       "assignPermissionTitle": "Assign permission directly",
@@ -1041,6 +1046,8 @@
     "USER_CANNOT_DELETE_SELF": "You cannot delete your own account.",
     "USER_CANNOT_DISABLE_SELF": "You cannot disable your own account.",
     "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "You cannot change your own super admin status.",
-    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization."
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization.",
+    "SYSTEM_ROLE_NOT_MODIFIABLE": "System roles are shared across all organizations and cannot be edited. Create a custom role instead.",
+    "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted."
   }
 }

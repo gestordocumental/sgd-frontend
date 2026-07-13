@@ -587,6 +587,8 @@
     "noUsersWithPermission": "Ningún usuario tiene este permiso",
     "direct": "Directo",
     "revokeDirectPermissionTitle": "Revocar permiso directo",
+    "systemBadge": "Sistema",
+    "systemRoleTooltip": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden editar ni eliminar",
     "systemDescriptions": {
       "ADMIN": "Administrador de la organización",
       "MANAGER": "Gestor con permisos de aprobación",
@@ -612,6 +614,9 @@
       "rolePermissionsLabel": "Permisos del rol",
       "createButton": "Crear rol",
       "deleteButton": "Eliminar rol",
+      "createRoleError": "No se pudo crear el rol. Intenta nuevamente.",
+      "editRoleError": "No se pudo guardar el rol. Intenta nuevamente.",
+      "deleteRoleError": "No se pudo eliminar el rol. Intenta nuevamente.",
       "assignRoleTitle": "Asignar rol · {{roleName}}",
       "allUsersHaveRole": "Todos los usuarios activos ya tienen este rol",
       "assignPermissionTitle": "Asignar permiso directamente",
@@ -1041,6 +1046,8 @@
     "USER_CANNOT_DELETE_SELF": "No puedes eliminar tu propia cuenta.",
     "USER_CANNOT_DISABLE_SELF": "No puedes desactivar tu propia cuenta.",
     "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "No puedes cambiar tu propio estado de super administrador.",
-    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "No puedes quitarte a ti mismo de una organización."
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "No puedes quitarte a ti mismo de una organización.",
+    "SYSTEM_ROLE_NOT_MODIFIABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden editar. Crea un rol personalizado en su lugar.",
+    "SYSTEM_ROLE_NOT_DELETABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden eliminar."
   }
 }
