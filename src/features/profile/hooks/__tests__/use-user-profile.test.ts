@@ -55,8 +55,9 @@ vi.mock('@/lib/api/auth', () => ({
 }));
 
 const mockFetchAllCompanies = vi.fn();
+const mockGetMyOrgs = vi.fn();
 vi.mock('@/lib/api/companies', () => ({
-  companiesApi: { getMyOrgs: vi.fn() },
+  companiesApi: { getMyOrgs: (...args: unknown[]) => mockGetMyOrgs(...args) },
   fetchAllCompanies: (...args: unknown[]) => mockFetchAllCompanies(...args),
 }));
 
@@ -171,5 +172,32 @@ describe('useUserProfile — switchableCompanyIds', () => {
     // Still switchable — the user is already inside it; the menu shouldn't
     // hide their current context, only block switching *into* new inactive ones.
     expect(result.current.switchableCompanyIds).toContain('org-inactive');
+  });
+
+  it('does not offer the switch-context menu when every other membership is inactive', async () => {
+    // Regression: canSwitchContext must key off switchableCompanyIds, not the
+    // raw companyIds — otherwise a non-super-admin user whose only other
+    // memberships are all inactive would see a "switch context" menu with
+    // nothing real to switch to.
+    authState = {
+      user: { id: 'user-1', companyId: 'org-active' },
+      isSuperAdmin: false,
+      accessToken: 'fake.jwt.token',
+      hasSuperAdminContext: false,
+    };
+    mockGetMyCompanies.mockResolvedValue(['org-active', 'org-inactive']);
+    mockGetMyOrgs.mockResolvedValue([
+      { id: 'org-active', name: 'Active Co', status: 'active' },
+      { id: 'org-inactive', name: 'Inactive Co', status: 'inactive' },
+    ]);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useUserProfile(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.switchableCompanyIds).toEqual(['org-active']);
+    });
+
+    expect(result.current.canSwitchContext).toBe(false);
   });
 });

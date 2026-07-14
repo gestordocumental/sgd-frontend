@@ -119,13 +119,6 @@ export function useUserProfile() {
     retry: false,
   });
 
-  const canSwitchContext =
-    // active super admin with assigned companies, or any user that can return
-    hasSuperAdminToken ||
-    // regular user in multiple companies — use companyIds (not companies) because
-    // getById may fail for non-current companies due to the OrgGuard companyId check
-    companyIds.length > 1;
-
   // Company IDs that are actually valid switch *targets* — excludes companies
   // that have been deactivated or deleted, so an inactive company can't be
   // selected to enter its context (even by a super admin). The company the
@@ -142,6 +135,14 @@ export function useUserProfile() {
       }),
     [companyIds, companies, currentCompanyId],
   );
+
+  const canSwitchContext =
+    // active super admin with assigned companies, or any user that can return
+    hasSuperAdminToken ||
+    // regular user with more than one *switchable* company target — using the
+    // filtered list (not companyIds) so the menu doesn't offer to "switch"
+    // when every other membership is inactive and there's nowhere to go.
+    switchableCompanyIds.length > 1;
 
   const switchToCompany = useCallback(
     async (companyId: string) => {
