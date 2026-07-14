@@ -90,6 +90,7 @@ export interface OrgUserCount {
   total: number;
   active: number;
   inactive: number;
+  deleted: number;
 }
 
 export const usersApi = {

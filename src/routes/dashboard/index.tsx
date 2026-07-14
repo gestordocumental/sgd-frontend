@@ -193,6 +193,9 @@ function CompanyDashboard() {
                 }
                 users={companyUsers.users}
                 usersLoading={companyUsers.usersLoading}
+                canViewOrgStructure={canViewOrgStructure}
+                canViewWorkflows={canViewWorkflows}
+                canViewUsers={canViewUsers}
               />
             </Suspense>
           </ErrorBoundary>

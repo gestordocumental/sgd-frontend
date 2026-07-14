@@ -20,6 +20,10 @@ export const structureSchema = z.object({
 
 export type StructureForm = z.infer<typeof structureSchema>;
 
+// Single source of truth for the "empty" form state — reused by every create-dialog
+// opener below so a stray literal doesn't drift from the schema (see openCreateDept et al.).
+export const EMPTY_STRUCTURE_FORM: StructureForm = { name: '', description: '' };
+
 export function useOrgStructure(companyId: string, enabled = true) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -112,7 +116,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     onSuccess: () => {
       invalidateDepts();
       setCreateDeptOpen(false);
-      deptForm.reset();
+      deptForm.reset(EMPTY_STRUCTURE_FORM);
     },
     onError: (e: unknown) => {
       const msg = resolveApiError(e, t);
@@ -152,7 +156,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     onSuccess: () => {
       invalidateAreas();
       setCreateAreaOpen(false);
-      areaForm.reset();
+      areaForm.reset(EMPTY_STRUCTURE_FORM);
     },
     onError: (e: unknown) => {
       const msg = resolveApiError(e, t);
@@ -189,7 +193,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     onSuccess: () => {
       invalidateCargos();
       setCreateCargoOpen(false);
-      cargoForm.reset();
+      cargoForm.reset(EMPTY_STRUCTURE_FORM);
     },
     onError: (e: unknown) => {
       const msg = resolveApiError(e, t);
@@ -232,7 +236,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     onSuccess: () => {
       invalidateCargos();
       setCreateDeptCargoOpen(false);
-      deptCargoForm.reset();
+      deptCargoForm.reset(EMPTY_STRUCTURE_FORM);
     },
     onError: (e: unknown) => {
       const msg = resolveApiError(e, t);
@@ -277,6 +281,26 @@ export function useOrgStructure(companyId: string, enabled = true) {
   });
 
   // ── Open helpers ───────────────────────────────────────────────
+  const openCreateDept = () => {
+    deptForm.reset(EMPTY_STRUCTURE_FORM);
+    setCreateDeptOpen(true);
+  };
+
+  const openCreateArea = () => {
+    areaForm.reset(EMPTY_STRUCTURE_FORM);
+    setCreateAreaOpen(true);
+  };
+
+  const openCreateCargo = () => {
+    cargoForm.reset(EMPTY_STRUCTURE_FORM);
+    setCreateCargoOpen(true);
+  };
+
+  const openCreateDeptCargo = () => {
+    deptCargoForm.reset(EMPTY_STRUCTURE_FORM);
+    setCreateDeptCargoOpen(true);
+  };
+
   const openEditDept = (d: ApiDepartamento) => {
     setEditDept(d);
     deptForm.reset({ name: d.name, description: d.description ?? undefined });
@@ -331,6 +355,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     deleteDept,
     setDeleteDept,
     deptForm,
+    openCreateDept,
     openEditDept,
     createDeptMutation,
     editDeptMutation,
@@ -344,6 +369,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     deleteArea,
     setDeleteArea,
     areaForm,
+    openCreateArea,
     openEditArea,
     createAreaMutation,
     editAreaMutation,
@@ -357,6 +383,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     deleteCargo,
     setDeleteCargo,
     cargoForm,
+    openCreateCargo,
     openEditCargo,
     createCargoMutation,
     editCargoMutation,
@@ -370,6 +397,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
     deleteDeptCargo,
     setDeleteDeptCargo,
     deptCargoForm,
+    openCreateDeptCargo,
     openEditDeptCargo,
     createDeptCargoMutation,
     editDeptCargoMutation,

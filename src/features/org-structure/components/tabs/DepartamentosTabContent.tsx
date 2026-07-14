@@ -116,7 +116,7 @@ export function DepartamentosTabContent({ hook, canWrite = false }: Departamento
   const {
     departamentos,
     deptLoading,
-    setCreateDeptOpen,
+    openCreateDept,
     openEditDept,
     setDeleteDept,
     bulkImportMutation,
@@ -220,13 +220,7 @@ export function DepartamentosTabContent({ hook, canWrite = false }: Departamento
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      hook.deptForm.reset();
-                      setCreateDeptOpen(true);
-                    }}
-                  >
+                  <Button size="sm" onClick={openCreateDept}>
                     <Plus className="size-4" />
                     {t('orgStructure.newDepartamento')}
                   </Button>

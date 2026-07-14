@@ -315,6 +315,7 @@ export function useWorkflows(companyId: string) {
       orgUsersMap: queries.orgUsersMap,
       activeOrgUsers: queries.activeOrgUsers,
       approverEligibleUsers: queries.approverEligibleUsers,
+      adminEligibleUsers: queries.adminEligibleUsers,
       finalUserEligibleUsers,
     },
 

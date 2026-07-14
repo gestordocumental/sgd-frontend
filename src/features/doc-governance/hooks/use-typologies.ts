@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import {
   typologiesApi,
   type ApiTypology,
+  type TypologyStatus,
   type UpdateTypologyDto,
   type ResolveExtractionDto,
 } from '@/lib/api/typologies';
@@ -166,6 +167,9 @@ export function useTypologies(orgId: string, enabled = true) {
   const [formDeptId, setFormDeptId] = useState('');
   const [formAreaId, setFormAreaId] = useState('');
 
+  // ── Table status filter — defaults to ACTIVE, 'all' shows every status ──
+  const [statusFilter, setStatusFilter] = useState<TypologyStatus | 'all'>('ACTIVE');
+
   // ── Forms ──────────────────────────────────────────────────────────────
   const form = useForm<TypologyForm>({
     resolver: zodResolver(typologySchema),
@@ -193,8 +197,13 @@ export function useTypologies(orgId: string, enabled = true) {
 
   // ── Queries ────────────────────────────────────────────────────────────
   const { data: typologies = [], isLoading } = useQuery({
-    queryKey: ['typologies', orgId],
-    queryFn: ({ signal }) => typologiesApi.list(orgId, undefined, signal),
+    queryKey: ['typologies', orgId, statusFilter],
+    queryFn: ({ signal }) =>
+      typologiesApi.list(
+        orgId,
+        { limit: 100, ...(statusFilter === 'all' ? {} : { status: statusFilter }) },
+        signal,
+      ),
     staleTime: 30_000,
     enabled: enabled && !!orgId,
     // Poll every 3 s while any typology is being processed — stops automatically
@@ -251,13 +260,21 @@ export function useTypologies(orgId: string, enabled = true) {
   });
 
   // ── Invalidation ───────────────────────────────────────────────────────
-  // Clears the typology list AND the version history for this org so that
-  // re-opening the history dialog after a mutation always shows fresh data.
+  // Clears the typology list, version history, dashboard "Resumen" KPIs, and
+  // "Auditoría" log for this org so that any of those views show the change
+  // immediately instead of only after a full page reload (they otherwise keep
+  // serving cached data until their own staleTime/refetch trigger kicks in).
   // history key prefix: ['typologies-history', orgId, <codigo>] → partial match
   const invalidate = () => {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['typologies-history', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['typology-stats', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', orgId] }),
+      // Super-admin's cross-org audit view keys on 'all' instead of an orgId
+      // (see use-audit.ts) — a separate, non-prefix-matching cache entry that
+      // the line above never touches.
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', 'all'] }),
     ]);
   };
 
@@ -526,6 +543,8 @@ export function useTypologies(orgId: string, enabled = true) {
     // Data
     typologies,
     isLoading,
+    statusFilter,
+    setStatusFilter,
 
     // Form org-structure data
     departamentos,

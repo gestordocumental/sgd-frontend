@@ -87,6 +87,7 @@
     "switchContext": "Switch to",
     "changeAvatar": "Change profile photo",
     "exitCompanyFailed": "Could not restore the super-admin session. Reload the page to try again.",
+    "switchCompanyFailed": "Could not switch companies. You may no longer have access; the list has been refreshed.",
     "sessionRevoked": {
       "unknownCompany": "the company",
       "switchToGlobal": "You were removed from {{company}}. Returning to global view.",
@@ -199,7 +200,7 @@
       "activeOrgs": "Active orgs",
       "orgActiveSub": "{{active}} active · {{inactive}} inactive",
       "userGlobalSub": "{{active}} active · {{superAdmins}} super admin",
-      "registeredThisMonth": "Registered this month",
+      "registeredThisMonth": "Companies registered this month",
       "storageWithData": "{{count}} orgs with data",
       "typologiesTotal": "{{count}} total",
       "docsBreakdown": "{{typologies}} typol. · {{workflows}} workflows",
@@ -221,6 +222,7 @@
       "usersCenterLabel": "users",
       "usersActive": "Active",
       "usersInactive": "Inactive",
+      "usersDeleted": "Deleted",
       "usersRegistrationTitle": "Registration status",
       "usersRegistered": "Registered",
       "usersPending": "Pending",
@@ -229,10 +231,10 @@
       "orgsActive": "Active",
       "orgsInactive": "Inactive",
       "globalUsers": "Users (global)",
-      "monthlyRegistrations": "Registrations by month (6 months)",
+      "monthlyRegistrations": "Companies registered by month (6 months)",
       "recentOrgs": "Recent organizations",
       "usersCount": "{{count}} users",
-      "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive (of {{total}} users)",
+      "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive, {{deleted}} deleted (of {{total}} users)",
       "storageBarLabel": "{{name}}: {{storage}} used"
     },
     "orgStatus": {
@@ -587,6 +589,8 @@
     "noUsersWithPermission": "No users have this permission",
     "direct": "Direct",
     "revokeDirectPermissionTitle": "Revoke direct permission",
+    "systemBadge": "System",
+    "systemRoleTooltip": "System roles are shared across all organizations and cannot be edited or deleted",
     "systemDescriptions": {
       "ADMIN": "Organization administrator",
       "MANAGER": "Manager with approval permissions",
@@ -612,6 +616,9 @@
       "rolePermissionsLabel": "Role permissions",
       "createButton": "Create role",
       "deleteButton": "Delete role",
+      "createRoleError": "The role could not be created. Please try again.",
+      "editRoleError": "The role could not be saved. Please try again.",
+      "deleteRoleError": "The role could not be deleted. Please try again.",
       "assignRoleTitle": "Assign role · {{roleName}}",
       "allUsersHaveRole": "All active users already have this role",
       "assignPermissionTitle": "Assign permission directly",
@@ -1041,6 +1048,8 @@
     "USER_CANNOT_DELETE_SELF": "You cannot delete your own account.",
     "USER_CANNOT_DISABLE_SELF": "You cannot disable your own account.",
     "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "You cannot change your own super admin status.",
-    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization."
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization.",
+    "SYSTEM_ROLE_NOT_MODIFIABLE": "System roles are shared across all organizations and cannot be edited. Create a custom role instead.",
+    "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted."
   }
 }

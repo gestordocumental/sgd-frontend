@@ -5,8 +5,31 @@ const WORKFLOWS_PAGE_SIZE = 20;
 import { workflowsApi, type WorkflowStatus } from '@/lib/api/workflows';
 import { typologiesApi } from '@/lib/api/typologies';
 import { usersApi, type ApiUserWithRoles } from '@/lib/api/users';
-import { rolesApi } from '@/lib/api/roles';
+import { rolesApi, type ApiRole } from '@/lib/api/roles';
 import type { WorkflowsInnerTab } from './workflow-schemas';
+
+/** Active org users holding at least one role granted `module`:`action`. */
+function useEligibleUsersByPermission(
+  activeOrgUsers: ApiUserWithRoles[],
+  allRoles: ApiRole[],
+  module: string,
+  action: string,
+): ApiUserWithRoles[] {
+  const roleIds = useMemo(
+    () =>
+      new Set(
+        allRoles
+          .filter((r) => r.permissions.some((p) => p.module === module && p.action === action))
+          .map((r) => r.id),
+      ),
+    [allRoles, module, action],
+  );
+
+  return useMemo(
+    () => activeOrgUsers.filter((u) => u.roles.some((r) => roleIds.has(r.roleId))),
+    [activeOrgUsers, roleIds],
+  );
+}
 
 interface WorkflowQueriesOptions {
   statusFilter: WorkflowStatus | undefined;
@@ -178,23 +201,25 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     [orgUsers],
   );
 
-  /** IDs de roles que tienen permiso WORKFLOWS:APPROVE */
-  const approveRoleIds = useMemo(
-    () =>
-      new Set(
-        allRoles
-          .filter((r) =>
-            r.permissions.some((p) => p.module === 'WORKFLOWS' && p.action === 'APPROVE'),
-          )
-          .map((r) => r.id),
-      ),
-    [allRoles],
+  /** Usuarios activos que pueden ser aprobadores (tienen al menos un rol con WORKFLOWS:APPROVE) */
+  const approverEligibleUsers = useEligibleUsersByPermission(
+    activeOrgUsers,
+    allRoles,
+    'WORKFLOWS',
+    'APPROVE',
   );
 
-  /** Usuarios activos que pueden ser aprobadores (tienen al menos un rol con WORKFLOWS:APPROVE) */
-  const approverEligibleUsers = useMemo(
-    () => activeOrgUsers.filter((u) => u.roles.some((r) => approveRoleIds.has(r.roleId))),
-    [activeOrgUsers, approveRoleIds],
+  /**
+   * Usuarios activos que pueden administrar usuarios (tienen al menos un rol con
+   * USERS:WRITE) — son quienes pueden resolver la falta de usuarios finales
+   * asignando la posición correspondiente, por eso son los destinatarios de
+   * "Notificar a los administradores".
+   */
+  const adminEligibleUsers = useEligibleUsersByPermission(
+    activeOrgUsers,
+    allRoles,
+    'USERS',
+    'WRITE',
   );
 
   return {
@@ -214,6 +239,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     activeOrgUsers,
     orgUsersMap,
     approverEligibleUsers,
+    adminEligibleUsers,
     invalidateAll,
   };
 }

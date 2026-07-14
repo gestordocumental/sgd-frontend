@@ -69,6 +69,7 @@ const MOCK_ROLES: ApiRole[] = [
       ].includes(p.id),
     ),
     orgId: 'org-001',
+    isSystem: true,
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
@@ -79,6 +80,7 @@ const MOCK_ROLES: ApiRole[] = [
       ['perm-01', 'perm-04', 'perm-05', 'perm-06'].includes(p.id),
     ),
     orgId: 'org-001',
+    isSystem: false,
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
@@ -87,6 +89,7 @@ const MOCK_ROLES: ApiRole[] = [
     description: 'Aprobador de workflows de tipo contrato',
     permissions: MOCK_PERMISSIONS.filter((p) => ['perm-06', 'perm-08'].includes(p.id)),
     orgId: 'org-001',
+    isSystem: false,
     createdAt: '2024-03-15T10:30:00Z',
   },
 ];
@@ -128,6 +131,7 @@ export const rolesHandlers = [
       description: body.description ?? null,
       permissions: perms,
       orgId: 'org-001',
+      isSystem: false,
       createdAt: new Date().toISOString(),
     };
     rolesDb = [...rolesDb, newRole];

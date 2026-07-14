@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { authApi } from '@/lib/api/auth';
+import { refreshAccessTokenSilently } from '@/lib/api/client';
 import { companiesApi, fetchAllCompanies, type ApiCompany } from '@/lib/api/companies';
 import { usersApi } from '@/lib/api/users';
 import { useAuthStore } from '@/store/authStore';
@@ -119,16 +120,56 @@ export function useUserProfile() {
     retry: false,
   });
 
+  // Company IDs that are actually valid switch *targets* — excludes companies
+  // that have been deactivated or deleted, so an inactive company can't be
+  // selected to enter its context (even by a super admin). The company the
+  // user is currently inside is always kept, regardless of its status, so a
+  // company deactivated while someone is already in it doesn't break the menu.
+  // If company data hasn't loaded yet, the ID is included optimistically —
+  // the backend independently re-validates status on POST /auth/switch-company.
+  const switchableCompanyIds = useMemo(
+    () =>
+      companyIds.filter((id) => {
+        if (id === currentCompanyId) return true;
+        const company = companies.find((c) => c.id === id);
+        return !company || company.status === 'active';
+      }),
+    [companyIds, companies, currentCompanyId],
+  );
+
   const canSwitchContext =
     // active super admin with assigned companies, or any user that can return
     hasSuperAdminToken ||
-    // regular user in multiple companies — use companyIds (not companies) because
-    // getById may fail for non-current companies due to the OrgGuard companyId check
-    companyIds.length > 1;
+    // regular user with more than one *switchable* company target — using the
+    // filtered list (not companyIds) so the menu doesn't offer to "switch"
+    // when every other membership is inactive and there's nowhere to go.
+    switchableCompanyIds.length > 1;
+
+  // Re-fetches the queries that back the "switch to" menu — used both after a
+  // failed switch (e.g. the target company was just deactivated) and whenever
+  // the menu is opened, so membership/status changes made elsewhere (another
+  // tab, an admin action) show up without requiring a full page reload.
+  const refreshCompanies = useCallback(() => {
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
+      queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-org-details'] }),
+    ]);
+  }, [queryClient]);
 
   const switchToCompany = useCallback(
     async (companyId: string) => {
-      const { accessToken: companyToken } = await authApi.switchCompany(companyId);
+      let companyToken: string;
+      try {
+        ({ accessToken: companyToken } = await authApi.switchCompany(companyId));
+      } catch {
+        // Most common cause: the company was deactivated after the menu was
+        // rendered from stale data. Refresh the list so the now-invalid entry
+        // disappears, and surface the failure instead of doing nothing visibly.
+        await refreshCompanies();
+        toast.error(t('profile.switchCompanyFailed'));
+        return;
+      }
       const company = companies.find((c) => c.id === companyId);
       // Persist the full company list before entering company context so that
       // after a page refresh or in a new tab (when isSuperAdmin becomes false and
@@ -138,9 +179,7 @@ export function useUserProfile() {
       }
       enterCompany(companyId, company?.name ?? companyId, companyToken);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['my-companies'] }),
-        queryClient.invalidateQueries({ queryKey: ['all-companies-for-switch'] }),
-        queryClient.invalidateQueries({ queryKey: ['my-org-details'] }),
+        refreshCompanies(),
         queryClient.removeQueries({ queryKey: ['my-org-roles'] }),
         // Workflow data is company-scoped but the query keys don't include companyId,
         // so React Query can't detect staleness automatically on company switch.
@@ -152,7 +191,7 @@ export function useUserProfile() {
       ]);
       navigate({ to: '/dashboard' });
     },
-    [companies, enterCompany, navigate, queryClient],
+    [companies, enterCompany, navigate, queryClient, refreshCompanies, t],
   );
 
   const switchToSuperAdmin = useCallback(async () => {
@@ -320,6 +359,32 @@ export function useUserProfile() {
     return () => window.removeEventListener('sgd:account-disabled', handler);
   }, [queryClient]); // queryClient is stable for the life of the provider
 
+  // A role held by this user had its permissions edited — mint a fresh JWT
+  // (silently, session stays open) so the permissions claim baked into it is
+  // current, then refetch everything so newly-granted modules load their data
+  // immediately instead of only after a reload/relogin (when the JWT would
+  // otherwise refresh naturally).
+  const permissionsChangedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const handler = async () => {
+      const refreshed = await refreshAccessTokenSilently();
+      if (!refreshed) return;
+      // Coalesce a burst of events (e.g. an admin editing several permissions
+      // in quick succession, or several roles the user holds changing at once)
+      // into a single full refetch instead of one per event.
+      if (permissionsChangedTimerRef.current) clearTimeout(permissionsChangedTimerRef.current);
+      permissionsChangedTimerRef.current = setTimeout(() => {
+        permissionsChangedTimerRef.current = null;
+        queryClient.invalidateQueries();
+      }, 500);
+    };
+    window.addEventListener('sgd:permissions-changed', handler);
+    return () => {
+      window.removeEventListener('sgd:permissions-changed', handler);
+      if (permissionsChangedTimerRef.current) clearTimeout(permissionsChangedTimerRef.current);
+    };
+  }, [queryClient]); // queryClient is stable for the life of the provider
+
   // Relay revocation events from other tabs via BroadcastChannel.
   // BroadcastChannel does not deliver back to the posting tab, so this only
   // fires in tabs that did NOT receive the original SSE event. Retransmitting
@@ -339,6 +404,8 @@ export function useUserProfile() {
         window.dispatchEvent(new CustomEvent('sgd:super-admin-revoked'));
       } else if (data.type === 'sgd:account-disabled') {
         window.dispatchEvent(new CustomEvent('sgd:account-disabled'));
+      } else if (data.type === 'sgd:permissions-changed') {
+        window.dispatchEvent(new CustomEvent('sgd:permissions-changed'));
       }
     };
     return () => bc?.close();
@@ -353,9 +420,11 @@ export function useUserProfile() {
     currentCompany,
     companies,
     companyIds,
+    switchableCompanyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,
     switchToSuperAdmin,
+    refreshCompanies,
   };
 }
