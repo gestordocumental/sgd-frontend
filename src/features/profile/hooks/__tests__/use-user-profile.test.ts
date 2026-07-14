@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
@@ -139,6 +139,14 @@ describe('useUserProfile — forced logout on sgd:account-disabled', () => {
 // ── permissions-changed — silent token refresh, no logout ────────────────────
 
 describe('useUserProfile — sgd:permissions-changed', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('silently refreshes the token and invalidates all queries on success', async () => {
     mockRefreshAccessTokenSilently.mockResolvedValue(true);
     const { client, wrapper } = makeWrapper();
@@ -147,10 +155,11 @@ describe('useUserProfile — sgd:permissions-changed', () => {
 
     await act(async () => {
       window.dispatchEvent(new Event('sgd:permissions-changed'));
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     expect(mockRefreshAccessTokenSilently).toHaveBeenCalledOnce();
-    expect(invalidateSpy).toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledOnce();
     // Must NOT behave like session-revoked/account-disabled — the session stays open.
     expect(mockClearAuth).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -164,9 +173,32 @@ describe('useUserProfile — sgd:permissions-changed', () => {
 
     await act(async () => {
       window.dispatchEvent(new Event('sgd:permissions-changed'));
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('coalesces a burst of events into a single invalidateQueries call', async () => {
+    // Regression: an admin editing several permissions in quick succession
+    // (or several roles the user holds changing together) used to trigger one
+    // full invalidateQueries() per event — a burst of redundant refetches.
+    mockRefreshAccessTokenSilently.mockResolvedValue(true);
+    const { client, wrapper } = makeWrapper();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    renderHook(() => useUserProfile(), { wrapper });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('sgd:permissions-changed'));
+      await vi.advanceTimersByTimeAsync(100);
+      window.dispatchEvent(new Event('sgd:permissions-changed'));
+      await vi.advanceTimersByTimeAsync(100);
+      window.dispatchEvent(new Event('sgd:permissions-changed'));
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(mockRefreshAccessTokenSilently).toHaveBeenCalledTimes(3);
+    expect(invalidateSpy).toHaveBeenCalledOnce();
   });
 
   it('removes the sgd:permissions-changed listener on unmount', async () => {
@@ -178,6 +210,7 @@ describe('useUserProfile — sgd:permissions-changed', () => {
 
     await act(async () => {
       window.dispatchEvent(new Event('sgd:permissions-changed'));
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     expect(mockRefreshAccessTokenSilently).not.toHaveBeenCalled();

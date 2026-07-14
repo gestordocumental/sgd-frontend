@@ -271,6 +271,10 @@ export function useTypologies(orgId: string, enabled = true) {
       queryClient.invalidateQueries({ queryKey: ['typologies-history', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['typology-stats', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['audit-logs', orgId] }),
+      // Super-admin's cross-org audit view keys on 'all' instead of an orgId
+      // (see use-audit.ts) — a separate, non-prefix-matching cache entry that
+      // the line above never touches.
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', 'all'] }),
     ]);
   };
 

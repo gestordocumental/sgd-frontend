@@ -97,7 +97,7 @@ describe('useTypologies — status filter', () => {
 // invalidated.
 
 describe('useTypologies — createMutation invalidation', () => {
-  it('invalidates typology list, history, stats and audit-logs after a successful create', async () => {
+  it('invalidates typology list, history, stats and both audit-logs caches after a successful create', async () => {
     mockCreate.mockResolvedValue({ id: 'ty-new' });
     const client = makeClient();
     const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
@@ -116,9 +116,18 @@ describe('useTypologies — createMutation invalidation', () => {
       });
     });
 
-    const invalidatedKeys = invalidateSpy.mock.calls.map((call) => call[0]?.queryKey?.[0]);
+    const invalidatedKeys = invalidateSpy.mock.calls.map((call) => call[0]?.queryKey);
     expect(invalidatedKeys).toEqual(
-      expect.arrayContaining(['typologies', 'typologies-history', 'typology-stats', 'audit-logs']),
+      expect.arrayContaining([
+        ['typologies', 'org-1'],
+        ['typologies-history', 'org-1'],
+        ['typology-stats', 'org-1'],
+        // Org-scoped audit view (use-audit.ts keys on the orgId)...
+        ['audit-logs', 'org-1'],
+        // ...and the super-admin's cross-org view, which keys on 'all' instead
+        // of an orgId — a separate cache entry the line above doesn't match.
+        ['audit-logs', 'all'],
+      ]),
     );
   });
 });

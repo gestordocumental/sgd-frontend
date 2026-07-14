@@ -14,6 +14,32 @@ function withJitter(ms: number): number {
   return ms * (0.75 + Math.random() * 0.5);
 }
 
+/**
+ * Shared by session-revoked and permissions-changed: both carry an optional
+ * `orgId` and must only be relayed when it matches the company the current
+ * tab is scoped to (or is absent). Only posts to BroadcastChannel —
+ * useUserProfile's bc.onmessage delivers the window event on this tab too
+ * (BC delivers to all OTHER instances on the same channel, including the
+ * receiver in the same document). Calling window.dispatchEvent here as well
+ * would cause a double-fire.
+ */
+function postCompanyScopedEvent(
+  type: string,
+  e: MessageEvent<string>,
+  accessToken: string,
+  bc: BroadcastChannel,
+): void {
+  try {
+    const payload =
+      typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
+    const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
+    if (payload.orgId && payload.orgId !== currentCompanyId) return;
+    bc.postMessage({ type, ...payload });
+  } catch {
+    bc.postMessage({ type });
+  }
+}
+
 export function useNotifications() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -62,19 +88,7 @@ export function useNotifications() {
       // Delegate session revocation to useUserProfile which has the full context
       // (other companies, super-admin token, etc.) to decide the best UX action.
       sse.addEventListener('session-revoked', (e: MessageEvent<string>) => {
-        try {
-          const payload =
-            typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
-          const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
-          if (payload.orgId && payload.orgId !== currentCompanyId) return;
-          // Only post to BroadcastChannel — use-user-profile's bc.onmessage delivers
-          // the window event on this tab too (BC delivers to all OTHER instances on
-          // the same channel, including the receiver in the same document).
-          // Calling window.dispatchEvent here as well would cause a double-fire.
-          bc.postMessage({ type: 'sgd:session-revoked', ...payload });
-        } catch {
-          bc.postMessage({ type: 'sgd:session-revoked' });
-        }
+        postCompanyScopedEvent('sgd:session-revoked', e, accessToken, bc);
       });
 
       sse.addEventListener('super-admin-revoked', () => {
@@ -85,15 +99,7 @@ export function useNotifications() {
       // the session stays open — useUserProfile silently refreshes the JWT and
       // refetches permission-gated data instead of logging the user out.
       sse.addEventListener('permissions-changed', (e: MessageEvent<string>) => {
-        try {
-          const payload =
-            typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
-          const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
-          if (payload.orgId && payload.orgId !== currentCompanyId) return;
-          bc.postMessage({ type: 'sgd:permissions-changed', ...payload });
-        } catch {
-          bc.postMessage({ type: 'sgd:permissions-changed' });
-        }
+        postCompanyScopedEvent('sgd:permissions-changed', e, accessToken, bc);
       });
 
       // Emitted when an admin disables this user's account — forces an

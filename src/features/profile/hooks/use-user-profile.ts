@@ -364,14 +364,25 @@ export function useUserProfile() {
   // current, then refetch everything so newly-granted modules load their data
   // immediately instead of only after a reload/relogin (when the JWT would
   // otherwise refresh naturally).
+  const permissionsChangedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const handler = async () => {
       const refreshed = await refreshAccessTokenSilently();
       if (!refreshed) return;
-      queryClient.invalidateQueries();
+      // Coalesce a burst of events (e.g. an admin editing several permissions
+      // in quick succession, or several roles the user holds changing at once)
+      // into a single full refetch instead of one per event.
+      if (permissionsChangedTimerRef.current) clearTimeout(permissionsChangedTimerRef.current);
+      permissionsChangedTimerRef.current = setTimeout(() => {
+        permissionsChangedTimerRef.current = null;
+        queryClient.invalidateQueries();
+      }, 500);
     };
     window.addEventListener('sgd:permissions-changed', handler);
-    return () => window.removeEventListener('sgd:permissions-changed', handler);
+    return () => {
+      window.removeEventListener('sgd:permissions-changed', handler);
+      if (permissionsChangedTimerRef.current) clearTimeout(permissionsChangedTimerRef.current);
+    };
   }, [queryClient]); // queryClient is stable for the life of the provider
 
   // Relay revocation events from other tabs via BroadcastChannel.
