@@ -29,15 +29,20 @@ function postCompanyScopedEvent(
   accessToken: string,
   bc: BroadcastChannel,
 ): void {
+  let payload: { orgId?: string };
   try {
-    const payload =
-      typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
-    const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
-    if (payload.orgId && payload.orgId !== currentCompanyId) return;
-    bc.postMessage({ type, ...payload });
+    payload = typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
   } catch {
-    bc.postMessage({ type });
+    // Malformed payload — drop it. Broadcasting with no orgId would make
+    // useUserProfile's handler treat it as applying to every company/tab
+    // (a missing orgId is only meant to mean "no company scope to check").
+    return;
   }
+  const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
+  if (payload.orgId && payload.orgId !== currentCompanyId) return;
+  // Only pick orgId explicitly — never spread the raw payload, which could
+  // otherwise carry its own `type` field and override the SSE event name.
+  bc.postMessage({ type, orgId: payload.orgId });
 }
 
 export function useNotifications() {

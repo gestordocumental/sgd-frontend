@@ -390,6 +390,43 @@ describe('useNotifications — SSE lifecycle', () => {
     unmount();
   });
 
+  it('drops a malformed session-revoked payload instead of broadcasting it to every tab', async () => {
+    // Regression: a JSON.parse failure used to fall through to posting { type }
+    // with no orgId — which useUserProfile's handler treats as "applies to
+    // every company", turning a corrupt message into a universal logout.
+    const { unmount } = renderHook(() => useNotifications());
+    await flushMicrotasks();
+
+    act(() => {
+      MockEventSource.instances[0].emit('session-revoked', '{not valid json');
+    });
+
+    expect(bcPostMessage).not.toHaveBeenCalled();
+
+    unmount();
+  });
+
+  it("does not let the payload's own `type` field override the broadcast event name", async () => {
+    // Regression: bc.postMessage({ type, ...payload }) let a payload.type
+    // field win over the real event name since it was spread last.
+    const { unmount } = renderHook(() => useNotifications());
+    await flushMicrotasks();
+
+    act(() => {
+      MockEventSource.instances[0].emit(
+        'session-revoked',
+        JSON.stringify({ orgId: 'company-1', type: 'sgd:account-disabled' }),
+      );
+    });
+
+    expect(bcPostMessage).toHaveBeenCalledWith({
+      type: 'sgd:session-revoked',
+      orgId: 'company-1',
+    });
+
+    unmount();
+  });
+
   it('posts permissions-changed to BroadcastChannel for the current company', async () => {
     const { unmount } = renderHook(() => useNotifications());
     await flushMicrotasks();
