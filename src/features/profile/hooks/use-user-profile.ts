@@ -126,6 +126,23 @@ export function useUserProfile() {
     // getById may fail for non-current companies due to the OrgGuard companyId check
     companyIds.length > 1;
 
+  // Company IDs that are actually valid switch *targets* — excludes companies
+  // that have been deactivated or deleted, so an inactive company can't be
+  // selected to enter its context (even by a super admin). The company the
+  // user is currently inside is always kept, regardless of its status, so a
+  // company deactivated while someone is already in it doesn't break the menu.
+  // If company data hasn't loaded yet, the ID is included optimistically —
+  // the backend independently re-validates status on POST /auth/switch-company.
+  const switchableCompanyIds = useMemo(
+    () =>
+      companyIds.filter((id) => {
+        if (id === currentCompanyId) return true;
+        const company = companies.find((c) => c.id === id);
+        return !company || company.status === 'active';
+      }),
+    [companyIds, companies, currentCompanyId],
+  );
+
   const switchToCompany = useCallback(
     async (companyId: string) => {
       const { accessToken: companyToken } = await authApi.switchCompany(companyId);
@@ -353,6 +370,7 @@ export function useUserProfile() {
     currentCompany,
     companies,
     companyIds,
+    switchableCompanyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,
