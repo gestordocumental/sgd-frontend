@@ -197,6 +197,28 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     [activeOrgUsers, approveRoleIds],
   );
 
+  /** IDs de roles que tienen permiso USERS:WRITE */
+  const adminRoleIds = useMemo(
+    () =>
+      new Set(
+        allRoles
+          .filter((r) => r.permissions.some((p) => p.module === 'USERS' && p.action === 'WRITE'))
+          .map((r) => r.id),
+      ),
+    [allRoles],
+  );
+
+  /**
+   * Usuarios activos que pueden administrar usuarios (tienen al menos un rol con
+   * USERS:WRITE) — son quienes pueden resolver la falta de usuarios finales
+   * asignando la posición correspondiente, por eso son los destinatarios de
+   * "Notificar a los administradores".
+   */
+  const adminEligibleUsers = useMemo(
+    () => activeOrgUsers.filter((u) => u.roles.some((r) => adminRoleIds.has(r.roleId))),
+    [activeOrgUsers, adminRoleIds],
+  );
+
   return {
     paginatedWorkflows,
     workflowsLoading,
@@ -214,6 +236,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     activeOrgUsers,
     orgUsersMap,
     approverEligibleUsers,
+    adminEligibleUsers,
     invalidateAll,
   };
 }

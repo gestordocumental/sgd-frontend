@@ -33,8 +33,13 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
     addSupportingFile,
     removeSupportingFile,
   } = hook.dialogs;
-  const { activeTypologies, activeOrgUsers, approverEligibleUsers, finalUserEligibleUsers } =
-    hook.queries;
+  const {
+    activeTypologies,
+    activeOrgUsers,
+    approverEligibleUsers,
+    adminEligibleUsers,
+    finalUserEligibleUsers,
+  } = hook.queries;
   const { createMutation, notifyNoFinalUsersMutation } = hook.mutations;
   const { createForm, submitCreate } = hook.forms;
   const {
@@ -81,7 +86,7 @@ export function CreateWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
   });
 
   const selectedTypology = activeTypologies.find((t) => t.id === selectedTypologyId) ?? null;
-  const adminUserIds = activeOrgUsers.filter((u) => u.isSuperAdmin).map((u) => u.id);
+  const adminUserIds = adminEligibleUsers.map((u) => u.id);
 
   const isSubmitDisabled = createMutation.isPending || createBlocked;
 

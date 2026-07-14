@@ -47,11 +47,17 @@ vi.mock('@/lib/jwt', () => ({
 }));
 
 const mockGetMyCompanies = vi.fn();
+const mockSwitchCompany = vi.fn();
 vi.mock('@/lib/api/auth', () => ({
   authApi: {
     getMyCompanies: (...args: unknown[]) => mockGetMyCompanies(...args),
-    switchCompany: vi.fn(),
+    switchCompany: (...args: unknown[]) => mockSwitchCompany(...args),
   },
+}));
+
+const mockToastError = vi.fn();
+vi.mock('sonner', () => ({
+  toast: { error: (...args: unknown[]) => mockToastError(...args), warning: vi.fn() },
 }));
 
 const mockFetchAllCompanies = vi.fn();
@@ -63,6 +69,11 @@ vi.mock('@/lib/api/companies', () => ({
 
 vi.mock('@/lib/api/users', () => ({
   usersApi: { getMe: vi.fn() },
+}));
+
+const mockRefreshAccessTokenSilently = vi.fn();
+vi.mock('@/lib/api/client', () => ({
+  refreshAccessTokenSilently: (...args: unknown[]) => mockRefreshAccessTokenSilently(...args),
 }));
 
 // ── Wrapper ───────────────────────────────────────────────────────────────────
@@ -122,6 +133,54 @@ describe('useUserProfile — forced logout on sgd:account-disabled', () => {
 
     expect(mockClearAuth).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});
+
+// ── permissions-changed — silent token refresh, no logout ────────────────────
+
+describe('useUserProfile — sgd:permissions-changed', () => {
+  it('silently refreshes the token and invalidates all queries on success', async () => {
+    mockRefreshAccessTokenSilently.mockResolvedValue(true);
+    const { client, wrapper } = makeWrapper();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    renderHook(() => useUserProfile(), { wrapper });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('sgd:permissions-changed'));
+    });
+
+    expect(mockRefreshAccessTokenSilently).toHaveBeenCalledOnce();
+    expect(invalidateSpy).toHaveBeenCalled();
+    // Must NOT behave like session-revoked/account-disabled — the session stays open.
+    expect(mockClearAuth).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('does not invalidate queries when the silent refresh fails', async () => {
+    mockRefreshAccessTokenSilently.mockResolvedValue(false);
+    const { client, wrapper } = makeWrapper();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    renderHook(() => useUserProfile(), { wrapper });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('sgd:permissions-changed'));
+    });
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('removes the sgd:permissions-changed listener on unmount', async () => {
+    mockRefreshAccessTokenSilently.mockResolvedValue(true);
+    const { wrapper } = makeWrapper();
+    const { unmount } = renderHook(() => useUserProfile(), { wrapper });
+
+    unmount();
+
+    await act(async () => {
+      window.dispatchEvent(new Event('sgd:permissions-changed'));
+    });
+
+    expect(mockRefreshAccessTokenSilently).not.toHaveBeenCalled();
   });
 });
 
@@ -199,5 +258,95 @@ describe('useUserProfile — switchableCompanyIds', () => {
     });
 
     expect(result.current.canSwitchContext).toBe(false);
+  });
+});
+
+// ── switchToCompany — surfaces failures instead of doing nothing ──────────────
+
+describe('useUserProfile — switchToCompany failure handling', () => {
+  beforeEach(() => {
+    authState = {
+      user: { id: 'user-1', companyId: 'org-active' },
+      isSuperAdmin: false,
+      accessToken: 'fake.jwt.token',
+      hasSuperAdminContext: false,
+    };
+    mockGetMyCompanies.mockResolvedValue(['org-active', 'org-inactive']);
+    mockGetMyOrgs.mockResolvedValue([
+      { id: 'org-active', name: 'Active Co', status: 'active' },
+      { id: 'org-inactive', name: 'Inactive Co', status: 'inactive' },
+    ]);
+  });
+
+  it('shows an error toast and refreshes the company list instead of silently doing nothing', async () => {
+    mockSwitchCompany.mockRejectedValue({
+      response: { status: 403, data: { errorCode: 'COMPANY_NOT_ACTIVE' } },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useUserProfile(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.companies.length).toBeGreaterThan(0);
+    });
+
+    mockGetMyCompanies.mockClear();
+
+    await act(async () => {
+      await result.current.switchToCompany('org-inactive');
+    });
+
+    expect(mockToastError).toHaveBeenCalledOnce();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // Refetch was triggered so a company that just went inactive drops off the menu.
+    expect(mockGetMyCompanies).toHaveBeenCalled();
+  });
+
+  it('does not show an error toast when the switch succeeds', async () => {
+    mockSwitchCompany.mockResolvedValue({ accessToken: 'new.company.token' });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useUserProfile(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.companies.length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      await result.current.switchToCompany('org-active');
+    });
+
+    expect(mockToastError).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/dashboard' });
+  });
+});
+
+// ── refreshCompanies — used to re-sync the "switch to" menu on demand ─────────
+
+describe('useUserProfile — refreshCompanies', () => {
+  it('triggers a refetch of the company-membership queries', async () => {
+    authState = {
+      user: { id: 'user-1', companyId: 'org-active' },
+      isSuperAdmin: false,
+      accessToken: 'fake.jwt.token',
+      hasSuperAdminContext: false,
+    };
+    mockGetMyCompanies.mockResolvedValue(['org-active']);
+    mockGetMyOrgs.mockResolvedValue([{ id: 'org-active', name: 'Active Co', status: 'active' }]);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useUserProfile(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.companies.length).toBeGreaterThan(0);
+    });
+
+    mockGetMyCompanies.mockClear();
+
+    await act(async () => {
+      await result.current.refreshCompanies();
+    });
+
+    expect(mockGetMyCompanies).toHaveBeenCalled();
   });
 });

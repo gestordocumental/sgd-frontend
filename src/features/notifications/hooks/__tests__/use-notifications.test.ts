@@ -390,6 +390,40 @@ describe('useNotifications — SSE lifecycle', () => {
     unmount();
   });
 
+  it('posts permissions-changed to BroadcastChannel for the current company', async () => {
+    const { unmount } = renderHook(() => useNotifications());
+    await flushMicrotasks();
+
+    act(() => {
+      MockEventSource.instances[0].emit(
+        'permissions-changed',
+        JSON.stringify({ orgId: 'company-1' }),
+      );
+    });
+
+    expect(bcPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'sgd:permissions-changed', orgId: 'company-1' }),
+    );
+
+    unmount();
+  });
+
+  it('ignores permissions-changed for a different company', async () => {
+    const { unmount } = renderHook(() => useNotifications());
+    await flushMicrotasks();
+
+    act(() => {
+      MockEventSource.instances[0].emit(
+        'permissions-changed',
+        JSON.stringify({ orgId: 'other-co' }),
+      );
+    });
+
+    expect(bcPostMessage).not.toHaveBeenCalled();
+
+    unmount();
+  });
+
   it('does not reconnect after unmount even if a retry timer was pending', async () => {
     const { unmount } = renderHook(() => useNotifications());
     await flushMicrotasks();

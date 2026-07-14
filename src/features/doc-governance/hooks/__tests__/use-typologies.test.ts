@@ -6,10 +6,12 @@ import { createElement } from 'react';
 // ── Module mocks — declared before any import that triggers them ───────────────
 
 const mockList = vi.fn().mockResolvedValue([]);
+const mockCreate = vi.fn();
 
 vi.mock('@/lib/api/typologies', () => ({
   typologiesApi: {
     list: (...args: unknown[]) => mockList(...args),
+    create: (...args: unknown[]) => mockCreate(...args),
   },
 }));
 
@@ -30,10 +32,13 @@ import { useTypologies } from '../use-typologies';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeWrapper() {
-  const client = new QueryClient({
+function makeClient() {
+  return new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+}
+
+function makeWrapper(client: QueryClient = makeClient()) {
   return ({ children }: { children: React.ReactNode }) =>
     createElement(QueryClientProvider, { client }, children);
 }
@@ -81,6 +86,39 @@ describe('useTypologies — status filter', () => {
       'org-1',
       { limit: 100, status: 'ARCHIVED' },
       expect.anything(),
+    );
+  });
+});
+
+// ── createMutation — cache invalidation ───────────────────────────────────────
+// Regression: after creating a typology, the dashboard "Resumen" (typology-stats)
+// and "Auditoría" (audit-logs) views used to keep serving stale cached data
+// until a full page reload, because only the typology list/history were
+// invalidated.
+
+describe('useTypologies — createMutation invalidation', () => {
+  it('invalidates typology list, history, stats and audit-logs after a successful create', async () => {
+    mockCreate.mockResolvedValue({ id: 'ty-new' });
+    const client = makeClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
+    const { result } = renderHook(() => useTypologies('org-1'), { wrapper: makeWrapper(client) });
+    await waitFor(() => expect(mockList).toHaveBeenCalled());
+
+    await act(async () => {
+      await result.current.createMutation.mutateAsync({
+        departamentoId: 'dep-1',
+        areaId: '',
+        cargoId: '',
+        nombre: 'Contrato',
+        codigo: 'CT-001',
+        version: 'v1',
+      });
+    });
+
+    const invalidatedKeys = invalidateSpy.mock.calls.map((call) => call[0]?.queryKey?.[0]);
+    expect(invalidatedKeys).toEqual(
+      expect.arrayContaining(['typologies', 'typologies-history', 'typology-stats', 'audit-logs']),
     );
   });
 });

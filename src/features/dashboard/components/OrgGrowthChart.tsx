@@ -14,6 +14,10 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
   const chartW = 320;
   const cols = data.length || 1;
   const barW = Math.floor(chartW / cols) - 6;
+  // Headroom above the tallest bar for its count label — without this, the
+  // month with the highest count has its bar reach y=0 and the label (drawn
+  // at y-5) lands outside the viewBox and gets clipped, i.e. invisible.
+  const topPad = 16;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -21,7 +25,7 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
       {!hasData ? (
         <p className="text-sm text-muted-foreground">{noDataLabel}</p>
       ) : (
-        <svg viewBox={`0 0 ${chartW} ${chartH + 26}`} className="w-full">
+        <svg viewBox={`0 0 ${chartW} ${topPad + chartH + 26}`} className="w-full">
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#10b981" />
@@ -31,13 +35,13 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
           {data.map((d, i) => {
             const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0);
             const x = i * (chartW / cols) + 3;
-            const y = chartH - barH;
+            const y = topPad + (chartH - barH);
             return (
               <g key={d.label}>
                 <rect x={x} y={y} width={barW} height={barH} rx={4} fill={`url(#${gradientId})`} />
                 <text
                   x={x + barW / 2}
-                  y={chartH + 18}
+                  y={topPad + chartH + 18}
                   textAnchor="middle"
                   fontSize={10}
                   fill="currentColor"
@@ -45,18 +49,17 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
                 >
                   {d.label}
                 </text>
-                {d.count > 0 && (
-                  <text
-                    x={x + barW / 2}
-                    y={y - 5}
-                    textAnchor="middle"
-                    fontSize={11}
-                    fill="#10b981"
-                    fontWeight="bold"
-                  >
-                    {d.count}
-                  </text>
-                )}
+                <text
+                  x={x + barW / 2}
+                  y={y - 5}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill={d.count > 0 ? '#10b981' : 'currentColor'}
+                  fillOpacity={d.count > 0 ? 1 : 0.4}
+                  fontWeight="bold"
+                >
+                  {d.count}
+                </text>
               </g>
             );
           })}

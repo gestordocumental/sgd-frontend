@@ -81,6 +81,21 @@ export function useNotifications() {
         bc.postMessage({ type: 'sgd:super-admin-revoked' });
       });
 
+      // A role the user holds had its permissions edited. Unlike session-revoked,
+      // the session stays open — useUserProfile silently refreshes the JWT and
+      // refetches permission-gated data instead of logging the user out.
+      sse.addEventListener('permissions-changed', (e: MessageEvent<string>) => {
+        try {
+          const payload =
+            typeof e.data === 'string' ? (JSON.parse(e.data) as { orgId?: string }) : e.data;
+          const currentCompanyId = decodeJwt(accessToken)?.companyId as string | undefined;
+          if (payload.orgId && payload.orgId !== currentCompanyId) return;
+          bc.postMessage({ type: 'sgd:permissions-changed', ...payload });
+        } catch {
+          bc.postMessage({ type: 'sgd:permissions-changed' });
+        }
+      });
+
       // Emitted when an admin disables this user's account — forces an
       // immediate logout instead of waiting for the next page refresh to
       // discover the now-inactive account via a 401.

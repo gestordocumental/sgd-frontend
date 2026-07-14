@@ -87,6 +87,7 @@
     "switchContext": "Switch to",
     "changeAvatar": "Change profile photo",
     "exitCompanyFailed": "Could not restore the super-admin session. Reload the page to try again.",
+    "switchCompanyFailed": "Could not switch companies. You may no longer have access; the list has been refreshed.",
     "sessionRevoked": {
       "unknownCompany": "the company",
       "switchToGlobal": "You were removed from {{company}}. Returning to global view.",
@@ -199,7 +200,7 @@
       "activeOrgs": "Active orgs",
       "orgActiveSub": "{{active}} active · {{inactive}} inactive",
       "userGlobalSub": "{{active}} active · {{superAdmins}} super admin",
-      "registeredThisMonth": "Registered this month",
+      "registeredThisMonth": "Companies registered this month",
       "storageWithData": "{{count}} orgs with data",
       "typologiesTotal": "{{count}} total",
       "docsBreakdown": "{{typologies}} typol. · {{workflows}} workflows",
@@ -221,6 +222,7 @@
       "usersCenterLabel": "users",
       "usersActive": "Active",
       "usersInactive": "Inactive",
+      "usersDeleted": "Deleted",
       "usersRegistrationTitle": "Registration status",
       "usersRegistered": "Registered",
       "usersPending": "Pending",
@@ -229,10 +231,10 @@
       "orgsActive": "Active",
       "orgsInactive": "Inactive",
       "globalUsers": "Users (global)",
-      "monthlyRegistrations": "Registrations by month (6 months)",
+      "monthlyRegistrations": "Companies registered by month (6 months)",
       "recentOrgs": "Recent organizations",
       "usersCount": "{{count}} users",
-      "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive (of {{total}} users)",
+      "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive, {{deleted}} deleted (of {{total}} users)",
       "storageBarLabel": "{{name}}: {{storage}} used"
     },
     "orgStatus": {
