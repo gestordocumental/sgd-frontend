@@ -50,7 +50,7 @@ export function UsersPerOrgChart({ counts, companies, loading }: UsersPerOrgChar
       {sorted.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('dashboard.noData')}</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {sorted.map((r) => {
             const orgName = companyMap.get(r.orgId) ?? r.orgId.slice(0, 8);
             const activePct = maxTotal > 0 ? (r.active / maxTotal) * 100 : 0;
@@ -100,6 +100,23 @@ export function UsersPerOrgChart({ counts, companies, loading }: UsersPerOrgChar
                     className="h-full bg-muted-foreground/40 transition-all duration-500"
                     style={{ width: `${deletedPct}%` }}
                   />
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground"
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-indigo-500 inline-block" />
+                    {r.active} {t('dashboard.charts.usersActive')}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-rose-300 dark:bg-rose-400 inline-block" />
+                    {r.inactive} {t('dashboard.charts.usersInactive')}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-muted-foreground/40 inline-block" />
+                    {r.deleted} {t('dashboard.charts.usersDeleted')}
+                  </span>
                 </div>
               </li>
             );
