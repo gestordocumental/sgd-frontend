@@ -119,12 +119,30 @@ export function useUserProfile() {
     retry: false,
   });
 
+  // Company IDs that are actually valid switch *targets* — excludes companies
+  // that have been deactivated or deleted, so an inactive company can't be
+  // selected to enter its context (even by a super admin). The company the
+  // user is currently inside is always kept, regardless of its status, so a
+  // company deactivated while someone is already in it doesn't break the menu.
+  // If company data hasn't loaded yet, the ID is included optimistically —
+  // the backend independently re-validates status on POST /auth/switch-company.
+  const switchableCompanyIds = useMemo(
+    () =>
+      companyIds.filter((id) => {
+        if (id === currentCompanyId) return true;
+        const company = companies.find((c) => c.id === id);
+        return !company || company.status === 'active';
+      }),
+    [companyIds, companies, currentCompanyId],
+  );
+
   const canSwitchContext =
     // active super admin with assigned companies, or any user that can return
     hasSuperAdminToken ||
-    // regular user in multiple companies — use companyIds (not companies) because
-    // getById may fail for non-current companies due to the OrgGuard companyId check
-    companyIds.length > 1;
+    // regular user with more than one *switchable* company target — using the
+    // filtered list (not companyIds) so the menu doesn't offer to "switch"
+    // when every other membership is inactive and there's nowhere to go.
+    switchableCompanyIds.length > 1;
 
   const switchToCompany = useCallback(
     async (companyId: string) => {
@@ -353,6 +371,7 @@ export function useUserProfile() {
     currentCompany,
     companies,
     companyIds,
+    switchableCompanyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,

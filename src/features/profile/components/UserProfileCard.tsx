@@ -53,7 +53,7 @@ export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserPr
     currentCompanyId,
     currentCompany,
     companies,
-    companyIds,
+    switchableCompanyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,
@@ -176,7 +176,7 @@ export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserPr
               </DropdownMenuItem>
             )}
 
-            {companyIds.map((id) => {
+            {switchableCompanyIds.map((id) => {
               const company = companies.find((c) => c.id === id);
               return (
                 <DropdownMenuItem key={id} onClick={() => switchToCompany(id)} className="gap-2">
