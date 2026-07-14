@@ -260,13 +260,21 @@ export function useTypologies(orgId: string, enabled = true) {
   });
 
   // ── Invalidation ───────────────────────────────────────────────────────
-  // Clears the typology list AND the version history for this org so that
-  // re-opening the history dialog after a mutation always shows fresh data.
+  // Clears the typology list, version history, dashboard "Resumen" KPIs, and
+  // "Auditoría" log for this org so that any of those views show the change
+  // immediately instead of only after a full page reload (they otherwise keep
+  // serving cached data until their own staleTime/refetch trigger kicks in).
   // history key prefix: ['typologies-history', orgId, <codigo>] → partial match
   const invalidate = () => {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['typologies-history', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['typology-stats', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', orgId] }),
+      // Super-admin's cross-org audit view keys on 'all' instead of an orgId
+      // (see use-audit.ts) — a separate, non-prefix-matching cache entry that
+      // the line above never touches.
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', 'all'] }),
     ]);
   };
 

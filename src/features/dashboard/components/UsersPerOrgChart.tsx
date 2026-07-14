@@ -40,6 +40,10 @@ export function UsersPerOrgChart({ counts, companies, loading }: UsersPerOrgChar
             <span className="size-2.5 rounded-full bg-rose-300 inline-block" />{' '}
             {t('dashboard.charts.usersInactive')}
           </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-muted-foreground/40 inline-block" />{' '}
+            {t('dashboard.charts.usersDeleted')}
+          </span>
         </div>
       </div>
 
@@ -51,6 +55,7 @@ export function UsersPerOrgChart({ counts, companies, loading }: UsersPerOrgChar
             const orgName = companyMap.get(r.orgId) ?? r.orgId.slice(0, 8);
             const activePct = maxTotal > 0 ? (r.active / maxTotal) * 100 : 0;
             const inactivePct = maxTotal > 0 ? (r.inactive / maxTotal) * 100 : 0;
+            const deletedPct = maxTotal > 0 ? (r.deleted / maxTotal) * 100 : 0;
             return (
               <li key={r.orgId}>
                 <div className="flex items-center justify-between mb-1 gap-2">
@@ -75,6 +80,7 @@ export function UsersPerOrgChart({ counts, companies, loading }: UsersPerOrgChar
                     org: orgName,
                     active: r.active,
                     inactive: r.inactive,
+                    deleted: r.deleted,
                     total: r.total,
                   })}
                   className="h-3 rounded-full bg-muted/40 overflow-hidden flex"
@@ -88,6 +94,11 @@ export function UsersPerOrgChart({ counts, companies, loading }: UsersPerOrgChar
                     aria-hidden="true"
                     className="h-full bg-rose-300 dark:bg-rose-400 transition-all duration-500"
                     style={{ width: `${inactivePct}%` }}
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="h-full bg-muted-foreground/40 transition-all duration-500"
+                    style={{ width: `${deletedPct}%` }}
                   />
                 </div>
               </li>

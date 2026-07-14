@@ -146,6 +146,101 @@ apiClient.interceptors.response.use((response) => {
   return response;
 });
 
+// Performs the actual /auth/refresh (+ switch-company safety net) call and
+// updates the auth store. Shared by the reactive 401 handler below and by
+// refreshAccessTokenSilently() (triggered proactively by a 'permissions-changed'
+// SSE event, so an open session picks up new permissions without logging out).
+async function performRefresh(): Promise<string> {
+  // Use a plain axios call (not apiClient) to avoid triggering this interceptor again.
+  // No body needed — the browser sends the httpOnly refresh-token cookie automatically
+  // because withCredentials: true is set.
+  // x-csrf-token echoes the non-httpOnly sgd_csrf_token cookie to satisfy the
+  // double-submit CSRF check on the /auth/refresh endpoint.
+  const csrfToken = getCsrfToken();
+  console.debug('[auth:refresh] CSRF token', csrfToken ? '✓ present' : '✗ missing');
+  const { data } = await axios.post<{ accessToken: string; csrfToken?: string }>(
+    `${baseURL}/auth/refresh`,
+    undefined,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrfToken && { [CSRF_HEADER]: csrfToken }),
+      },
+      timeout: 15000,
+      withCredentials: true,
+    },
+  );
+
+  let finalAccessToken = data.accessToken;
+
+  // Persist the fresh CSRF token so the next page reload can send it in the header.
+  if (data.csrfToken) storeCsrfToken(data.csrfToken);
+
+  // Safety net: if the refresh returned a token without companyId but the user is
+  // in a company context (token missing companyId due to a stale login cookie being
+  // used for refresh), re-run switch-company to restore the scoped token.
+  const decoded = decodeJwt(finalAccessToken);
+  const { user } = useAuthStore.getState();
+  if (!decoded?.companyId && user?.companyId) {
+    const switchRes = await axios.post<{ accessToken: string; csrfToken?: string }>(
+      `${baseURL}/auth/switch-company`,
+      { companyId: user.companyId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${finalAccessToken}`,
+          // switch-company bypasses apiClient so we attach the CSRF header manually.
+          ...(csrfToken && { [CSRF_HEADER]: csrfToken }),
+        },
+        timeout: 15000,
+        withCredentials: true,
+      },
+    );
+    finalAccessToken = switchRes.data.accessToken;
+    if (switchRes.data.csrfToken) storeCsrfToken(switchRes.data.csrfToken);
+  }
+
+  useAuthStore.getState().updateAccessToken(finalAccessToken);
+  return finalAccessToken;
+}
+
+// Coordinates concurrent refresh attempts (a reactive 401 and a proactive
+// permissions-changed refresh could otherwise both fire /auth/refresh at once;
+// the refresh token is single-use, so the second call would fail).
+async function refreshAccessToken(): Promise<string> {
+  if (isRefreshing) {
+    return new Promise<string>((resolve, reject) => {
+      pendingQueue.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const token = await performRefresh();
+    flushQueue(null, token);
+    return token;
+  } catch (err) {
+    flushQueue(err, null);
+    throw err;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+// Proactive, best-effort refresh triggered by the 'permissions-changed' SSE
+// event — mints a fresh JWT (with the updated permissions claim) for a still-
+// valid session. Unlike the reactive 401 path, failure here must NOT log the
+// user out: it just means the next real request will hit the normal 401 flow.
+export async function refreshAccessTokenSilently(): Promise<boolean> {
+  try {
+    await refreshAccessToken();
+    return true;
+  } catch (err) {
+    console.warn('[auth:refresh] Silent permissions refresh failed', err);
+    return false;
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -157,83 +252,18 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // If a refresh is already in flight, queue this request
-    if (isRefreshing) {
-      return new Promise<string>((resolve, reject) => {
-        pendingQueue.push({ resolve, reject });
-      }).then((newToken) => {
-        original.headers.Authorization = `Bearer ${newToken}`;
-        return apiClient(original);
-      });
-    }
-
     original._retry = true;
-    isRefreshing = true;
 
     try {
-      // Use a plain axios call (not apiClient) to avoid triggering this interceptor again.
-      // No body needed — the browser sends the httpOnly refresh-token cookie automatically
-      // because withCredentials: true is set.
-      // x-csrf-token echoes the non-httpOnly sgd_csrf_token cookie to satisfy the
-      // double-submit CSRF check on the /auth/refresh endpoint.
-      const csrfToken = getCsrfToken();
-      console.debug('[auth:refresh] CSRF token', csrfToken ? '✓ present' : '✗ missing');
-      const { data } = await axios.post<{ accessToken: string; csrfToken?: string }>(
-        `${baseURL}/auth/refresh`,
-        undefined,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(csrfToken && { [CSRF_HEADER]: csrfToken }),
-          },
-          timeout: 15000,
-          withCredentials: true,
-        },
-      );
-
-      let finalAccessToken = data.accessToken;
-
-      // Persist the fresh CSRF token so the next page reload can send it in the header.
-      if (data.csrfToken) storeCsrfToken(data.csrfToken);
-
-      // Safety net: if the refresh returned a token without companyId but the user is
-      // in a company context (token missing companyId due to a stale login cookie being
-      // used for refresh), re-run switch-company to restore the scoped token.
-      const decoded = decodeJwt(finalAccessToken);
-      const { user } = useAuthStore.getState();
-      if (!decoded?.companyId && user?.companyId) {
-        const switchRes = await axios.post<{ accessToken: string; csrfToken?: string }>(
-          `${baseURL}/auth/switch-company`,
-          { companyId: user.companyId },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${finalAccessToken}`,
-              // switch-company bypasses apiClient so we attach the CSRF header manually.
-              ...(csrfToken && { [CSRF_HEADER]: csrfToken }),
-            },
-            timeout: 15000,
-            withCredentials: true,
-          },
-        );
-        finalAccessToken = switchRes.data.accessToken;
-        if (switchRes.data.csrfToken) storeCsrfToken(switchRes.data.csrfToken);
-      }
-
-      useAuthStore.getState().updateAccessToken(finalAccessToken);
-      flushQueue(null, finalAccessToken);
-
+      const finalAccessToken = await refreshAccessToken();
       original.headers.Authorization = `Bearer ${finalAccessToken}`;
       return apiClient(original);
     } catch (refreshError) {
       const refreshStatus = (refreshError as { response?: { status?: number } })?.response?.status;
       console.error('[auth:refresh] Silent refresh failed', { status: refreshStatus });
-      flushQueue(refreshError, null);
       useAuthStore.getState().clearAuth();
       void router.navigate({ to: '/login', replace: true });
       return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
     }
   },
 );
