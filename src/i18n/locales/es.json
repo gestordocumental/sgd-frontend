@@ -214,7 +214,7 @@
     "charts": {
       "workflowStatus": "Estado de flujos",
       "extractionStatus": "Estado de extracción",
-      "weeklyTrend": "Creación semanal (8 semanas)",
+      "weeklyTrend": "Creación semanal de flujos de trabajo (8 semanas)",
       "storagePerOrg": "Espacio usado por organización",
       "workflowsPerOrg": "Flujos por organización",
       "usersPerOrg": "Usuarios por organización",
@@ -235,7 +235,11 @@
       "recentOrgs": "Organizaciones recientes",
       "usersCount": "{{count}} usuarios",
       "usersPerOrgBarLabel": "{{org}}: {{active}} activos, {{inactive}} inactivos, {{deleted}} eliminados (de {{total}} usuarios)",
-      "storageBarLabel": "{{name}}: {{storage}} en uso"
+      "storageBarLabel": "{{name}}: {{storage}} en uso",
+      "weeklyTrendBarLabel_one": "Semana del {{week}}: {{count}} flujo de trabajo creado",
+      "weeklyTrendBarLabel_other": "Semana del {{week}}: {{count}} flujos de trabajo creados",
+      "monthlyRegistrationsBarLabel_one": "{{label}}: {{count}} empresa registrada",
+      "monthlyRegistrationsBarLabel_other": "{{label}}: {{count}} empresas registradas"
     },
     "orgStatus": {
       "active": "Activa",
@@ -327,7 +331,8 @@
       "changes": "Cambios",
       "modified": "Modificado",
       "copy": "Copiar ID de correlación",
-      "filterByCorrelation": "Filtrar por este ID de correlación"
+      "filterByCorrelation": "Filtrar por este ID de correlación",
+      "filterApplied": "Filtro por ID de correlación aplicado"
     },
     "fields": {
       "firstName": "Nombre",
@@ -798,7 +803,10 @@
       "zipFolderAttachments": "adjuntos",
       "zipFolderApproval": "adjuntos-aprobacion",
       "zipFolderCycles": "ciclos-revision",
-      "downloadError": "No se pudo descargar el archivo. Intenta de nuevo."
+      "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
+      "previewLoading": "Cargando previsualización...",
+      "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
+      "previewTitle": "Previsualización de {{name}}"
     },
     "actions": {
       "viewDetail": "Ver detalle",

@@ -36,13 +36,25 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   const { t } = useTranslation();
 
-  const activeOrgs = companies.filter((c) => c.status === 'active').length;
-  const inactiveOrgs = companies.length - activeOrgs;
-  const orgUsers = users.filter((u) => !u.isSuperAdmin);
-  const activeUsers = orgUsers.filter((u) => u.isActive && !u.deletedAt).length;
-  const inactiveUsers = orgUsers.length - activeUsers;
-  const monthlyData = buildMonthlyOrgData(companies);
-  const totalStorageBytes = storageStats.reduce((s, r) => s + r.storageTotalBytes, 0);
+  // Every org-related board only ever considers organizations that still
+  // exist — a soft-deleted org (status active/inactive is irrelevant once
+  // deletedAt is set) must not inflate totals, show up in "recent orgs", or
+  // leak into per-org user/storage breakdowns just because it still has
+  // historical rows in another service.
+  const activeCompanies = companies.filter((c) => !c.deletedAt);
+  const knownOrgIds = new Set(activeCompanies.map((c) => c.id));
+  const filteredOrgUserCounts = orgUserCounts.filter((c) => knownOrgIds.has(c.orgId));
+  const filteredStorageStats = storageStats.filter((s) => knownOrgIds.has(s.orgId));
+
+  const activeOrgs = activeCompanies.filter((c) => c.status === 'active').length;
+  const inactiveOrgs = activeCompanies.length - activeOrgs;
+  // "Usuarios totales"/"Usuarios (globales)" must reflect every user actually
+  // registered in the Usuarios module — a user's isSuperAdmin flag is an
+  // unrelated global privilege and must not make them disappear from this count.
+  const activeUsers = users.filter((u) => u.isActive && !u.deletedAt).length;
+  const inactiveUsers = users.length - activeUsers;
+  const monthlyData = buildMonthlyOrgData(activeCompanies);
+  const totalStorageBytes = filteredStorageStats.reduce((s, r) => s + r.storageTotalBytes, 0);
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -51,7 +63,7 @@ export function AdminDashboard({
         <KpiCard
           icon={Building2}
           label={t('dashboard.kpi.totalOrgs')}
-          value={companies.length}
+          value={activeCompanies.length}
           sub={t('dashboard.kpi.orgActiveSub', { active: activeOrgs, inactive: inactiveOrgs })}
           loading={loading}
           colorIdx={0}
@@ -60,14 +72,14 @@ export function AdminDashboard({
           icon={CheckCircle}
           label={t('dashboard.kpi.activeOrgs')}
           value={activeOrgs}
-          sub={`${Math.round((activeOrgs / (companies.length || 1)) * 100)}%`}
+          sub={`${Math.round((activeOrgs / (activeCompanies.length || 1)) * 100)}%`}
           loading={loading}
           colorIdx={1}
         />
         <KpiCard
           icon={Users}
           label={t('dashboard.kpi.totalUsers')}
-          value={orgUsers.length}
+          value={users.length}
           sub={t('dashboard.kpi.userGlobalSub', {
             active: activeUsers,
             superAdmins: superAdmins.length,
@@ -86,7 +98,7 @@ export function AdminDashboard({
           icon={HardDrive}
           label={t('dashboard.kpi.storageUsed')}
           value={storageLoading ? '…' : formatBytes(totalStorageBytes)}
-          sub={t('dashboard.kpi.storageWithData', { count: storageStats.length })}
+          sub={t('dashboard.kpi.storageWithData', { count: filteredStorageStats.length })}
           loading={storageLoading}
           colorIdx={4}
         />
@@ -120,20 +132,20 @@ export function AdminDashboard({
       </div>
 
       <UsersPerOrgChart
-        counts={orgUserCounts}
-        companies={companies}
+        counts={filteredOrgUserCounts}
+        companies={activeCompanies}
         loading={orgUserCountsLoading}
       />
 
       <StoragePerOrgChart
-        stats={storageStats}
-        companies={companies}
+        stats={filteredStorageStats}
+        companies={activeCompanies}
         title={t('dashboard.charts.storagePerOrg')}
         noDataLabel={t('dashboard.noData')}
         loading={storageLoading}
       />
 
-      <RecentOrgsList companies={companies} />
+      <RecentOrgsList companies={activeCompanies} />
     </div>
   );
 }

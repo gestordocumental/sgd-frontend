@@ -20,11 +20,14 @@ export function RecentOrgsList({ companies }: RecentOrgsListProps) {
         <ul className="divide-y divide-border">
           {recent.map((c) => (
             <li key={c.id} className="flex items-center justify-between py-3 gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div
                   className={`size-2.5 rounded-full shrink-0 ${c.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}
                 />
-                <span className="text-sm font-medium truncate">{c.name}</span>
+                {/* min-w-0 is required here (not just on the parent): a flex item's
+                    default min-width is `auto`, which lets its content override
+                    `truncate` and push the date/badge out of place for long names. */}
+                <span className="text-sm font-medium truncate min-w-0">{c.name}</span>
               </div>
               <span className="text-sm text-muted-foreground shrink-0">
                 {new Date(c.createdAt).toLocaleDateString(i18n.resolvedLanguage ?? i18n.language)}

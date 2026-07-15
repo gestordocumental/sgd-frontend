@@ -8,10 +8,12 @@ import {
   Eye,
   Download,
   Copy,
+  Check,
   Filter,
   RefreshCw,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +66,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
 
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [copiedCorrelationId, setCopiedCorrelationId] = useState<string | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -373,10 +376,18 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                     if (!navigator.clipboard?.writeText) return;
                                     void navigator.clipboard
                                       .writeText(log.correlationId!)
+                                      .then(() => {
+                                        setCopiedCorrelationId(log.correlationId!);
+                                        setTimeout(() => setCopiedCorrelationId(null), 2000);
+                                      })
                                       .catch(() => undefined);
                                   }}
                                 >
-                                  <Copy className="size-3" />
+                                  {copiedCorrelationId === log.correlationId ? (
+                                    <Check className="size-3 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="size-3" />
+                                  )}
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -387,6 +398,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   onClick={() => {
                                     setDraft({ ...emptyDraft, correlationId: log.correlationId! });
                                     applyFilters({ correlationId: log.correlationId! });
+                                    toast.success(t('audit.detail.filterApplied'));
                                   }}
                                 >
                                   <Filter className="size-3" />

@@ -78,6 +78,10 @@ export interface ApiTimelineEvent {
   workflowId: string;
   eventType: TimelineEventType;
   actorId: string;
+  // Resolved server-side — present regardless of whether the viewer's role has
+  // USERS:READ. Null only if user-service couldn't be reached or the actor no
+  // longer exists.
+  actorName: string | null;
   targetUserId: string | null;
   description: string;
   metadata: Record<string, unknown> | null;
@@ -155,6 +159,11 @@ export interface ApiWorkflow {
   adminCycles?: ApiAdminCycle[];
   createdAt: string;
   updatedAt: string;
+  // Resolved server-side — names of every user referenced in this workflow
+  // (creator, approvers, final users, admin cycle reviewers), keyed by userId.
+  // Present regardless of the viewer's Users-module permission. A user missing
+  // from the map means user-service couldn't resolve them (best-effort).
+  participantNames: Record<string, string>;
 }
 
 export interface PaginatedWorkflows {

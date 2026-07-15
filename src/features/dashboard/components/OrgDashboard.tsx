@@ -195,43 +195,60 @@ function DonutChart({
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <p className="text-base font-semibold mb-4">{title}</p>
-      {total === 0 ? (
+      {slices.length === 0 ? (
         <p className="text-sm text-muted-foreground">{noDataLabel}</p>
       ) : (
         <div className="flex items-center gap-5">
-          <svg viewBox="0 0 128 128" className="size-32 shrink-0 drop-shadow-sm">
-            {paths.map((p) => (
-              <path key={p.label} d={p.path} fill={p.color} />
-            ))}
-            <text
-              x={cx}
-              y={cy - 4}
-              textAnchor="middle"
-              fontSize={18}
-              fontWeight="bold"
-              fill="currentColor"
-            >
-              {total}
-            </text>
-            <text
-              x={cx}
-              y={cy + 13}
-              textAnchor="middle"
-              fontSize={9}
-              fill="currentColor"
-              opacity={0.5}
-            >
-              {centerLabel ?? 'total'}
-            </text>
-          </svg>
+          {total === 0 ? (
+            // No category has any data yet, but with showAllCategories the
+            // legend below still lists every known one at 0 — the "no data"
+            // placeholder only takes over the donut's slot, not the legend.
+            <div className="size-32 shrink-0 flex items-center justify-center text-center px-2">
+              <p className="text-xs text-muted-foreground">{noDataLabel}</p>
+            </div>
+          ) : (
+            <svg viewBox="0 0 128 128" className="size-32 shrink-0 drop-shadow-sm">
+              {paths.map((p) => (
+                <path key={p.label} d={p.path} fill={p.color} />
+              ))}
+              <text
+                x={cx}
+                y={cy - 4}
+                textAnchor="middle"
+                fontSize={18}
+                fontWeight="bold"
+                fill="currentColor"
+              >
+                {total}
+              </text>
+              <text
+                x={cx}
+                y={cy + 13}
+                textAnchor="middle"
+                fontSize={9}
+                fill="currentColor"
+                opacity={0.5}
+              >
+                {centerLabel ?? 'total'}
+              </text>
+            </svg>
+          )}
           <ul className="space-y-2.5 min-w-0 flex-1">
-            {paths.map((p) => (
-              <li key={p.label} className="flex items-center gap-2">
-                <span className="size-3 rounded-sm shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-sm text-muted-foreground truncate">{p.label}</span>
-                <span className="ml-auto text-sm font-bold shrink-0">{p.value}</span>
+            {/* Every slice is listed, even at 0 — a category silently vanishing
+                from the legend reads as missing/broken data, not "none yet". */}
+            {slices.map((sl) => (
+              <li
+                key={sl.label}
+                className={`flex items-center gap-2 ${sl.value === 0 ? 'opacity-40' : ''}`}
+              >
+                <span
+                  className="size-3 rounded-sm shrink-0"
+                  style={{ backgroundColor: sl.color }}
+                />
+                <span className="text-sm text-muted-foreground truncate">{sl.label}</span>
+                <span className="ml-auto text-sm font-bold shrink-0">{sl.value}</span>
                 <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
-                  {Math.round((p.value / total) * 100)}%
+                  {total > 0 ? Math.round((sl.value / total) * 100) : 0}%
                 </span>
               </li>
             ))}
@@ -251,6 +268,7 @@ function StatusDonutChart({
   title,
   noDataLabel,
   loading = false,
+  showAllCategories = false,
 }: {
   data: Record<string, number>;
   colorMap: Record<string, string>;
@@ -258,18 +276,24 @@ function StatusDonutChart({
   title: string;
   noDataLabel: string;
   loading?: boolean;
+  // When true, every known category is listed (0 if it never occurred)
+  // instead of only the ones present in `data` — for enums with a small,
+  // stable set of values where an always-zero category is still useful
+  // context, not clutter.
+  showAllCategories?: boolean;
 }) {
   const { t } = useTranslation();
   const slices = useMemo(
     () =>
-      Object.entries(data)
-        .filter(([, v]) => v > 0)
-        .map(([key, value]) => ({
-          label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
-          value,
-          color: colorMap[key] ?? '#cbd5e1',
-        })),
-    [data, colorMap, labelKeyMap, t],
+      (showAllCategories
+        ? Object.keys(labelKeyMap)
+        : Object.keys(data).filter((k) => data[k] > 0)
+      ).map((key) => ({
+        label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
+        value: data[key] ?? 0,
+        color: colorMap[key] ?? '#cbd5e1',
+      })),
+    [data, colorMap, labelKeyMap, showAllCategories, t],
   );
   if (loading) {
     return (
@@ -302,6 +326,8 @@ function WeeklyBarChart({
   noDataLabel: string;
   loading?: boolean;
 }) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-card p-5">
@@ -343,8 +369,13 @@ function WeeklyBarChart({
             const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0);
             const x = i * (chartW / cols) + 2;
             const y = chartH - barH;
+            const barLabel = t('dashboard.charts.weeklyTrendBarLabel', {
+              week: d.week,
+              count: d.count,
+            });
             return (
-              <g key={d.week}>
+              <g key={d.week} role="img" aria-label={barLabel}>
+                <title>{barLabel}</title>
                 <rect x={x} y={y} width={barW} height={barH} rx={4} fill="url(#orgBarGrad)" />
                 <text
                   x={x + barW / 2}
@@ -356,18 +387,17 @@ function WeeklyBarChart({
                 >
                   {d.week}
                 </text>
-                {d.count > 0 && (
-                  <text
-                    x={x + barW / 2}
-                    y={y - 5}
-                    textAnchor="middle"
-                    fontSize={10}
-                    fill="#6366f1"
-                    fontWeight="bold"
-                  >
-                    {d.count}
-                  </text>
-                )}
+                <text
+                  x={x + barW / 2}
+                  y={d.count > 0 ? y - 5 : chartH - 5}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill={d.count > 0 ? '#6366f1' : 'currentColor'}
+                  fillOpacity={d.count > 0 ? 1 : 0.4}
+                  fontWeight="bold"
+                >
+                  {d.count}
+                </text>
               </g>
             );
           })}
@@ -524,6 +554,7 @@ export function OrgDashboard({
               title={t('dashboard.charts.workflowStatus')}
               noDataLabel={noData}
               loading={isLoading}
+              showAllCategories
             />
           )}
           {canViewOrgStructure && (

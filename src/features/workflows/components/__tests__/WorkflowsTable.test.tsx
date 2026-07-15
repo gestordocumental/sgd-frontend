@@ -7,26 +7,6 @@ import type { ApiWorkflow } from '@/lib/api/workflows';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
-// jsdom has zero-height elements — the virtualizer renders 0 items unless we
-// make it believe all items are visible regardless of scroll position.
-vi.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: ({ count, estimateSize }: { count: number; estimateSize: () => number }) => {
-    const size = estimateSize();
-    return {
-      getVirtualItems: () =>
-        Array.from({ length: count }, (_, i) => ({
-          index: i,
-          key: i,
-          start: i * size,
-          end: (i + 1) * size,
-          lane: 0,
-          size,
-        })),
-      getTotalSize: () => count * size,
-    };
-  },
-}));
-
 vi.mock('@/router', () => ({
   router: { navigate: vi.fn(), update: vi.fn() },
 }));
@@ -407,6 +387,30 @@ describe('WorkflowsTable — row rendering', () => {
       />,
     );
     expect(screen.getByText('12345678…')).toBeInTheDocument();
+  });
+
+  it('renders rows in normal document flow with a single divider between them, not absolutely-positioned/overlapping', () => {
+    // Regression: rows used to be absolutely positioned by a virtualizer with
+    // a fixed 65px size estimate, which didn't match the real (variable) row
+    // height — a workflow without a description is shorter than one with —
+    // so rows overlapped or had uneven gaps instead of uniform spacing.
+    const workflows = [
+      makeWorkflow({ id: 'wf-1', title: 'Alpha Process', description: 'Has a description' }),
+      makeWorkflow({ id: 'wf-2', title: 'Beta Process', description: undefined }),
+    ];
+    render(
+      <WorkflowsTable hook={makeHook({ queries: { workflows, workflowsTotal: 2 } })} canManage />,
+    );
+
+    const row1 = screen.getByText('Alpha Process').closest('div[class*="grid-cols-"]');
+    const row2 = screen.getByText('Beta Process').closest('div[class*="grid-cols-"]');
+    expect(row1).not.toBeNull();
+    expect(row2).not.toBeNull();
+    // No absolute positioning / translateY inline styles left over from the virtualizer.
+    expect((row1 as HTMLElement).style.position).not.toBe('absolute');
+    expect((row2 as HTMLElement).style.position).not.toBe('absolute');
+    expect((row1 as HTMLElement).style.transform).toBe('');
+    expect((row2 as HTMLElement).style.transform).toBe('');
   });
 });
 
