@@ -47,6 +47,18 @@ function makeDeferred(): Deferred {
   return { promise, resolve };
 }
 
+// Resolves a docx render's deferred promise and flushes the microtasks so its
+// .then()/.catch() handlers (and any resulting state update) settle before
+// the next assertion or resolution — wrapped in act() since that state update
+// happens outside a user-driven event.
+async function flushDocxRender(deferred: Deferred) {
+  await act(async () => {
+    deferred.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
 // Each call gets its own controllable promise (instead of an immediate
 // resolution) so tests can force overlapping/out-of-order completions —
 // needed to prove a stale render never clobbers a newer one. The DOM write
@@ -246,17 +258,9 @@ describe('DetailWorkflowDialog — main document preview', () => {
     await vi.waitFor(() => expect(docxDeferreds).toHaveLength(2)); // doc B's render kicked off, still pending
 
     // Doc B (newer) finishes first...
-    await act(async () => {
-      docxDeferreds[1].resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await flushDocxRender(docxDeferreds[1]);
     // ...then doc A (older, now stale) finishes late.
-    await act(async () => {
-      docxDeferreds[0].resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await flushDocxRender(docxDeferreds[0]);
 
     const container = screen.getByLabelText('Preview of b.docx');
     expect(container).toHaveTextContent('rendered:16');
