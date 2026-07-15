@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@/i18n';
 import { OrgGrowthChart } from '../OrgGrowthChart';
 
 describe('OrgGrowthChart', () => {
@@ -62,5 +63,23 @@ describe('OrgGrowthChart', () => {
 
     expect(screen.getByText('Ene')).toBeInTheDocument();
     expect(screen.getByText('Feb')).toBeInTheDocument();
+  });
+
+  it('gives each bar a precise, accessible description (aria-label + native tooltip)', () => {
+    // Same clarity issue reported on the weekly workflow chart: a bare number
+    // next to a month label doesn't say what is being counted.
+    render(
+      <OrgGrowthChart
+        title="Empresas registradas por mes"
+        data={[
+          { label: 'Ene', count: 0 },
+          { label: 'Feb', count: 1 },
+        ]}
+        noDataLabel="Sin datos"
+      />,
+    );
+
+    expect(screen.getByText('Ene: 0 companies registered')).toBeInTheDocument();
+    expect(screen.getByText('Feb: 1 company registered')).toBeInTheDocument();
   });
 });

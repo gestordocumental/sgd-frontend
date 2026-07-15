@@ -31,6 +31,18 @@ export const workflowFilesApi = {
       }>(`/documents/${orgId}/workflow-files/signed-url`, { storageKey, originalName, mimeType })
       .then((r) => r.data),
 
+  // Fetches the raw file bytes through our own API (not a direct R2 signed
+  // URL) — client-side preview libraries need fetch()-readable bytes, and the
+  // R2 bucket has no CORS policy configured for direct browser access.
+  getContent: (orgId: string, storageKey: string, mimeType?: string): Promise<ArrayBuffer> =>
+    apiClient
+      .post<ArrayBuffer>(
+        `/documents/${orgId}/workflow-files/content`,
+        { storageKey, mimeType },
+        { responseType: 'arraybuffer' },
+      )
+      .then((r) => r.data),
+
   downloadZip: (
     orgId: string,
     files: Array<{ storageKey: string; zipPath: string }>,

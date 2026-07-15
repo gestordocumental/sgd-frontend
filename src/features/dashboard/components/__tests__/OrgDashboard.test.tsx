@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@/i18n';
 import { OrgDashboard } from '../OrgDashboard';
 import type { TypologyStats } from '@/lib/api/typologies';
@@ -128,6 +128,62 @@ describe('OrgDashboard — permission-gated sections', () => {
     // with WORKFLOWS:READ denied, only the permitted typology count (5) should show.
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.queryByText('14')).not.toBeInTheDocument();
+  });
+
+  it('labels the weekly workflow creation chart clearly and shows precise per-week counts, including zero weeks', () => {
+    renderDashboard({
+      workflowStats: {
+        ...WORKFLOW_STATS,
+        weeklyTrend: [
+          { week: '06/21', count: 0 },
+          { week: '06/28', count: 1 },
+        ],
+      },
+    });
+
+    // Regression: the title didn't say what the chart counts (workflows), and
+    // weeks with zero creations rendered no number at all — indistinguishable
+    // from missing data.
+    expect(screen.getByText('Weekly workflow creation (8 weeks)')).toBeInTheDocument();
+    // Scoped via the tooltip text rather than a bare "0" — the users
+    // active/inactive donut in this fixture also legitimately shows a 0.
+    expect(screen.getByText('Week of 06/21: 0 workflows created')).toBeInTheDocument();
+    expect(screen.getByText('Week of 06/28: 1 workflow created')).toBeInTheDocument();
+  });
+
+  it('lists every workflow status in "Workflow status", including ones with zero workflows', () => {
+    // Regression: only statuses present in workflowStats.statusCounts were
+    // shown (PENDING_APPROVAL: 4, CLOSED: 8 in this fixture) — the other 7
+    // known statuses were silently absent instead of showing 0.
+    renderDashboard();
+
+    const card = screen.getByText('Workflow status').closest('div');
+    expect(card).not.toBeNull();
+    expect(within(card!).getByText('Draft')).toBeInTheDocument();
+    expect(within(card!).getByText('Cancelled')).toBeInTheDocument();
+  });
+
+  it('does not expand "Extraction status" the same way — still only shows statuses that occurred', () => {
+    renderDashboard();
+
+    const card = screen.getByText('Extraction status').closest('div');
+    expect(card).not.toBeNull();
+    // TYPOLOGY_STATS fixture only has COMPLETED and FAILED.
+    expect(within(card!).getByText('Completed')).toBeInTheDocument();
+    expect(within(card!).queryByText('No document')).not.toBeInTheDocument();
+  });
+
+  it('keeps a zero-value slice visible in a donut legend instead of hiding it', () => {
+    // Regression: DonutChart used to filter out any slice with value === 0
+    // before rendering the legend, so a category with no members at all
+    // (here: zero inactive users) vanished from the list entirely instead of
+    // showing "0" — indistinguishable from the legend being broken/incomplete.
+    renderDashboard(); // default USERS fixture = 1 active user, 0 inactive
+
+    const card = screen.getByText('Active / inactive users').closest('div');
+    expect(card).not.toBeNull();
+    expect(within(card!).getByText('Inactive')).toBeInTheDocument();
+    expect(within(card!).getByText('0')).toBeInTheDocument();
   });
 
   it('excludes org-removed users from both the active and inactive counts, matching CompanyTab/RoleDialogs', () => {

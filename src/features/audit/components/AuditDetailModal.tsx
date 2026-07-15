@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Copy, Filter } from 'lucide-react';
+import { toast } from 'sonner';
+import { Copy, Check, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { orgStructureApi } from '@/lib/api/org-structure';
@@ -51,6 +53,7 @@ export function AuditDetailModal({
   companyId,
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
   const actorName = useActorName(log.actorId, users);
   const rawChanges = log.metadata?.['changes'];
   const changes: AuditChanges | null = isAuditChanges(rawChanges) ? rawChanges : null;
@@ -164,10 +167,20 @@ export function AuditDetailModal({
                     aria-label={t('audit.detail.copy')}
                     onClick={() => {
                       if (!navigator.clipboard?.writeText) return;
-                      void navigator.clipboard.writeText(log.correlationId!).catch(() => undefined);
+                      void navigator.clipboard
+                        .writeText(log.correlationId!)
+                        .then(() => {
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        })
+                        .catch(() => undefined);
                     }}
                   >
-                    <Copy className="size-3" />
+                    {copied ? (
+                      <Check className="size-3 text-emerald-500" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -177,6 +190,7 @@ export function AuditDetailModal({
                     aria-label={t('audit.detail.filterByCorrelation')}
                     onClick={() => {
                       onFilterByCorrelation(log.correlationId!);
+                      toast.success(t('audit.detail.filterApplied'));
                       onClose();
                     }}
                   >

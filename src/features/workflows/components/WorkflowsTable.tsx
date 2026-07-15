@@ -1,5 +1,4 @@
 import { useMemo, useEffect, useRef } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ElementType, CSSProperties } from 'react';
 import {
   Clock,
@@ -260,13 +259,6 @@ function WorkflowList({
   const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const rowVirtualizer = useVirtualizer({
-    count: workflows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 65,
-    overscan: 5,
-  });
-
   // Reset scroll position when the dataset changes (page navigation, filter change)
   useEffect(() => {
     parentRef.current?.scrollTo({ top: 0 });
@@ -297,8 +289,6 @@ function WorkflowList({
     );
   }
 
-  const virtualItems = rowVirtualizer.getVirtualItems();
-
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Sticky column header */}
@@ -317,29 +307,24 @@ function WorkflowList({
         </span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-8" />
       </div>
-      {/* Virtualized rows */}
-      <div ref={parentRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-          {virtualItems.map((vr) => (
-            <div
-              key={workflows[vr.index].id}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${vr.start}px)`,
-              }}
-            >
-              <WorkflowRow
-                workflow={workflows[vr.index]}
-                hook={hook}
-                canWrite={canWrite}
-                canApprove={canApprove}
-              />
-            </div>
-          ))}
-        </div>
+      {/* Rows — plain flow layout. Row height varies (a workflow may or may not
+          have a description), so absolute-positioned virtualization with a
+          fixed size estimate misjudged real row heights, causing uneven
+          spacing/overlap and a scrollbar sized off the wrong total height. */}
+      <div
+        ref={parentRef}
+        className="overflow-y-auto divide-y divide-border"
+        style={{ maxHeight: 'calc(100vh - 260px)' }}
+      >
+        {workflows.map((workflow) => (
+          <WorkflowRow
+            key={workflow.id}
+            workflow={workflow}
+            hook={hook}
+            canWrite={canWrite}
+            canApprove={canApprove}
+          />
+        ))}
       </div>
     </div>
   );
@@ -369,7 +354,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
   } = getWorkflowActions(workflow, { userId: user?.id, canWrite, canApprove });
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors border-b border-border">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
       {/* Title + description */}
       <div className="min-w-0">
         <button

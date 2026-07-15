@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface OrgGrowthChartProps {
   title: string;
@@ -7,6 +8,7 @@ interface OrgGrowthChartProps {
 }
 
 export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps) {
+  const { t } = useTranslation();
   const gradientId = useId();
   const hasData = data.length > 0 && data.some((d) => d.count > 0);
   const maxCount = Math.max(...data.map((d) => d.count), 1);
@@ -42,8 +44,13 @@ export function OrgGrowthChart({ title, data, noDataLabel }: OrgGrowthChartProps
             const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0);
             const x = i * (chartW / cols) + 3;
             const y = topPad + (chartH - barH);
+            const barLabel = t('dashboard.charts.monthlyRegistrationsBarLabel', {
+              label: d.label,
+              count: d.count,
+            });
             return (
-              <g key={d.label}>
+              <g key={d.label} role="img" aria-label={barLabel}>
+                <title>{barLabel}</title>
                 <rect x={x} y={y} width={barW} height={barH} rx={4} fill={`url(#${gradientId})`} />
                 <text
                   x={x + barW / 2}

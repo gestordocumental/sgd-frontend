@@ -40,6 +40,11 @@ const BASE_WORKFLOW: ApiWorkflow = {
   adminCycles: [],
   createdAt: '2025-01-15T09:00:00Z',
   updatedAt: '2025-01-15T09:00:00Z',
+  participantNames: {
+    'usr-001': 'Ana Torres',
+    'usr-002': 'Carlos Mena',
+    'usr-003': 'Beatriz Ruiz',
+  },
 };
 
 const PENDING_WORKFLOW: ApiWorkflow = {

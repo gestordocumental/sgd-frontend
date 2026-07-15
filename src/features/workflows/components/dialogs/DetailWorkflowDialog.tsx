@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { renderAsync as renderDocxAsync } from 'docx-preview';
+import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,6 +29,61 @@ import { workflowFilesApi } from '@/lib/api/workflow-files';
 import type { WorkflowsHook } from './workflow-dialog.types';
 import { InfoRow, ApprovalStepBadge } from './workflow-dialog-shared';
 import { getWorkflowActions } from '@/features/workflows/workflow-state-machine';
+
+const PDF_MIME = 'application/pdf';
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+// Renders a parsed XLSX workbook as a plain HTML table, with sheet tabs when
+// there's more than one sheet. Keyed by the caller on the file's storageKey
+// so switching to a different spreadsheet resets `activeSheet` instead of
+// keeping a sheet name that may not exist in the new workbook.
+function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
+  const [activeSheet, setActiveSheet] = useState(workbook.SheetNames[0]);
+  const sheet = workbook.Sheets[activeSheet];
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
+
+  return (
+    <div className="rounded-md border border-border overflow-hidden">
+      {workbook.SheetNames.length > 1 && (
+        <div className="flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1 overflow-x-auto">
+          {workbook.SheetNames.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setActiveSheet(name)}
+              className={`text-xs px-2 py-1 rounded shrink-0 ${
+                name === activeSheet
+                  ? 'bg-background font-medium text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="h-[420px] overflow-auto bg-white">
+        <table className="text-xs border-collapse">
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i}>
+                {row.map((cell, j) => (
+                  <td
+                    key={j}
+                    className="border border-border px-2 py-1 whitespace-nowrap text-black"
+                  >
+                    {cell != null ? String(cell) : ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export function DetailWorkflowDialog({
   hook,
@@ -50,6 +107,12 @@ export function DetailWorkflowDialog({
     openForwardStep,
   } = hook.actions;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [docxPreviewBuffer, setDocxPreviewBuffer] = useState<ArrayBuffer | null>(null);
+  const [xlsxPreviewWorkbook, setXlsxPreviewWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const docxContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoized so atob + JSON.parse only re-run when the token or user changes,
   // not on every re-render caused by isDownloadingZip or other local state.
@@ -58,7 +121,80 @@ export function DetailWorkflowDialog({
     [accessToken, user?.id],
   );
 
-  const userName = (userId: string) => orgUsersMap.get(userId) ?? t('common.unknownUser');
+  // Prefer names resolved server-side (see WorkflowsService.findOneOrFail) —
+  // works regardless of the viewer's Users-module permission. orgUsersMap is
+  // only a fallback for the rare case the backend couldn't resolve it either.
+  const userName = (userId: string) =>
+    detailWorkflow?.participantNames?.[userId] ??
+    orgUsersMap.get(userId) ??
+    t('common.unknownUser');
+
+  const mainDocMeta = (detailWorkflow?.mainDocumentMetadata ?? null) as {
+    storageKey?: string;
+    originalName?: string;
+    mimeType?: string;
+  } | null;
+  // The backend already serves PDFs with Content-Disposition: inline (see
+  // StorageService.getSignedDownloadUrl) — everything else forces a download,
+  // so a PDF can render inside an <iframe> via its signed URL directly.
+  // DOCX/XLSX have no browser-native viewer, so their bytes are fetched
+  // through our own API (see workflowFilesApi.getContent — a direct R2
+  // signed URL would hit CORS, since the bucket has no CORS policy for
+  // browser fetches) and rendered fully client-side with docx-preview / xlsx.
+  const isPdfMainDoc = mainDocMeta?.mimeType === PDF_MIME;
+  const isDocxMainDoc = mainDocMeta?.mimeType === DOCX_MIME;
+  const isXlsxMainDoc = mainDocMeta?.mimeType === XLSX_MIME;
+  const isPreviewableMainDoc = isPdfMainDoc || isDocxMainDoc || isXlsxMainDoc;
+
+  useEffect(() => {
+    // No cleanup needed on the "not applicable" path: the render guard below
+    // only shows a preview when one of the is*MainDoc flags is true, so stale
+    // preview state from a previously-open workflow can never leak into the UI.
+    if (!detailWorkflow || !mainDocMeta?.storageKey || !isPreviewableMainDoc) return;
+    const { orgId } = detailWorkflow;
+    const { storageKey, originalName, mimeType } = mainDocMeta;
+    let cancelled = false;
+    setPreviewLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
+    setPreviewError(false);
+
+    (async () => {
+      try {
+        if (isPdfMainDoc) {
+          const { signedUrl } = await workflowFilesApi.getSignedUrl(
+            orgId,
+            storageKey,
+            originalName,
+            mimeType,
+          );
+          if (!cancelled) setPdfPreviewUrl(signedUrl);
+        } else {
+          const buffer = await workflowFilesApi.getContent(orgId, storageKey, mimeType);
+          if (cancelled) return;
+          if (isDocxMainDoc) setDocxPreviewBuffer(buffer);
+          else if (isXlsxMainDoc) setXlsxPreviewWorkbook(XLSX.read(buffer, { type: 'array' }));
+        }
+      } catch {
+        if (!cancelled) setPreviewError(true);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailWorkflow?.id, mainDocMeta?.storageKey, isPdfMainDoc, isDocxMainDoc, isXlsxMainDoc]);
+
+  // Runs after the docx container div has committed to the DOM (it's only
+  // rendered once previewLoading flips to false in the same batch as this
+  // buffer being set), so the ref is guaranteed to be attached by now.
+  useEffect(() => {
+    if (!docxPreviewBuffer || !docxContainerRef.current) return;
+    const container = docxContainerRef.current;
+    container.innerHTML = '';
+    void renderDocxAsync(docxPreviewBuffer, container).catch(() => setPreviewError(true));
+  }, [docxPreviewBuffer]);
 
   if (!detailWorkflow) return null;
 
@@ -71,12 +207,6 @@ export function DetailWorkflowDialog({
     canCompleteAdminStep,
     canForwardAdminStep,
   } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove });
-
-  const mainDocMeta = detailWorkflow.mainDocumentMetadata as {
-    storageKey?: string;
-    originalName?: string;
-    mimeType?: string;
-  } | null;
 
   const allAttachments = detailWorkflow.attachments ?? [];
   const approvalAttachments = (detailWorkflow.approvalActions ?? []).flatMap((a) =>
@@ -249,6 +379,46 @@ export function DetailWorkflowDialog({
                         <Download className="size-3.5" />
                       </Button>
                     </div>
+                    {isPreviewableMainDoc && (
+                      <div className="mt-2">
+                        {previewLoading ? (
+                          <div className="flex items-center justify-center h-[420px] rounded-md border border-border bg-muted/20 text-xs text-muted-foreground gap-1.5">
+                            <Loader2 className="size-3.5 animate-spin" />
+                            {t('workflows.detail.previewLoading')}
+                          </div>
+                        ) : previewError ? (
+                          <p className="text-xs text-muted-foreground italic px-1">
+                            {t('workflows.detail.previewError')}
+                          </p>
+                        ) : isPdfMainDoc ? (
+                          pdfPreviewUrl && (
+                            <iframe
+                              src={pdfPreviewUrl}
+                              title={t('workflows.detail.previewTitle', {
+                                name: mainDocMeta.originalName ?? mainDocMeta.storageKey,
+                              })}
+                              className="w-full h-[420px] rounded-md border border-border"
+                            />
+                          )
+                        ) : isDocxMainDoc ? (
+                          <div
+                            ref={docxContainerRef}
+                            aria-label={t('workflows.detail.previewTitle', {
+                              name: mainDocMeta.originalName ?? mainDocMeta.storageKey,
+                            })}
+                            className="w-full h-[420px] overflow-y-auto rounded-md border border-border bg-white p-4"
+                          />
+                        ) : (
+                          isXlsxMainDoc &&
+                          xlsxPreviewWorkbook && (
+                            <XlsxPreviewTable
+                              key={mainDocMeta.storageKey}
+                              workbook={xlsxPreviewWorkbook}
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
                   </div>
                 </>
               )}
