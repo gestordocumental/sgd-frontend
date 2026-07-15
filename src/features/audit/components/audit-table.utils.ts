@@ -95,7 +95,15 @@ export const RESOURCE_TYPE_COLORS: Record<string, string> = {
 
 export type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
-export function resolveActorName(actorId: string, users: SimpleUser[]): string {
+export function resolveActorName(
+  actorId: string,
+  users: SimpleUser[],
+  serverResolvedName?: string | null,
+): string {
+  // Prefer the name resolved server-side (see AuditService.resolveActorNames)
+  // — works regardless of whether the viewer's role has USERS:READ. `users`
+  // is only a fallback for older cached responses that predate this field.
+  if (serverResolvedName) return serverResolvedName;
   const u = users.find((u) => u.id === actorId);
   if (!u) return actorId;
   const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();

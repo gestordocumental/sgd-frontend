@@ -342,9 +342,10 @@ interface WorkflowRowProps {
 function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { setDetailWorkflow, setDeleteWorkflow } = hook.dialogs;
+  const { setDeleteWorkflow } = hook.dialogs;
   const { startApprovalMutation } = hook.mutations;
-  const { openTimeline, openReviewCycle, openCompleteStep, openForwardStep } = hook.actions;
+  const { openDetailById, openTimeline, openReviewCycle, openCompleteStep, openForwardStep } =
+    hook.actions;
   const {
     canStartApproval,
     canDelete,
@@ -360,7 +361,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
         <button
           type="button"
           className="text-sm font-medium text-left hover:underline truncate block max-w-full"
-          onClick={() => setDetailWorkflow(workflow)}
+          onClick={() => openDetailById(workflow.id)}
         >
           {workflow.title}
         </button>
@@ -411,7 +412,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setDetailWorkflow(workflow)}>
+            <DropdownMenuItem onClick={() => openDetailById(workflow.id)}>
               <FileText className="size-4" />
               {t('workflows.actions.viewDetail')}
             </DropdownMenuItem>

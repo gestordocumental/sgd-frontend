@@ -472,6 +472,40 @@ describe('useWorkflows — openDetailById', () => {
     expect(mockGetById).toHaveBeenCalledWith('wf-99');
     expect(result.current.dialogs.detailWorkflow?.id).toBe('wf-99');
   });
+
+  it('reactively replaces a cached (name-less) row with the fully-resolved detail once GET /workflows/:id settles', async () => {
+    // Regression guard: list rows never carry participantNames (only a
+    // dedicated GET /workflows/:id resolves those). openDetailById's
+    // cache-hit path just sets the cached row instantly — the exposed
+    // detailWorkflow (dialogs.detailWorkflow, overridden with
+    // queries.detailWorkflowFull ?? dialogs.detailWorkflow) is what
+    // reactively fetches and prefers the fresh, fully-resolved version once
+    // detailWorkflowId is derived from that row's id. Without this, a
+    // viewer lacking USERS:READ would permanently see "Unknown user" for
+    // createdBy/approval steps/final users.
+    const cachedWorkflow = { id: 'wf-1', title: 'Cached', participantNames: {} } as ApiWorkflow;
+    const freshWorkflow = {
+      id: 'wf-1',
+      title: 'Cached',
+      participantNames: { 'user-1': 'Ada Lovelace' },
+    } as ApiWorkflow;
+    mockWorkflowsList.mockResolvedValue({ data: [cachedWorkflow], total: 1 });
+    mockGetById.mockResolvedValue(freshWorkflow);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+    await waitFor(() => expect(result.current.queries.workflows).toContainEqual(cachedWorkflow));
+
+    act(() => {
+      result.current.actions.openDetailById('wf-1');
+    });
+
+    await waitFor(() => expect(mockGetById).toHaveBeenCalledWith('wf-1'));
+    await waitFor(() =>
+      expect(result.current.dialogs.detailWorkflow?.participantNames).toEqual({
+        'user-1': 'Ada Lovelace',
+      }),
+    );
+  });
 });
 
 // ── 7. orgUsersMap ────────────────────────────────────────────────────────────

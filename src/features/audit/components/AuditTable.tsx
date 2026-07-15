@@ -36,8 +36,16 @@ import {
 } from './audit-table.utils';
 import { useActorName } from '../hooks/use-actor-name';
 
-function ActorCell({ actorId, users }: { actorId: string; users: SimpleUser[] }) {
-  const name = useActorName(actorId, users);
+function ActorCell({
+  actorId,
+  actorName,
+  users,
+}: {
+  actorId: string;
+  actorName?: string | null;
+  users: SimpleUser[];
+}) {
+  const name = useActorName(actorId, users, actorName);
   return <>{name}</>;
 }
 
@@ -354,7 +362,11 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                             className="text-xs text-muted-foreground max-w-[160px] truncate"
                             title={log.actorId}
                           >
-                            <ActorCell actorId={log.actorId} users={users} />
+                            <ActorCell
+                              actorId={log.actorId}
+                              actorName={log.actorName}
+                              users={users}
+                            />
                           </TableCell>
                           <TableCell className="text-xs">
                             {CORRELATION_RESOURCE_TYPES.has(log.resourceType) &&

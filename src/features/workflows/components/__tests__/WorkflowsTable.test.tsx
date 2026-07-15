@@ -417,20 +417,42 @@ describe('WorkflowsTable — row rendering', () => {
 // ── Row interactions ──────────────────────────────────────────────────────────
 
 describe('WorkflowsTable — row interactions', () => {
-  it('calls setDetailWorkflow when the workflow title is clicked', () => {
-    const setDetailWorkflow = vi.fn();
+  it('calls openDetailById (not setDetailWorkflow directly) when the workflow title is clicked', () => {
+    // Regression: clicking a row used to call setDetailWorkflow(workflow)
+    // directly with the LIST row, which never carries participantNames (only
+    // a dedicated GET /workflows/:id resolves those) — a viewer without
+    // USERS:READ would permanently see "Unknown user" in the detail dialog.
+    // openDetailById shows the cached row instantly, then refreshes it.
+    const openDetailById = vi.fn();
     const wf = makeWorkflow({ title: 'Click Me' });
     render(
       <WorkflowsTable
         hook={makeHook({
-          dialogs: { setDetailWorkflow },
+          actions: { openDetailById },
           queries: { workflows: [wf], workflowsTotal: 1 },
         })}
         canManage
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Click Me' }));
-    expect(setDetailWorkflow).toHaveBeenCalledWith(wf);
+    expect(openDetailById).toHaveBeenCalledWith(wf.id);
+  });
+
+  it('calls openDetailById when the "View detail" menu item is clicked', () => {
+    const openDetailById = vi.fn();
+    const wf = makeWorkflow();
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          actions: { openDetailById },
+          queries: { workflows: [wf], workflowsTotal: 1 },
+        })}
+        canManage
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /open workflow actions/i }));
+    fireEvent.click(screen.getByText(/view detail/i));
+    expect(openDetailById).toHaveBeenCalledWith(wf.id);
   });
 
   it('calls openTimeline when the "View timeline" menu item is clicked', () => {
