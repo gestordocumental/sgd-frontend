@@ -68,7 +68,7 @@ describe('OrgGrowthChart', () => {
   it('gives each bar a precise, accessible description (aria-label + native tooltip)', () => {
     // Same clarity issue reported on the weekly workflow chart: a bare number
     // next to a month label doesn't say what is being counted.
-    render(
+    const { container } = render(
       <OrgGrowthChart
         title="Empresas registradas por mes"
         data={[
@@ -79,7 +79,16 @@ describe('OrgGrowthChart', () => {
       />,
     );
 
-    expect(screen.getByText('Ene: 0 companies registered')).toBeInTheDocument();
-    expect(screen.getByText('Feb: 1 company registered')).toBeInTheDocument();
+    // Resolves the element's accessible name via role="img" + aria-label —
+    // would fail to find anything if aria-label were removed, unlike a bare
+    // getByText() which would still match the sibling <title> text node.
+    expect(screen.getByRole('img', { name: 'Ene: 0 companies registered' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Feb: 1 company registered' })).toBeInTheDocument();
+
+    // Also verify the native-tooltip <title> elements directly, independent of aria-label.
+    const titles = Array.from(container.querySelectorAll('svg > g > title')).map(
+      (el) => el.textContent,
+    );
+    expect(titles).toEqual(['Ene: 0 companies registered', 'Feb: 1 company registered']);
   });
 });

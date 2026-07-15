@@ -163,6 +163,23 @@ describe('OrgDashboard — permission-gated sections', () => {
     expect(within(card!).getByText('Cancelled')).toBeInTheDocument();
   });
 
+  it('still lists every workflow status at 0 when the org has no workflows at all', () => {
+    // Regression: the legend was gated behind the donut's total !== 0 branch,
+    // so when every status was 0 (an org with zero workflows), the whole
+    // legend collapsed into a bare "no data" message — defeating the point of
+    // showAllCategories, which exists specifically to keep zero-count
+    // categories visible instead of silently absent.
+    renderDashboard({
+      workflowStats: { ...WORKFLOW_STATS, statusCounts: {} },
+    });
+
+    const card = screen.getByText('Workflow status').closest('div');
+    expect(card).not.toBeNull();
+    expect(within(card!).getByText('Draft')).toBeInTheDocument();
+    expect(within(card!).getByText('Cancelled')).toBeInTheDocument();
+    expect(within(card!).getAllByText('0').length).toBeGreaterThan(0);
+  });
+
   it('does not expand "Extraction status" the same way — still only shows statuses that occurred', () => {
     renderDashboard();
 

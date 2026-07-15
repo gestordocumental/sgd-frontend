@@ -195,35 +195,44 @@ function DonutChart({
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <p className="text-base font-semibold mb-4">{title}</p>
-      {total === 0 ? (
+      {slices.length === 0 ? (
         <p className="text-sm text-muted-foreground">{noDataLabel}</p>
       ) : (
         <div className="flex items-center gap-5">
-          <svg viewBox="0 0 128 128" className="size-32 shrink-0 drop-shadow-sm">
-            {paths.map((p) => (
-              <path key={p.label} d={p.path} fill={p.color} />
-            ))}
-            <text
-              x={cx}
-              y={cy - 4}
-              textAnchor="middle"
-              fontSize={18}
-              fontWeight="bold"
-              fill="currentColor"
-            >
-              {total}
-            </text>
-            <text
-              x={cx}
-              y={cy + 13}
-              textAnchor="middle"
-              fontSize={9}
-              fill="currentColor"
-              opacity={0.5}
-            >
-              {centerLabel ?? 'total'}
-            </text>
-          </svg>
+          {total === 0 ? (
+            // No category has any data yet, but with showAllCategories the
+            // legend below still lists every known one at 0 — the "no data"
+            // placeholder only takes over the donut's slot, not the legend.
+            <div className="size-32 shrink-0 flex items-center justify-center text-center px-2">
+              <p className="text-xs text-muted-foreground">{noDataLabel}</p>
+            </div>
+          ) : (
+            <svg viewBox="0 0 128 128" className="size-32 shrink-0 drop-shadow-sm">
+              {paths.map((p) => (
+                <path key={p.label} d={p.path} fill={p.color} />
+              ))}
+              <text
+                x={cx}
+                y={cy - 4}
+                textAnchor="middle"
+                fontSize={18}
+                fontWeight="bold"
+                fill="currentColor"
+              >
+                {total}
+              </text>
+              <text
+                x={cx}
+                y={cy + 13}
+                textAnchor="middle"
+                fontSize={9}
+                fill="currentColor"
+                opacity={0.5}
+              >
+                {centerLabel ?? 'total'}
+              </text>
+            </svg>
+          )}
           <ul className="space-y-2.5 min-w-0 flex-1">
             {/* Every slice is listed, even at 0 — a category silently vanishing
                 from the legend reads as missing/broken data, not "none yet". */}

@@ -113,6 +113,9 @@ export function DetailWorkflowDialog({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const docxContainerRef = useRef<HTMLDivElement>(null);
+  // Bumped on every docx render attempt so a slow, superseded renderDocxAsync
+  // call can tell it's stale once it resolves (see the effect below).
+  const docxRenderGenerationRef = useRef(0);
 
   // Memoized so atob + JSON.parse only re-run when the token or user changes,
   // not on every re-render caused by isDownloadingZip or other local state.
@@ -189,11 +192,28 @@ export function DetailWorkflowDialog({
   // Runs after the docx container div has committed to the DOM (it's only
   // rendered once previewLoading flips to false in the same batch as this
   // buffer being set), so the ref is guaranteed to be attached by now.
+  //
+  // renderDocxAsync mutates whatever container it's given, and it's async —
+  // if docxPreviewBuffer changes again before a prior call finishes, both
+  // calls would otherwise write into the SAME live container concurrently,
+  // corrupting the DOM (not just "stale content", actual interleaved writes).
+  // Rendering into a detached, per-call node and only publishing into the
+  // real container when this call's generation is still current avoids that
+  // entirely: a superseded call simply never touches the visible DOM.
   useEffect(() => {
     if (!docxPreviewBuffer || !docxContainerRef.current) return;
     const container = docxContainerRef.current;
-    container.innerHTML = '';
-    void renderDocxAsync(docxPreviewBuffer, container).catch(() => setPreviewError(true));
+    const generation = ++docxRenderGenerationRef.current;
+    const offscreen = document.createElement('div');
+
+    void renderDocxAsync(docxPreviewBuffer, offscreen)
+      .then(() => {
+        if (docxRenderGenerationRef.current !== generation) return;
+        container.replaceChildren(...offscreen.childNodes);
+      })
+      .catch(() => {
+        if (docxRenderGenerationRef.current === generation) setPreviewError(true);
+      });
   }, [docxPreviewBuffer]);
 
   if (!detailWorkflow) return null;
@@ -394,6 +414,7 @@ export function DetailWorkflowDialog({
                           pdfPreviewUrl && (
                             <iframe
                               src={pdfPreviewUrl}
+                              sandbox="allow-downloads"
                               title={t('workflows.detail.previewTitle', {
                                 name: mainDocMeta.originalName ?? mainDocMeta.storageKey,
                               })}

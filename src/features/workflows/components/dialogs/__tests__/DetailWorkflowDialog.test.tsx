@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import * as XLSX from 'xlsx';
 import '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
@@ -35,9 +35,40 @@ vi.mock('@/lib/api/workflow-files', () => ({
   },
 }));
 
-const mockRenderDocxAsync = vi.fn().mockResolvedValue(undefined);
+interface Deferred {
+  promise: Promise<void>;
+  resolve: () => void;
+}
+function makeDeferred(): Deferred {
+  let resolve!: () => void;
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+// Each call gets its own controllable promise (instead of an immediate
+// resolution) so tests can force overlapping/out-of-order completions —
+// needed to prove a stale render never clobbers a newer one. The DOM write
+// happens when `resolve()` is invoked (mirroring how the real async library
+// only mutates the DOM as part of settling), not at call time — otherwise
+// the race this guards against couldn't be reproduced in a test at all.
+let docxDeferreds: Deferred[] = [];
+const mockRenderDocxAsync = vi.fn((buffer: ArrayBuffer, container: HTMLElement) => {
+  const { promise, resolve } = makeDeferred();
+  docxDeferreds.push({
+    promise,
+    resolve: () => {
+      const marker = document.createElement('span');
+      marker.textContent = `rendered:${buffer.byteLength}`;
+      container.appendChild(marker);
+      resolve();
+    },
+  });
+  return promise;
+});
 vi.mock('docx-preview', () => ({
-  renderAsync: (...args: unknown[]) => mockRenderDocxAsync(...args),
+  renderAsync: (...args: [ArrayBuffer, HTMLElement]) => mockRenderDocxAsync(...args),
 }));
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -116,6 +147,7 @@ describe('DetailWorkflowDialog — main document preview', () => {
     mockGetSignedUrl.mockReset();
     mockGetContent.mockReset();
     mockRenderDocxAsync.mockClear();
+    docxDeferreds = [];
   });
 
   it('embeds an iframe preview for a PDF main document', async () => {
@@ -143,6 +175,10 @@ describe('DetailWorkflowDialog — main document preview', () => {
     );
     const iframe = await screen.findByTitle('Preview of contract.pdf');
     expect(iframe).toHaveAttribute('src', 'https://r2.example.com/signed');
+    // Defense in depth: if the stored object were ever the wrong type or
+    // compromised, the sandbox stops it from executing scripts, navigating
+    // the top window, or doing anything beyond letting the user download it.
+    expect(iframe).toHaveAttribute('sandbox', 'allow-downloads');
   });
 
   it('shows a fallback message if the PDF preview fails to load', async () => {
@@ -179,6 +215,52 @@ describe('DetailWorkflowDialog — main document preview', () => {
     await screen.findByLabelText('Preview of contract.docx');
     expect(mockGetContent).toHaveBeenCalledWith('org-1', 'key-3', DOCX_MIME);
     expect(mockRenderDocxAsync).toHaveBeenCalled();
+  });
+
+  it('never lets a slow, superseded DOCX render clobber a newer one that finished first', async () => {
+    // Regression: renderDocxAsync mutates whatever container it's given and
+    // is async. If the buffer changes again before a prior call finishes,
+    // both calls used to write into the SAME live container — whichever
+    // resolved last would win, even if it was the stale one. Simulate that
+    // exact ordering: doc A's render resolves AFTER doc B's.
+    mockGetContent.mockImplementation((_orgId: string, storageKey: string) =>
+      Promise.resolve(storageKey === 'key-a' ? new ArrayBuffer(8) : new ArrayBuffer(16)),
+    );
+    const wfA = makeWorkflow({
+      mainDocumentMetadata: { storageKey: 'key-a', originalName: 'a.docx', mimeType: DOCX_MIME },
+    });
+    const wfB = makeWorkflow({
+      id: 'wf-2',
+      mainDocumentMetadata: { storageKey: 'key-b', originalName: 'b.docx', mimeType: DOCX_MIME },
+    });
+
+    const { rerender } = render(<DetailWorkflowDialog hook={makeHook(wfA)} canApprove={false} />);
+    await screen.findByLabelText('Preview of a.docx');
+    // The docx render effect is a separate, passive effect from the one that
+    // sets previewLoading — it can fire slightly after the aria-label commits,
+    // so wait for the actual call rather than assuming findByLabelText implies it.
+    await vi.waitFor(() => expect(docxDeferreds).toHaveLength(1)); // doc A's render kicked off, still pending
+
+    rerender(<DetailWorkflowDialog hook={makeHook(wfB)} canApprove={false} />);
+    await screen.findByLabelText('Preview of b.docx');
+    await vi.waitFor(() => expect(docxDeferreds).toHaveLength(2)); // doc B's render kicked off, still pending
+
+    // Doc B (newer) finishes first...
+    await act(async () => {
+      docxDeferreds[1].resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // ...then doc A (older, now stale) finishes late.
+    await act(async () => {
+      docxDeferreds[0].resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const container = screen.getByLabelText('Preview of b.docx');
+    expect(container).toHaveTextContent('rendered:16');
+    expect(container).not.toHaveTextContent('rendered:8');
   });
 
   it('renders an XLSX main document client-side as a table, with real sheet data parsed via xlsx', async () => {
