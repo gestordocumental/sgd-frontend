@@ -39,10 +39,47 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 // there's more than one sheet. Keyed by the caller on the file's storageKey
 // so switching to a different spreadsheet resets `activeSheet` instead of
 // keeping a sheet name that may not exist in the new workbook.
+//
+// This can only approximate the original formatting: reading cell colors,
+// fonts and borders is a SheetJS Pro-only feature — the free `xlsx` package
+// this app uses cannot read them at all. What CAN be preserved with the free
+// package, and previously wasn't, is handled below: number formats (raw:
+// false renders a date/currency/percentage cell through its format string
+// instead of the raw underlying number) and merged cells (otherwise a merged
+// header would render as duplicated/misaligned values across the cells it
+// used to span).
 function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
   const [activeSheet, setActiveSheet] = useState(workbook.SheetNames[0]);
   const sheet = workbook.Sheets[activeSheet];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    header: 1,
+    raw: false,
+    defval: '',
+  });
+
+  // sheet_to_json indexes `rows` from 0 at the start of the sheet's used
+  // range — but !merges uses absolute sheet coordinates. On a sheet whose
+  // range doesn't start at A1 (e.g. "B2:D10"), those would disagree without
+  // subtracting the range's own start offset first.
+  const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null;
+  const rowOffset = range?.s.r ?? 0;
+  const colOffset = range?.s.c ?? 0;
+
+  const merges = sheet['!merges'] ?? [];
+  const mergeSpanAt = new Map<string, { rowSpan: number; colSpan: number }>();
+  const mergeCovered = new Set<string>();
+  for (const { s, e } of merges) {
+    const sr = s.r - rowOffset;
+    const sc = s.c - colOffset;
+    const er = e.r - rowOffset;
+    const ec = e.c - colOffset;
+    mergeSpanAt.set(`${sr}:${sc}`, { rowSpan: er - sr + 1, colSpan: ec - sc + 1 });
+    for (let r = sr; r <= er; r++) {
+      for (let c = sc; c <= ec; c++) {
+        if (r !== sr || c !== sc) mergeCovered.add(`${r}:${c}`);
+      }
+    }
+  }
 
   return (
     <div className="h-full flex flex-col rounded-md border border-border overflow-hidden">
@@ -69,14 +106,20 @@ function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
           <tbody>
             {rows.map((row, i) => (
               <tr key={i}>
-                {row.map((cell, j) => (
-                  <td
-                    key={j}
-                    className="border border-border px-2 py-1 whitespace-nowrap text-black"
-                  >
-                    {cell != null ? String(cell) : ''}
-                  </td>
-                ))}
+                {row.map((cell, j) => {
+                  if (mergeCovered.has(`${i}:${j}`)) return null;
+                  const span = mergeSpanAt.get(`${i}:${j}`);
+                  return (
+                    <td
+                      key={j}
+                      rowSpan={span?.rowSpan}
+                      colSpan={span?.colSpan}
+                      className="border border-border px-2 py-1 whitespace-nowrap text-black"
+                    >
+                      {cell != null ? String(cell) : ''}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -247,13 +290,19 @@ export function DetailWorkflowDialog({
     (a.attachments ?? []).map((att) => ({ ...att, userId: a.userId })),
   );
 
-  const handleOpenFile = async (storageKey: string, originalName?: string, mimeType?: string) => {
+  const handleOpenFile = async (
+    storageKey: string,
+    originalName?: string,
+    mimeType?: string,
+    forceAttachment = true,
+  ) => {
     try {
       const { signedUrl } = await workflowFilesApi.getSignedUrl(
         detailWorkflow.orgId,
         storageKey,
         originalName,
         mimeType,
+        forceAttachment,
       );
       window.open(signedUrl, '_blank', 'noopener,noreferrer');
     } catch {
@@ -405,10 +454,14 @@ export function DetailWorkflowDialog({
                           className="size-7 shrink-0"
                           onClick={() => {
                             if (isPdfMainDoc) {
+                              // forceAttachment: false — this is a preview, not a
+                              // download, so the PDF should open inline in the new
+                              // tab instead of triggering an immediate save prompt.
                               void handleOpenFile(
                                 mainDocMeta.storageKey!,
                                 mainDocMeta.originalName,
                                 mainDocMeta.mimeType,
+                                false,
                               );
                             } else {
                               setPreviewOpen(true);
@@ -845,7 +898,10 @@ export function DetailWorkflowDialog({
                   aria-label={t('workflows.detail.previewTitle', {
                     name: mainDocMeta?.originalName ?? mainDocMeta?.storageKey ?? '',
                   })}
-                  className="w-full h-full overflow-y-auto rounded-md border border-border bg-white p-4"
+                  // docx-preview renders each page at its real fixed width (e.g. Letter/A4) —
+                  // overflow-x-auto lets a page wider than the popup scroll horizontally
+                  // instead of being clipped/squished at the container's edge.
+                  className="w-full h-full overflow-auto rounded-md border border-border bg-white p-4"
                 />
               ) : (
                 isXlsxMainDoc &&
