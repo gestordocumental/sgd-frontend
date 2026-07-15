@@ -117,6 +117,10 @@ export function DetailWorkflowDialog({
   // Bumped on every docx render attempt so a slow, superseded renderDocxAsync
   // call can tell it's stale once it resolves (see the effect below).
   const docxRenderGenerationRef = useRef(0);
+  // storageKey of the last successfully-fetched DOCX/XLSX content — lets the
+  // fetch effect skip refetching when the popup is closed and reopened for
+  // the same document, while still refetching if the main document changes.
+  const previewLoadedKeyRef = useRef<string | null>(null);
 
   // Memoized so atob + JSON.parse only re-run when the token or user changes,
   // not on every re-render caused by isDownloadingZip or other local state.
@@ -160,6 +164,7 @@ export function DetailWorkflowDialog({
     setDocxPreviewBuffer(null);
     setXlsxPreviewWorkbook(null);
     setPreviewError(false);
+    previewLoadedKeyRef.current = null;
   }, [detailWorkflow?.id]);
 
   useEffect(() => {
@@ -168,10 +173,14 @@ export function DetailWorkflowDialog({
     // the preview.
     if (!previewOpen || !detailWorkflow || !mainDocMeta?.storageKey) return;
     if (!isDocxMainDoc && !isXlsxMainDoc) return;
+    // Already fetched and rendered this exact document — reopening the popup
+    // for the same storageKey just reuses it instead of refetching. A
+    // changed storageKey (main document replaced) still refetches below.
+    if (previewLoadedKeyRef.current === mainDocMeta.storageKey) return;
     const { orgId } = detailWorkflow;
     const { storageKey, mimeType } = mainDocMeta;
     let cancelled = false;
-    setPreviewLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
+    setPreviewLoading(true);
     setPreviewError(false);
 
     (async () => {
@@ -180,6 +189,7 @@ export function DetailWorkflowDialog({
         if (cancelled) return;
         if (isDocxMainDoc) setDocxPreviewBuffer(buffer);
         else setXlsxPreviewWorkbook(XLSX.read(buffer, { type: 'array' }));
+        previewLoadedKeyRef.current = storageKey;
       } catch {
         if (!cancelled) setPreviewError(true);
       } finally {

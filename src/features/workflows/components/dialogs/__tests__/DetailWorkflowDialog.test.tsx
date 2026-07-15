@@ -264,6 +264,28 @@ describe('DetailWorkflowDialog — main document preview', () => {
     expect(mockRenderDocxAsync).toHaveBeenCalled();
   });
 
+  it('does not refetch DOCX bytes when the popup is closed and reopened for the same document', async () => {
+    mockGetContent.mockResolvedValue(new ArrayBuffer(8));
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-3',
+        originalName: 'contract.docx',
+        mimeType: DOCX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+    await screen.findByLabelText('Preview of contract.docx');
+    expect(mockGetContent).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    clickPreviewEye();
+
+    await screen.findByLabelText('Preview of contract.docx');
+    expect(mockGetContent).toHaveBeenCalledTimes(1);
+  });
+
   it('never lets a slow, superseded DOCX render clobber a newer one that finished first', async () => {
     // Regression: renderDocxAsync mutates whatever container it's given and
     // is async. If the buffer changes again before a prior call finishes,
