@@ -163,6 +163,18 @@ function clickPreviewEye() {
   fireEvent.click(screen.getByRole('button', { name: 'Preview document' }));
 }
 
+function makeXlsxWithMergedHeaderAndDate(): ArrayBuffer {
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['Report', ''],
+    ['Item', 'Date'],
+    ['Widget', new Date(2024, 0, 15)],
+  ]);
+  sheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, 'Sheet1');
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+}
+
 describe('DetailWorkflowDialog — main document preview', () => {
   beforeEach(() => {
     mockGetSignedUrl.mockReset();
@@ -191,11 +203,14 @@ describe('DetailWorkflowDialog — main document preview', () => {
     clickPreviewEye();
 
     await vi.waitFor(() =>
+      // forceAttachment: false — a preview should open inline, not force an
+      // immediate download prompt like the Download button does.
       expect(mockGetSignedUrl).toHaveBeenCalledWith(
         'org-1',
         'key-1',
         'contract.pdf',
         'application/pdf',
+        false,
       ),
     );
     await vi.waitFor(() =>
@@ -207,6 +222,38 @@ describe('DetailWorkflowDialog — main document preview', () => {
     );
     // No popup dialog, no iframe — the eye button is a plain "open in new tab" shortcut for PDFs.
     expect(screen.queryByRole('dialog', { name: 'contract.pdf' })).not.toBeInTheDocument();
+
+    openSpy.mockRestore();
+  });
+
+  it('forces attachment disposition when downloading the main document, even for a PDF', async () => {
+    // Regression guard: only the preview ("eye") path should request an
+    // inline PDF — the Download button must keep forcing a save prompt.
+    mockGetSignedUrl.mockResolvedValue({
+      signedUrl: 'https://r2.example.com/signed',
+      expiresAt: '2099-01-01',
+    });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-1',
+        originalName: 'contract.pdf',
+        mimeType: 'application/pdf',
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download document' }));
+
+    await vi.waitFor(() =>
+      expect(mockGetSignedUrl).toHaveBeenCalledWith(
+        'org-1',
+        'key-1',
+        'contract.pdf',
+        'application/pdf',
+        true,
+      ),
+    );
 
     openSpy.mockRestore();
   });
@@ -344,6 +391,30 @@ describe('DetailWorkflowDialog — main document preview', () => {
     );
     expect(await screen.findByText('Widget')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
+  });
+
+  it('renders merged header cells without duplicating values, and formats dates instead of raw serials', async () => {
+    // Regression: sheet_to_json used to be called with no `raw`/`defval`
+    // options, so a date cell rendered its raw Excel serial (or an
+    // unlocalized Date.toString()) instead of "1/15/24", and merged cells
+    // (a very common header pattern in real spreadsheets) rendered as
+    // duplicated/misaligned values across every cell they used to span.
+    mockGetContent.mockResolvedValue(makeXlsxWithMergedHeaderAndDate());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-5',
+        originalName: 'report.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    await screen.findByText('Report');
+    expect(screen.getAllByText('Report')).toHaveLength(1);
+    expect(screen.getByText('Report').closest('td')).toHaveAttribute('colspan', '2');
+    expect(screen.getByText('1/15/24')).toBeInTheDocument();
   });
 
   it('shows a fallback message if fetching the DOCX/XLSX content fails', async () => {

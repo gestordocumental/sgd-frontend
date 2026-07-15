@@ -109,7 +109,7 @@ export function AuditDetailModal({
           <DialogTitle className="text-sm">{t('audit.detail.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 text-sm overflow-y-auto max-h-[70vh]">
+        <div className="space-y-4 text-sm overflow-y-auto max-h-[70vh] [scrollbar-gutter:stable]">
           {/* Campos principales */}
           <div className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-2 min-w-0">
             <span className="text-muted-foreground whitespace-nowrap">
