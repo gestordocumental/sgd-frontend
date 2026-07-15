@@ -57,14 +57,26 @@ function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
     defval: '',
   });
 
+  // sheet_to_json indexes `rows` from 0 at the start of the sheet's used
+  // range — but !merges uses absolute sheet coordinates. On a sheet whose
+  // range doesn't start at A1 (e.g. "B2:D10"), those would disagree without
+  // subtracting the range's own start offset first.
+  const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null;
+  const rowOffset = range?.s.r ?? 0;
+  const colOffset = range?.s.c ?? 0;
+
   const merges = sheet['!merges'] ?? [];
   const mergeSpanAt = new Map<string, { rowSpan: number; colSpan: number }>();
   const mergeCovered = new Set<string>();
   for (const { s, e } of merges) {
-    mergeSpanAt.set(`${s.r}:${s.c}`, { rowSpan: e.r - s.r + 1, colSpan: e.c - s.c + 1 });
-    for (let r = s.r; r <= e.r; r++) {
-      for (let c = s.c; c <= e.c; c++) {
-        if (r !== s.r || c !== s.c) mergeCovered.add(`${r}:${c}`);
+    const sr = s.r - rowOffset;
+    const sc = s.c - colOffset;
+    const er = e.r - rowOffset;
+    const ec = e.c - colOffset;
+    mergeSpanAt.set(`${sr}:${sc}`, { rowSpan: er - sr + 1, colSpan: ec - sc + 1 });
+    for (let r = sr; r <= er; r++) {
+      for (let c = sc; c <= ec; c++) {
+        if (r !== sr || c !== sc) mergeCovered.add(`${r}:${c}`);
       }
     }
   }

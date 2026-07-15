@@ -175,6 +175,23 @@ function makeXlsxWithMergedHeaderAndDate(): ArrayBuffer {
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
 }
 
+// Built cell-by-cell (not via aoa_to_sheet) so the sheet's used range starts
+// at B2, not A1 — aoa_to_sheet always anchors !ref at A1 even with `origin`.
+function makeXlsxWithMergeOffFromA1(): ArrayBuffer {
+  const sheet: XLSX.WorkSheet = {
+    B2: { t: 's', v: 'Report' },
+    C2: { t: 's', v: '' },
+    B3: { t: 's', v: 'Item' },
+    C3: { t: 's', v: 'Date' },
+    B4: { t: 's', v: 'Widget' },
+    C4: { t: 'n', v: 45306, z: 'm/d/yy' },
+    '!ref': 'B2:C4',
+    '!merges': [{ s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }],
+  };
+  const wb: XLSX.WorkBook = { SheetNames: ['Sheet1'], Sheets: { Sheet1: sheet } };
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+}
+
 describe('DetailWorkflowDialog — main document preview', () => {
   beforeEach(() => {
     mockGetSignedUrl.mockReset();
@@ -404,6 +421,31 @@ describe('DetailWorkflowDialog — main document preview', () => {
       mainDocumentMetadata: {
         storageKey: 'key-5',
         originalName: 'report.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    await screen.findByText('Report');
+    expect(screen.getAllByText('Report')).toHaveLength(1);
+    expect(screen.getByText('Report').closest('td')).toHaveAttribute('colspan', '2');
+    expect(screen.getByText('1/15/24')).toBeInTheDocument();
+  });
+
+  it('resolves merges correctly on a sheet whose used range does not start at A1', async () => {
+    // Regression: sheet_to_json indexes its returned rows from 0 at the
+    // start of the sheet's used range, but !merges always uses absolute
+    // sheet coordinates. On a sheet ranged "B2:C4" (not "A1:..."), failing to
+    // offset the merge coordinates by the range's own start would misalign
+    // them against the rendered rows — re-rendering a cell that should have
+    // been covered by the merge, or attaching the wrong colSpan.
+    mockGetContent.mockResolvedValue(makeXlsxWithMergeOffFromA1());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-6',
+        originalName: 'offset-report.xlsx',
         mimeType: XLSX_MIME,
       },
     });
