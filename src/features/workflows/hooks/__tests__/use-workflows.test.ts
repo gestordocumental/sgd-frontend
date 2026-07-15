@@ -488,7 +488,7 @@ describe('useWorkflows — openDetailById', () => {
       id: 'wf-1',
       title: 'Cached',
       participantNames: { 'user-1': 'Ada Lovelace' },
-    } as ApiWorkflow;
+    } as unknown as ApiWorkflow;
     mockWorkflowsList.mockResolvedValue({ data: [cachedWorkflow], total: 1 });
     mockGetById.mockResolvedValue(freshWorkflow);
 
