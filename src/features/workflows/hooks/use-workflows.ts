@@ -191,6 +191,11 @@ export function useWorkflows(companyId: string) {
     const cached = [...(pw?.data ?? []), ...mt, ...ma].find((w) => w.id === workflowId);
 
     if (cached) {
+      // Shows the cached row instantly. Its `.id` feeds `detailWorkflowId`
+      // below, which reactively fetches GET /workflows/:id (detailWorkflowFull)
+      // and takes priority once it resolves — that's how the exposed
+      // detailWorkflow ends up with participantNames even when opened from
+      // a list row that never carries them itself.
       setDetailWorkflow(cached);
     } else {
       try {

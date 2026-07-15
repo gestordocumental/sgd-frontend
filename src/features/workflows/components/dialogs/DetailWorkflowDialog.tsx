@@ -6,6 +6,7 @@ import {
   Download,
   FolderArchive,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -44,9 +45,9 @@ function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
 
   return (
-    <div className="rounded-md border border-border overflow-hidden">
+    <div className="h-full flex flex-col rounded-md border border-border overflow-hidden">
       {workbook.SheetNames.length > 1 && (
-        <div className="flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1 overflow-x-auto">
+        <div className="flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1 overflow-x-auto shrink-0">
           {workbook.SheetNames.map((name) => (
             <button
               key={name}
@@ -63,7 +64,7 @@ function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
           ))}
         </div>
       )}
-      <div className="h-[420px] overflow-auto bg-white">
+      <div className="flex-1 min-h-0 overflow-auto bg-white">
         <table className="text-xs border-collapse">
           <tbody>
             {rows.map((row, i) => (
@@ -107,7 +108,7 @@ export function DetailWorkflowDialog({
     openForwardStep,
   } = hook.actions;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [docxPreviewBuffer, setDocxPreviewBuffer] = useState<ArrayBuffer | null>(null);
   const [xlsxPreviewWorkbook, setXlsxPreviewWorkbook] = useState<XLSX.WorkBook | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -116,6 +117,10 @@ export function DetailWorkflowDialog({
   // Bumped on every docx render attempt so a slow, superseded renderDocxAsync
   // call can tell it's stale once it resolves (see the effect below).
   const docxRenderGenerationRef = useRef(0);
+  // storageKey of the last successfully-fetched DOCX/XLSX content — lets the
+  // fetch effect skip refetching when the popup is closed and reopened for
+  // the same document, while still refetching if the main document changes.
+  const previewLoadedKeyRef = useRef<string | null>(null);
 
   // Memoized so atob + JSON.parse only re-run when the token or user changes,
   // not on every re-render caused by isDownloadingZip or other local state.
@@ -137,45 +142,54 @@ export function DetailWorkflowDialog({
     originalName?: string;
     mimeType?: string;
   } | null;
-  // The backend already serves PDFs with Content-Disposition: inline (see
-  // StorageService.getSignedDownloadUrl) — everything else forces a download,
-  // so a PDF can render inside an <iframe> via its signed URL directly.
+  // PDFs can't be embedded reliably (browsers/extensions frequently block or
+  // error on <iframe>-rendered PDFs), so the "eye" button just opens the
+  // signed URL in a new tab instead — the backend already serves PDFs with
+  // Content-Disposition: inline (see StorageService.getSignedDownloadUrl), so
+  // the browser's native PDF viewer handles it there.
   // DOCX/XLSX have no browser-native viewer, so their bytes are fetched
   // through our own API (see workflowFilesApi.getContent — a direct R2
   // signed URL would hit CORS, since the bucket has no CORS policy for
-  // browser fetches) and rendered fully client-side with docx-preview / xlsx.
+  // browser fetches) and rendered fully client-side with docx-preview / xlsx,
+  // inside a large popup opened by the same "eye" button.
   const isPdfMainDoc = mainDocMeta?.mimeType === PDF_MIME;
   const isDocxMainDoc = mainDocMeta?.mimeType === DOCX_MIME;
   const isXlsxMainDoc = mainDocMeta?.mimeType === XLSX_MIME;
   const isPreviewableMainDoc = isPdfMainDoc || isDocxMainDoc || isXlsxMainDoc;
 
+  // Reset preview state whenever the open workflow changes, so stale content
+  // from a previously-viewed document can never flash before the next fetch.
   useEffect(() => {
-    // No cleanup needed on the "not applicable" path: the render guard below
-    // only shows a preview when one of the is*MainDoc flags is true, so stale
-    // preview state from a previously-open workflow can never leak into the UI.
-    if (!detailWorkflow || !mainDocMeta?.storageKey || !isPreviewableMainDoc) return;
+    setPreviewOpen(false); // eslint-disable-line react-hooks/set-state-in-effect
+    setDocxPreviewBuffer(null);
+    setXlsxPreviewWorkbook(null);
+    setPreviewError(false);
+    previewLoadedKeyRef.current = null;
+  }, [detailWorkflow?.id]);
+
+  useEffect(() => {
+    // Fetched on demand — only once the popup is actually opened — instead of
+    // eagerly on every workflow-detail open, since most opens never look at
+    // the preview.
+    if (!previewOpen || !detailWorkflow || !mainDocMeta?.storageKey) return;
+    if (!isDocxMainDoc && !isXlsxMainDoc) return;
+    // Already fetched and rendered this exact document — reopening the popup
+    // for the same storageKey just reuses it instead of refetching. A
+    // changed storageKey (main document replaced) still refetches below.
+    if (previewLoadedKeyRef.current === mainDocMeta.storageKey) return;
     const { orgId } = detailWorkflow;
-    const { storageKey, originalName, mimeType } = mainDocMeta;
+    const { storageKey, mimeType } = mainDocMeta;
     let cancelled = false;
-    setPreviewLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
+    setPreviewLoading(true);
     setPreviewError(false);
 
     (async () => {
       try {
-        if (isPdfMainDoc) {
-          const { signedUrl } = await workflowFilesApi.getSignedUrl(
-            orgId,
-            storageKey,
-            originalName,
-            mimeType,
-          );
-          if (!cancelled) setPdfPreviewUrl(signedUrl);
-        } else {
-          const buffer = await workflowFilesApi.getContent(orgId, storageKey, mimeType);
-          if (cancelled) return;
-          if (isDocxMainDoc) setDocxPreviewBuffer(buffer);
-          else if (isXlsxMainDoc) setXlsxPreviewWorkbook(XLSX.read(buffer, { type: 'array' }));
-        }
+        const buffer = await workflowFilesApi.getContent(orgId, storageKey, mimeType);
+        if (cancelled) return;
+        if (isDocxMainDoc) setDocxPreviewBuffer(buffer);
+        else setXlsxPreviewWorkbook(XLSX.read(buffer, { type: 'array' }));
+        previewLoadedKeyRef.current = storageKey;
       } catch {
         if (!cancelled) setPreviewError(true);
       } finally {
@@ -187,7 +201,7 @@ export function DetailWorkflowDialog({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detailWorkflow?.id, mainDocMeta?.storageKey, isPdfMainDoc, isDocxMainDoc, isXlsxMainDoc]);
+  }, [previewOpen, detailWorkflow?.id, mainDocMeta?.storageKey, isDocxMainDoc, isXlsxMainDoc]);
 
   // Runs after the docx container div has committed to the DOM (it's only
   // rendered once previewLoading flips to false in the same batch as this
@@ -382,6 +396,28 @@ export function DetailWorkflowDialog({
                       <span className="flex-1 text-sm truncate">
                         {mainDocMeta.originalName ?? mainDocMeta.storageKey}
                       </span>
+                      {isPreviewableMainDoc && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('workflows.detail.previewDoc')}
+                          className="size-7 shrink-0"
+                          onClick={() => {
+                            if (isPdfMainDoc) {
+                              void handleOpenFile(
+                                mainDocMeta.storageKey!,
+                                mainDocMeta.originalName,
+                                mainDocMeta.mimeType,
+                              );
+                            } else {
+                              setPreviewOpen(true);
+                            }
+                          }}
+                        >
+                          <Eye className="size-3.5" />
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"
@@ -399,47 +435,6 @@ export function DetailWorkflowDialog({
                         <Download className="size-3.5" />
                       </Button>
                     </div>
-                    {isPreviewableMainDoc && (
-                      <div className="mt-2">
-                        {previewLoading ? (
-                          <div className="flex items-center justify-center h-[420px] rounded-md border border-border bg-muted/20 text-xs text-muted-foreground gap-1.5">
-                            <Loader2 className="size-3.5 animate-spin" />
-                            {t('workflows.detail.previewLoading')}
-                          </div>
-                        ) : previewError ? (
-                          <p className="text-xs text-muted-foreground italic px-1">
-                            {t('workflows.detail.previewError')}
-                          </p>
-                        ) : isPdfMainDoc ? (
-                          pdfPreviewUrl && (
-                            <iframe
-                              src={pdfPreviewUrl}
-                              sandbox="allow-downloads"
-                              title={t('workflows.detail.previewTitle', {
-                                name: mainDocMeta.originalName ?? mainDocMeta.storageKey,
-                              })}
-                              className="w-full h-[420px] rounded-md border border-border"
-                            />
-                          )
-                        ) : isDocxMainDoc ? (
-                          <div
-                            ref={docxContainerRef}
-                            aria-label={t('workflows.detail.previewTitle', {
-                              name: mainDocMeta.originalName ?? mainDocMeta.storageKey,
-                            })}
-                            className="w-full h-[420px] overflow-y-auto rounded-md border border-border bg-white p-4"
-                          />
-                        ) : (
-                          isXlsxMainDoc &&
-                          xlsxPreviewWorkbook && (
-                            <XlsxPreviewTable
-                              key={mainDocMeta.storageKey}
-                              workbook={xlsxPreviewWorkbook}
-                            />
-                          )
-                        )}
-                      </div>
-                    )}
                   </div>
                 </>
               )}
@@ -826,6 +821,41 @@ export function DetailWorkflowDialog({
             {t('common.close')}
           </Button>
         </DialogFooter>
+
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="sm:max-w-6xl w-[95vw] h-[88vh] flex flex-col">
+            <DialogHeader className="shrink-0">
+              <DialogTitle className="pr-6 truncate">
+                {mainDocMeta?.originalName ?? mainDocMeta?.storageKey}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 min-h-0">
+              {previewLoading ? (
+                <div className="flex items-center justify-center h-full rounded-md border border-border bg-muted/20 text-xs text-muted-foreground gap-1.5">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  {t('workflows.detail.previewLoading')}
+                </div>
+              ) : previewError ? (
+                <p className="text-xs text-muted-foreground italic px-1">
+                  {t('workflows.detail.previewError')}
+                </p>
+              ) : isDocxMainDoc ? (
+                <div
+                  ref={docxContainerRef}
+                  aria-label={t('workflows.detail.previewTitle', {
+                    name: mainDocMeta?.originalName ?? mainDocMeta?.storageKey ?? '',
+                  })}
+                  className="w-full h-full overflow-y-auto rounded-md border border-border bg-white p-4"
+                />
+              ) : (
+                isXlsxMainDoc &&
+                xlsxPreviewWorkbook && (
+                  <XlsxPreviewTable key={mainDocMeta?.storageKey} workbook={xlsxPreviewWorkbook} />
+                )
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

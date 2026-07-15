@@ -118,7 +118,7 @@ export function AuditExportModal({
           [t('audit.columns.action')]: formatAction(log.action, t),
           [t('audit.columns.resourceType')]: formatResourceType(log.resourceType, t),
           [t('audit.columns.resource')]: log.resourceName ?? log.resourceId,
-          [t('audit.columns.actor')]: resolveActorName(log.actorId, users),
+          [t('audit.columns.actor')]: resolveActorName(log.actorId, users, log.actorName),
           [t('audit.columns.ip')]: log.ip ?? '',
           [t('audit.columns.correlationId')]: log.correlationId ?? '',
           [t('audit.detail.changes')]: changesText,

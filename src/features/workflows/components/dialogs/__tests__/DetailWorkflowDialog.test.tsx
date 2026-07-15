@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import * as XLSX from 'xlsx';
 import '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
@@ -23,6 +23,11 @@ vi.mock('@/features/workflows/workflow-state-machine', () => ({
     canForwardAdminStep: false,
     canDelete: false,
   }),
+}));
+
+const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
+vi.mock('sonner', () => ({
+  toast: { error: toastError, success: vi.fn() },
 }));
 
 const mockGetSignedUrl = vi.fn();
@@ -154,22 +159,25 @@ function makeXlsxArrayBuffer(): ArrayBuffer {
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
 }
 
+function clickPreviewEye() {
+  fireEvent.click(screen.getByRole('button', { name: 'Preview document' }));
+}
+
 describe('DetailWorkflowDialog — main document preview', () => {
   beforeEach(() => {
     mockGetSignedUrl.mockReset();
     mockGetContent.mockReset();
     mockRenderDocxAsync.mockClear();
+    toastError.mockClear();
     docxDeferreds = [];
   });
 
-  it('embeds an iframe preview for a PDF main document', async () => {
-    // Regression: previously the only way to see the main document was to
-    // open a signed URL in a new tab (or force a download). PDFs should
-    // preview inline in the dialog itself.
+  it('opens a PDF main document in a new tab instead of embedding it, since inline iframes are unreliable across browsers', async () => {
     mockGetSignedUrl.mockResolvedValue({
       signedUrl: 'https://r2.example.com/signed',
       expiresAt: '2099-01-01',
     });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     const wf = makeWorkflow({
       mainDocumentMetadata: {
         storageKey: 'key-1',
@@ -179,21 +187,31 @@ describe('DetailWorkflowDialog — main document preview', () => {
     });
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
 
-    expect(mockGetSignedUrl).toHaveBeenCalledWith(
-      'org-1',
-      'key-1',
-      'contract.pdf',
-      'application/pdf',
+    expect(mockGetSignedUrl).not.toHaveBeenCalled(); // not fetched eagerly on dialog open
+    clickPreviewEye();
+
+    await vi.waitFor(() =>
+      expect(mockGetSignedUrl).toHaveBeenCalledWith(
+        'org-1',
+        'key-1',
+        'contract.pdf',
+        'application/pdf',
+      ),
     );
-    const iframe = await screen.findByTitle('Preview of contract.pdf');
-    expect(iframe).toHaveAttribute('src', 'https://r2.example.com/signed');
-    // Defense in depth: if the stored object were ever the wrong type or
-    // compromised, the sandbox stops it from executing scripts, navigating
-    // the top window, or doing anything beyond letting the user download it.
-    expect(iframe).toHaveAttribute('sandbox', 'allow-downloads');
+    await vi.waitFor(() =>
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://r2.example.com/signed',
+        '_blank',
+        'noopener,noreferrer',
+      ),
+    );
+    // No popup dialog, no iframe — the eye button is a plain "open in new tab" shortcut for PDFs.
+    expect(screen.queryByRole('dialog', { name: 'contract.pdf' })).not.toBeInTheDocument();
+
+    openSpy.mockRestore();
   });
 
-  it('shows a fallback message if the PDF preview fails to load', async () => {
+  it('shows a toast error if the PDF signed URL fetch fails', async () => {
     mockGetSignedUrl.mockRejectedValue(new Error('network error'));
     const wf = makeWorkflow({
       mainDocumentMetadata: {
@@ -204,10 +222,25 @@ describe('DetailWorkflowDialog — main document preview', () => {
     });
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
 
-    expect(await screen.findByText(/couldn't load the preview/i)).toBeInTheDocument();
+    clickPreviewEye();
+
+    await vi.waitFor(() => expect(toastError).toHaveBeenCalled());
   });
 
-  it('renders a DOCX main document client-side via docx-preview, fetching bytes through our own API', async () => {
+  it('does not fetch DOCX/XLSX bytes until the eye button is clicked', () => {
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-3',
+        originalName: 'contract.docx',
+        mimeType: DOCX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(mockGetContent).not.toHaveBeenCalled();
+  });
+
+  it('renders a DOCX main document client-side via docx-preview, fetching bytes through our own API, in a large popup', async () => {
     // Regression: DOCX has no browser-native viewer and the backend forces a
     // download disposition for it, so previewing it means fetching the raw
     // bytes ourselves (not a direct R2 signed URL — that would hit CORS,
@@ -223,10 +256,34 @@ describe('DetailWorkflowDialog — main document preview', () => {
     });
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
 
+    clickPreviewEye();
+
     expect(mockGetSignedUrl).not.toHaveBeenCalled();
     await screen.findByLabelText('Preview of contract.docx');
     expect(mockGetContent).toHaveBeenCalledWith('org-1', 'key-3', DOCX_MIME);
     expect(mockRenderDocxAsync).toHaveBeenCalled();
+  });
+
+  it('does not refetch DOCX bytes when the popup is closed and reopened for the same document', async () => {
+    mockGetContent.mockResolvedValue(new ArrayBuffer(8));
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-3',
+        originalName: 'contract.docx',
+        mimeType: DOCX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+    await screen.findByLabelText('Preview of contract.docx');
+    expect(mockGetContent).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    clickPreviewEye();
+
+    await screen.findByLabelText('Preview of contract.docx');
+    expect(mockGetContent).toHaveBeenCalledTimes(1);
   });
 
   it('never lets a slow, superseded DOCX render clobber a newer one that finished first', async () => {
@@ -234,7 +291,8 @@ describe('DetailWorkflowDialog — main document preview', () => {
     // is async. If the buffer changes again before a prior call finishes,
     // both calls used to write into the SAME live container — whichever
     // resolved last would win, even if it was the stale one. Simulate that
-    // exact ordering: doc A's render resolves AFTER doc B's.
+    // exact ordering: doc A's render resolves AFTER doc B's, with the popup
+    // staying open across a main-document replacement on the same workflow.
     mockGetContent.mockImplementation((_orgId: string, storageKey: string) =>
       Promise.resolve(storageKey === 'key-a' ? new ArrayBuffer(8) : new ArrayBuffer(16)),
     );
@@ -242,11 +300,11 @@ describe('DetailWorkflowDialog — main document preview', () => {
       mainDocumentMetadata: { storageKey: 'key-a', originalName: 'a.docx', mimeType: DOCX_MIME },
     });
     const wfB = makeWorkflow({
-      id: 'wf-2',
       mainDocumentMetadata: { storageKey: 'key-b', originalName: 'b.docx', mimeType: DOCX_MIME },
     });
 
     const { rerender } = render(<DetailWorkflowDialog hook={makeHook(wfA)} canApprove={false} />);
+    clickPreviewEye();
     await screen.findByLabelText('Preview of a.docx');
     // The docx render effect is a separate, passive effect from the one that
     // sets previewLoading — it can fire slightly after the aria-label commits,
@@ -278,8 +336,12 @@ describe('DetailWorkflowDialog — main document preview', () => {
     });
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
 
+    clickPreviewEye();
+
     expect(mockGetSignedUrl).not.toHaveBeenCalled();
-    expect(mockGetContent).toHaveBeenCalledWith('org-1', 'key-4', XLSX_MIME);
+    await vi.waitFor(() =>
+      expect(mockGetContent).toHaveBeenCalledWith('org-1', 'key-4', XLSX_MIME),
+    );
     expect(await screen.findByText('Widget')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
   });
@@ -294,6 +356,8 @@ describe('DetailWorkflowDialog — main document preview', () => {
       },
     });
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
 
     expect(await screen.findByText(/couldn't load the preview/i)).toBeInTheDocument();
   });

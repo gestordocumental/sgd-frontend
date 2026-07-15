@@ -796,6 +796,7 @@
       "noCommentsOrAttachments": "No comments or attachments.",
       "finalUser": "End user",
       "downloadDoc": "Download document",
+      "previewDoc": "Preview document",
       "downloadAttachment": "Download attachment",
       "downloadAll": "Download all",
       "downloadingAll": "Generating ZIP...",

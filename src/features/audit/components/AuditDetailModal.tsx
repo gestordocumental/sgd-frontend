@@ -54,7 +54,7 @@ export function AuditDetailModal({
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const actorName = useActorName(log.actorId, users);
+  const actorName = useActorName(log.actorId, users, log.actorName);
   const rawChanges = log.metadata?.['changes'];
   const changes: AuditChanges | null = isAuditChanges(rawChanges) ? rawChanges : null;
 
