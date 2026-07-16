@@ -163,6 +163,14 @@ function decodeAddress(addr: string): { row: number; col: number } {
   return { row: Number(match[2]), col };
 }
 
+// A sheet's used range can be sparse — a single stray value (or a formula
+// that once referenced a far-off cell) at, say, XFD1048576 would otherwise
+// make the loops below try to materialise over a billion Cell objects and
+// hang or OOM the tab. Real workflow attachments are nowhere near this size,
+// so the preview is simply capped and a truncation notice shown instead.
+const MAX_PREVIEW_ROWS = 2000;
+const MAX_PREVIEW_COLS = 200;
+
 // Renders a parsed XLSX workbook as a plain HTML table, with sheet tabs when
 // there's more than one sheet. Keyed by the caller on the file's storageKey
 // so switching to a different spreadsheet resets `activeSheet` instead of
@@ -181,12 +189,13 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
   // say) sits outside it, so the grid's bounds are widened to the union of
   // dimensions and every image anchor before building `rows`, or that column/
   // row would never be rendered and the image would silently disappear.
-  const { rows, mergeSpanAt, mergeCovered, imageAt } = useMemo(() => {
+  const { rows, mergeSpanAt, mergeCovered, imageAt, truncated } = useMemo(() => {
     const empty = {
       rows: [] as ExcelJS.Cell[][],
       mergeSpanAt: new Map<string, { rowSpan: number; colSpan: number }>(),
       mergeCovered: new Set<string>(),
       imageAt: new Map<string, string>(),
+      truncated: false,
     };
     if (!sheet) return empty;
 
@@ -209,6 +218,10 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
     const rowOffset = top - 1;
     const colOffset = left - 1;
 
+    const truncated = bottom - top + 1 > MAX_PREVIEW_ROWS || right - left + 1 > MAX_PREVIEW_COLS;
+    bottom = Math.min(bottom, top + MAX_PREVIEW_ROWS - 1);
+    right = Math.min(right, left + MAX_PREVIEW_COLS - 1);
+
     const rows: ExcelJS.Cell[][] = [];
     for (let r = top; r <= bottom; r++) {
       const row = sheet.getRow(r);
@@ -219,6 +232,11 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
 
     const mergeSpanAt = new Map<string, { rowSpan: number; colSpan: number }>();
     const mergeCovered = new Set<string>();
+    // Maps a covered cell's key to the key of the merge's anchor (top-left)
+    // cell — an image anchored on a covered cell (e.g. B1 inside a merged
+    // A1:B1) needs to be redirected there, since the covered <td> itself is
+    // never rendered (see the `mergeCovered.has` check below).
+    const mergeAnchorAt = new Map<string, string>();
     for (const range of sheet.model.merges ?? []) {
       const [tl, br] = range.split(':');
       const s = decodeAddress(tl);
@@ -227,10 +245,15 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
       const sc = s.col - 1 - colOffset;
       const er = e.row - 1 - rowOffset;
       const ec = e.col - 1 - colOffset;
-      mergeSpanAt.set(`${sr}:${sc}`, { rowSpan: er - sr + 1, colSpan: ec - sc + 1 });
+      const anchorKey = `${sr}:${sc}`;
+      mergeSpanAt.set(anchorKey, { rowSpan: er - sr + 1, colSpan: ec - sc + 1 });
       for (let r = sr; r <= er; r++) {
         for (let c = sc; c <= ec; c++) {
-          if (r !== sr || c !== sc) mergeCovered.add(`${r}:${c}`);
+          if (r !== sr || c !== sc) {
+            const coveredKey = `${r}:${c}`;
+            mergeCovered.add(coveredKey);
+            mergeAnchorAt.set(coveredKey, anchorKey);
+          }
         }
       }
     }
@@ -242,14 +265,28 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
       if (!base64) continue;
       const arrRow = Math.floor(img.range.tl.row) - rowOffset;
       const arrCol = Math.floor(img.range.tl.col) - colOffset;
-      imageAt.set(`${arrRow}:${arrCol}`, `data:image/${media.extension};base64,${base64}`);
+      const imageKey = `${arrRow}:${arrCol}`;
+      imageAt.set(
+        mergeAnchorAt.get(imageKey) ?? imageKey,
+        `data:image/${media.extension};base64,${base64}`,
+      );
     }
 
-    return { rows, mergeSpanAt, mergeCovered, imageAt };
+    return { rows, mergeSpanAt, mergeCovered, imageAt, truncated };
   }, [sheet, workbook]);
+
+  const { t } = useTranslation();
 
   return (
     <div className="h-full flex flex-col rounded-md border border-border overflow-hidden">
+      {truncated && (
+        <div className="shrink-0 border-b border-border bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          {t('workflows.detail.previewTruncated', {
+            rows: MAX_PREVIEW_ROWS,
+            cols: MAX_PREVIEW_COLS,
+          })}
+        </div>
+      )}
       {workbook.worksheets.length > 1 && (
         <div className="flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1 overflow-x-auto shrink-0">
           {workbook.worksheets.map(({ name }) => (

@@ -210,6 +210,31 @@ async function makeXlsxWithImageAndStyledCell(): Promise<ExcelJS.Buffer> {
   return wb.xlsx.writeBuffer();
 }
 
+// A single stray value far from the rest of the sheet — e.g. left behind by
+// a formula that once referenced a distant cell — used to blow the used
+// range out to over a billion cells (row 1..1048576 x col A) and hang the
+// preview trying to materialise them all.
+async function makeXlsxWithRemoteCell(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.getCell('A1').value = 'Near';
+  sheet.getCell('A1048576').value = 'Far';
+  return wb.xlsx.writeBuffer();
+}
+
+// Anchors the image on B1 — the *covered* half of an A1:B1 merge, not its
+// anchor (top-left) cell — since that's the cell a real header logo would
+// commonly float over.
+async function makeXlsxWithImageInsideMerge(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.getCell('A1').value = 'Report';
+  sheet.mergeCells('A1:B1');
+  const imageId = wb.addImage({ base64: RED_DOT_PNG_BASE64, extension: 'png' });
+  sheet.addImage(imageId, 'B1:B1');
+  return wb.xlsx.writeBuffer();
+}
+
 describe('DetailWorkflowDialog — main document preview', () => {
   beforeEach(() => {
     mockGetSignedUrl.mockReset();
@@ -512,6 +537,56 @@ describe('DetailWorkflowDialog — main document preview', () => {
       return el;
     });
     expect(image).toHaveAttribute('src', expect.stringContaining('data:image/png;base64,'));
+  });
+
+  it('caps the rendered grid and shows a truncation notice for a sheet with a far-off cell', async () => {
+    // Regression: the used range spans row 1..1048576 x col A here — without
+    // a cap, the preview would try to materialise ~1M ExcelJS Cell objects
+    // (or over a billion for a range that was also wide) and hang the tab.
+    mockGetContent.mockResolvedValue(await makeXlsxWithRemoteCell());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-8',
+        originalName: 'huge.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    expect(await screen.findByText('Near')).toBeInTheDocument();
+    expect(screen.getByText(/2000/)).toBeInTheDocument();
+    expect(screen.queryByText('Far')).not.toBeInTheDocument();
+  });
+
+  it('renders an image anchored on the covered half of a merge, redirected to the merge anchor cell', async () => {
+    // Regression: imageAt used to key an image by its raw anchor cell — if
+    // that cell falls inside a merge but isn't the merge's own anchor (e.g.
+    // a logo floated over B1 inside a merged A1:B1), the covered <td> is
+    // never rendered at all (see the `mergeCovered.has` check), so the image
+    // silently disappeared instead of showing up in the merged cell.
+    mockGetContent.mockResolvedValue(await makeXlsxWithImageInsideMerge());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-9',
+        originalName: 'logo-header.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    const mergedCell = (await screen.findByText('Report')).closest('td');
+    expect(mergedCell).toHaveAttribute('colspan', '2');
+
+    const image = await vi.waitFor(() => {
+      const el = document.querySelector('img');
+      if (!el) throw new Error('image not rendered yet');
+      return el;
+    });
+    expect(image.closest('td')).toBe(mergedCell);
   });
 
   it('shows a fallback message if fetching the DOCX/XLSX content fails', async () => {

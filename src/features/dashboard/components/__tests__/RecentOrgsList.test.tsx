@@ -67,6 +67,7 @@ describe('RecentOrgsList', () => {
     const row = nameWrapper!.parentElement;
 
     expect(row).not.toBeNull();
+    expect(row!.className).toContain('grid');
     expect(row!.className).toContain('grid-cols-12');
     expect(dateEl.parentElement).toBe(row);
     expect(badgeEl.parentElement).toBe(row);
