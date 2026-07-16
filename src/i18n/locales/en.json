@@ -214,7 +214,7 @@
     "charts": {
       "workflowStatus": "Workflow status",
       "extractionStatus": "Extraction status",
-      "weeklyTrend": "Weekly creation (8 weeks)",
+      "weeklyTrend": "Weekly workflow creation (8 weeks)",
       "storagePerOrg": "Storage used per organization",
       "workflowsPerOrg": "Workflows per org",
       "usersPerOrg": "Users per org",
@@ -235,7 +235,11 @@
       "recentOrgs": "Recent organizations",
       "usersCount": "{{count}} users",
       "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive, {{deleted}} deleted (of {{total}} users)",
-      "storageBarLabel": "{{name}}: {{storage}} used"
+      "storageBarLabel": "{{name}}: {{storage}} used",
+      "weeklyTrendBarLabel_one": "Week of {{week}}: {{count}} workflow created",
+      "weeklyTrendBarLabel_other": "Week of {{week}}: {{count}} workflows created",
+      "monthlyRegistrationsBarLabel_one": "{{label}}: {{count}} company registered",
+      "monthlyRegistrationsBarLabel_other": "{{label}}: {{count}} companies registered"
     },
     "orgStatus": {
       "active": "Active",
@@ -327,7 +331,8 @@
       "changes": "Changes",
       "modified": "Modified",
       "copy": "Copy correlation ID",
-      "filterByCorrelation": "Filter by this correlation ID"
+      "filterByCorrelation": "Filter by this correlation ID",
+      "filterApplied": "Correlation ID filter applied"
     },
     "fields": {
       "firstName": "First name",
@@ -791,6 +796,7 @@
       "noCommentsOrAttachments": "No comments or attachments.",
       "finalUser": "End user",
       "downloadDoc": "Download document",
+      "previewDoc": "Preview document",
       "downloadAttachment": "Download attachment",
       "downloadAll": "Download all",
       "downloadingAll": "Generating ZIP...",
@@ -798,7 +804,11 @@
       "zipFolderAttachments": "attachments",
       "zipFolderApproval": "approval-attachments",
       "zipFolderCycles": "review-cycles",
-      "downloadError": "Failed to download the file. Please try again."
+      "downloadError": "Failed to download the file. Please try again.",
+      "previewLoading": "Loading preview...",
+      "previewError": "Couldn't load the preview. Use the download button instead.",
+      "previewTruncated": "Showing only the first {{rows}} rows and {{cols}} columns — the file is larger than that.",
+      "previewTitle": "Preview of {{name}}"
     },
     "actions": {
       "viewDetail": "View details",

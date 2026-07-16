@@ -121,6 +121,7 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
     },
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    participantNames: {},
     ...overrides,
   };
 }

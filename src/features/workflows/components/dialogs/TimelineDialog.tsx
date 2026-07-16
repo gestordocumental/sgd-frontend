@@ -34,7 +34,11 @@ export function TimelineDialog({ hook }: { hook: WorkflowsHook }) {
   const { timelineWorkflowId, setTimelineWorkflowId } = hook.dialogs;
   const { timeline, timelineLoading, orgUsersMap } = hook.queries;
 
-  const userName = (userId: string) => orgUsersMap.get(userId) ?? userId;
+  // Prefer the name resolved server-side (works regardless of the viewer's
+  // Users-module permission). orgUsersMap is only a fallback for the rare case
+  // where the backend couldn't resolve it either (e.g. user-service was down).
+  const userName = (event: ApiTimelineEvent) =>
+    event.actorName ?? orgUsersMap.get(event.actorId) ?? event.actorId;
 
   return (
     <Dialog
@@ -80,7 +84,7 @@ function TimelineEventRow({
   userName,
 }: {
   event: ApiTimelineEvent;
-  userName: (id: string) => string;
+  userName: (event: ApiTimelineEvent) => string;
 }) {
   const Icon = TIMELINE_ICON[event.eventType] ?? ChevronRight;
   const isNegative = [
@@ -101,7 +105,7 @@ function TimelineEventRow({
       <div className="flex-1 min-w-0 pb-1">
         <p className="text-sm font-medium">{event.description}</p>
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium">{userName(event.actorId)}</span>
+          <span className="font-medium">{userName(event)}</span>
           {' · '}
           {new Date(event.createdAt).toLocaleString()}
         </p>

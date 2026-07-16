@@ -63,7 +63,8 @@ export default defineConfig({
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
           if (id.includes('@sentry')) return 'monitoring';
-          if (id.includes('xlsx') || id.includes('jszip')) return 'xlsx';
+          if (id.includes('exceljs') || id.includes('jszip') || id.includes('/ssf/'))
+            return 'spreadsheet';
           if (id.includes('@tanstack')) return 'tanstack';
           if (id.includes('@base-ui')) return 'ui';
           return 'vendor';

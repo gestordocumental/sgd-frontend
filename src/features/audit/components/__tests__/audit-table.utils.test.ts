@@ -62,6 +62,19 @@ describe('resolveActorName', () => {
   it('handles an empty users array', () => {
     expect(resolveActorName('u1', [])).toBe('u1');
   });
+
+  it('prefers the server-resolved name over the local users list', () => {
+    // Regression: actor names must not depend on the viewer holding
+    // USERS:READ — the server-resolved name (from AuditLogEntry.actorName)
+    // works regardless, while `users` may be empty/incomplete for a viewer
+    // without that permission.
+    expect(resolveActorName('u1', users, 'Server Name')).toBe('Server Name');
+  });
+
+  it('falls back to the local users list when serverResolvedName is null or undefined', () => {
+    expect(resolveActorName('u1', users, null)).toBe('Ana García');
+    expect(resolveActorName('u1', users, undefined)).toBe('Ana García');
+  });
 });
 
 // ── formatAction ───────────────────────────────────────────────────────────────
