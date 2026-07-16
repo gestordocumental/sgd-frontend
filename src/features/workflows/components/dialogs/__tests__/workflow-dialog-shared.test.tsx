@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@/i18n';
 import { ApproversList } from '../workflow-dialog-shared';
 import type { ApiUserWithRoles } from '@/lib/api/users';
 
@@ -117,5 +118,90 @@ describe('ApproversList', () => {
     fireEvent.drop(row);
 
     expect(onReorder).not.toHaveBeenCalled();
+  });
+
+  // Regression: HTML5 drag-and-drop events only fire for a mouse, and the
+  // GripVertical icon isn't a focusable element — a keyboard-only or touch
+  // user had no way at all to reorder approvers before these buttons existed.
+  describe('keyboard/touch reordering via Up/Down buttons', () => {
+    it('exposes real, focusable <button> controls (not just the drag handle) for every approver', () => {
+      render(
+        <ApproversList
+          approvers={approvers}
+          onReorder={vi.fn()}
+          onRemove={vi.fn()}
+          removeLabel="Remove"
+        />,
+      );
+
+      const upButton = screen.getByRole('button', { name: 'Move Beto Diaz up' });
+      expect(upButton.tagName).toBe('BUTTON');
+      expect(upButton).not.toHaveAttribute('disabled');
+    });
+
+    it('moves an approver down when its Down button is activated', () => {
+      const onReorder = vi.fn();
+      render(
+        <ApproversList
+          approvers={approvers}
+          onReorder={onReorder}
+          onRemove={vi.fn()}
+          removeLabel="Remove"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Move Ana Gomez down' }));
+
+      expect(onReorder).toHaveBeenCalledWith(0, 1);
+    });
+
+    it('moves an approver up when its Up button is activated', () => {
+      const onReorder = vi.fn();
+      render(
+        <ApproversList
+          approvers={approvers}
+          onReorder={onReorder}
+          onRemove={vi.fn()}
+          removeLabel="Remove"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Move Caro Ruiz up' }));
+
+      expect(onReorder).toHaveBeenCalledWith(2, 1);
+    });
+
+    it('disables the Up button on the first row and the Down button on the last row', () => {
+      render(
+        <ApproversList
+          approvers={approvers}
+          onReorder={vi.fn()}
+          onRemove={vi.fn()}
+          removeLabel="Remove"
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Move Ana Gomez up' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Move Caro Ruiz down' })).toBeDisabled();
+      // The middle row can move in both directions.
+      expect(screen.getByRole('button', { name: 'Move Beto Diaz up' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Move Beto Diaz down' })).toBeEnabled();
+    });
+
+    it('a disabled boundary button does not call onReorder even if clicked', () => {
+      const onReorder = vi.fn();
+      render(
+        <ApproversList
+          approvers={approvers}
+          onReorder={onReorder}
+          onRemove={vi.fn()}
+          removeLabel="Remove"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Move Ana Gomez up' }));
+
+      expect(onReorder).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import ExcelJS from 'exceljs';
-import '@/i18n';
+import i18n from '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
 import type { ApiWorkflow } from '@/lib/api/workflows';
@@ -616,24 +616,36 @@ describe('DetailWorkflowDialog — main document preview', () => {
 
 describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s audit log', () => {
   let createdBlobs: Blob[] = [];
+  let createdAnchors: HTMLAnchorElement[] = [];
+  let createElementSpy: ReturnType<typeof vi.spyOn>;
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
+  const originalCreateElement = document.createElement.bind(document);
 
   beforeEach(() => {
     mockDownloadZip.mockReset();
     mockGetAuditLog.mockReset();
     toastError.mockClear();
     createdBlobs = [];
+    createdAnchors = [];
     URL.createObjectURL = vi.fn((blob: Blob) => {
       createdBlobs.push(blob);
       return `blob:mock-url-${createdBlobs.length}`;
     });
     URL.revokeObjectURL = vi.fn();
+    // Captures the <a download=...> elements the component creates, so tests
+    // can assert on filenames/order — not just "some blob was made".
+    createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName);
+      if (tagName === 'a') createdAnchors.push(el as HTMLAnchorElement);
+      return el;
+    });
   });
 
   afterEach(() => {
     URL.createObjectURL = originalCreateObjectURL;
     URL.revokeObjectURL = originalRevokeObjectURL;
+    createElementSpy.mockRestore();
   });
 
   function renderWithMainDoc() {
@@ -673,6 +685,25 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     await vi.waitFor(() => expect(mockGetAuditLog).toHaveBeenCalledWith('wf-download-all'));
     await vi.waitFor(() => expect(createdBlobs).toHaveLength(2));
     expect(toastError).not.toHaveBeenCalled();
+
+    // Order and filenames: the ZIP downloads first, the audit-log workbook
+    // second — a swap or a wrong extension would slip past a test that only
+    // counts blobs.
+    expect(createdAnchors).toHaveLength(2);
+    expect(createdAnchors[0].download).toMatch(/\.zip$/);
+    expect(createdAnchors[1].download).toMatch(/_audit-log\.xlsx$/);
+
+    // The second blob must actually be a readable XLSX whose Correlation ID
+    // column carries the workflow's own id — not just "some blob".
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await createdBlobs[1].arrayBuffer());
+    const sheet = wb.worksheets[0];
+    const headerRow = sheet.getRow(1);
+    const correlationColIndex = Array.from({ length: headerRow.cellCount }, (_, i) => i + 1).find(
+      (i) => headerRow.getCell(i).text === i18n.t('audit.columns.correlationId'),
+    );
+    expect(correlationColIndex).toBeDefined();
+    expect(sheet.getRow(2).getCell(correlationColIndex!).text).toBe('wf-download-all');
   });
 
   it('skips the second download silently when the workflow has no audit events yet', async () => {

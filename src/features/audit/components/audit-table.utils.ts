@@ -10,6 +10,20 @@ export interface SimpleUser {
   email?: string | null;
 }
 
+// metadata.changes comes straight out of Elasticsearch as loosely-typed JSON
+// — nothing guarantees every entry actually has the {from, to} shape, so this
+// validates the whole object before any caller destructures it. All-or-
+// nothing (not per-entry filtering) so AuditDetailModal and the export always
+// agree on whether a given log's metadata is well-formed.
+export type AuditChanges = Record<string, { from: unknown; to: unknown }>;
+
+export function isAuditChanges(value: unknown): value is AuditChanges {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value).every(
+    (entry) => entry && typeof entry === 'object' && 'from' in entry && 'to' in entry,
+  );
+}
+
 export const RESOURCE_TYPES = [
   'user',
   'company',
@@ -149,10 +163,8 @@ export function buildAuditExportRows(
   t: TFn,
 ): Record<string, string>[] {
   return logs.map((log) => {
-    const changes = (log.metadata?.['changes'] ?? null) as Record<
-      string,
-      { from: unknown; to: unknown }
-    > | null;
+    const rawChanges = log.metadata?.['changes'];
+    const changes = isAuditChanges(rawChanges) ? rawChanges : null;
     const changesText = changes
       ? Object.entries(changes)
           .map(([field, { from: f, to: tv }]) => {

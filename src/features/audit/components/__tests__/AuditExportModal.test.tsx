@@ -86,4 +86,57 @@ describe('AuditExportModal', () => {
     // The raw backend key must not leak through as a standalone field label.
     expect(changesValue).not.toContain('isActive:');
   });
+
+  it('falls back to the raw field key in the exported Excel when there is no audit.fields translation for it', async () => {
+    // Companion to the test above: formatFieldName falls back to the raw key
+    // when audit.fields.<field> has no entry (see AuditDetailModal's matching
+    // fallback test) — verifying the export takes the same fallback path
+    // instead of, say, dropping the field or throwing.
+    mockExportLogs.mockResolvedValue([
+      makeLog({ metadata: { changes: { someUntranslatedField: { from: 'a', to: 'b' } } } }),
+    ]);
+
+    render(<AuditExportModal open onClose={vi.fn()} companyId="org-1" />);
+
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('audit.export.download') }));
+
+    await waitFor(() => expect(createdBlob).not.toBeNull());
+
+    const buffer = await createdBlob!.arrayBuffer();
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+    const sheet = wb.worksheets[0];
+    const lastCol = sheet.getRow(1).cellCount;
+    const changesValue = sheet.getRow(2).getCell(lastCol).text;
+
+    expect(changesValue).toContain('someUntranslatedField:');
+  });
+
+  it('does not crash the whole export when one log has malformed metadata.changes', async () => {
+    // Regression: metadata.changes comes out of Elasticsearch as loosely-typed
+    // JSON — a value that isn't {from, to}-shaped (null, a string, etc.) used
+    // to blow up the destructuring inside the map and abort the export for
+    // every row, not just the bad one.
+    mockExportLogs.mockResolvedValue([
+      makeLog({ id: 'log-bad', metadata: { changes: { corrupted: null } } }),
+      makeLog({ id: 'log-good', resourceName: 'Caro Ruiz' }),
+    ]);
+
+    render(<AuditExportModal open onClose={vi.fn()} companyId="org-1" />);
+
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('audit.export.download') }));
+
+    await waitFor(() => expect(createdBlob).not.toBeNull());
+
+    const buffer = await createdBlob!.arrayBuffer();
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+    const sheet = wb.worksheets[0];
+    const lastCol = sheet.getRow(1).cellCount;
+
+    // The malformed row still exports (empty "Cambios" instead of a crash)...
+    expect(sheet.getRow(2).getCell(lastCol).text).toBe('');
+    // ...and the row after it isn't dropped either.
+    expect(sheet.rowCount).toBe(3);
+  });
 });

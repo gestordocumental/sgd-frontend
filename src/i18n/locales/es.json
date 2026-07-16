@@ -926,6 +926,8 @@
       "finalUsersEmpty": "No hay usuarios que coincidan con la estructura de esta tipología",
       "errorMinFinalUser": "Agrega al menos un usuario final",
       "removeApprover": "Eliminar aprobador",
+      "approverMoveUp": "Subir a {{name}}",
+      "approverMoveDown": "Bajar a {{name}}",
       "editDocCurrent": "Actual:",
       "attachedDocsLabel": "Documentos adjuntos",
       "attachmentsShort": "Adjuntos",

@@ -926,6 +926,8 @@
       "finalUsersEmpty": "No users match the structure of this typology",
       "errorMinFinalUser": "Add at least one end user",
       "removeApprover": "Remove approver",
+      "approverMoveUp": "Move {{name}} up",
+      "approverMoveDown": "Move {{name}} down",
       "editDocCurrent": "Current:",
       "attachedDocsLabel": "Attached documents",
       "attachmentsShort": "Attachments",
