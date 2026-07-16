@@ -28,6 +28,8 @@ import { WorkflowStatusBadge } from '../WorkflowsTable';
 import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 import { workflowFilesApi } from '@/lib/api/workflow-files';
+import { workflowsApi } from '@/lib/api/workflows';
+import { buildAuditExportRows } from '@/features/audit/components/audit-table.utils';
 import type { WorkflowsHook } from './workflow-dialog.types';
 import { InfoRow, ApprovalStepBadge } from './workflow-dialog-shared';
 import { getWorkflowActions } from '@/features/workflows/workflow-state-machine';
@@ -580,6 +582,46 @@ export function DetailWorkflowDialog({
     return entries;
   };
 
+  // Downloads this workflow's own audit trail (grouped by Correlation ID =
+  // workflow.id — see workflow-timeline.service.ts) as a second file,
+  // alongside the attachments ZIP. This call is independent of the ZIP
+  // download and deliberately soft-fails: audit-service being briefly down
+  // must not undo an attachments download that already succeeded, so a
+  // failure here only shows a warning toast.
+  const downloadAuditLog = async (safeTitle: string) => {
+    try {
+      const logs = await workflowsApi.getAuditLog(detailWorkflow.id);
+      if (logs.length === 0) return;
+
+      const rows = buildAuditExportRows(logs, [], t);
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet(t('audit.title'));
+      const headers = Object.keys(rows[0]);
+      ws.addRow(headers);
+      for (const row of rows) ws.addRow(headers.map((h) => row[h]));
+      headers.forEach((key, i) => {
+        const maxLen = rows.reduce(
+          (acc, r) => Math.max(acc, String(r[key] ?? '').length),
+          key.length,
+        );
+        ws.getColumn(i + 1).width = Math.max(maxLen, 10);
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeTitle}_audit-log.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t('workflows.detail.auditLogDownloadError'));
+    }
+  };
+
   const handleDownloadAll = async () => {
     const entries = buildZipEntries();
     if (entries.length === 0) return;
@@ -591,12 +633,15 @@ export function DetailWorkflowDialog({
         entries,
         detailWorkflow.title,
       );
+      const safeTitle = detailWorkflow.title.replace(/[<>:"/\\|?*]/g, '_');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${detailWorkflow.title.replace(/[<>:"/\\|?*]/g, '_')}.zip`;
+      a.download = `${safeTitle}.zip`;
       a.click();
       URL.revokeObjectURL(url);
+
+      await downloadAuditLog(safeTitle);
     } catch {
       toast.error(t('workflows.detail.downloadError'));
     } finally {

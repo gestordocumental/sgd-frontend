@@ -24,6 +24,7 @@ vi.mock('sonner', () => ({
 
 import { AuditDetailModal } from '../AuditDetailModal';
 import type { AuditLog } from '../audit-table.utils';
+import i18n from '@/i18n';
 
 function makeLog(overrides: Partial<AuditLog> = {}): AuditLog {
   return {
@@ -108,5 +109,36 @@ describe('AuditDetailModal — correlation ID copy/filter actions', () => {
     expect(onFilterByCorrelation).toHaveBeenCalledWith('corr-abc-123');
     expect(onClose).toHaveBeenCalled();
     expect(toastSuccess).toHaveBeenCalledWith('Correlation ID filter applied');
+  });
+});
+
+describe('AuditDetailModal — "Changes" section field-name translation', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows the translated field label (audit.fields.<field>), not the raw backend key, for a changed field', () => {
+    // Companion to the AuditExportModal fix: the export used to show the raw
+    // English field key because it skipped formatFieldName — verifying here
+    // that the on-screen modal (which the export now matches) still does
+    // this correctly, so both stay in sync going forward.
+    renderModal({
+      action: 'USER_UPDATED',
+      resourceType: 'user',
+      metadata: { changes: { isActive: { from: true, to: false } } },
+    });
+
+    expect(screen.getByText(i18n.t('audit.fields.isActive'))).toBeInTheDocument();
+    expect(screen.queryByText('isActive')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the raw field key for a field with no audit.fields translation', () => {
+    renderModal({
+      action: 'USER_UPDATED',
+      resourceType: 'user',
+      metadata: { changes: { someUntranslatedField: { from: 'a', to: 'b' } } },
+    });
+
+    expect(screen.getByText('someUntranslatedField')).toBeInTheDocument();
   });
 });

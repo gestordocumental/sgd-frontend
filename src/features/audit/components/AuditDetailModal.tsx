@@ -9,26 +9,19 @@ import { orgStructureApi } from '@/lib/api/org-structure';
 import {
   type AuditLog,
   type SimpleUser,
+  type AuditChanges,
   formatDate,
   formatAction,
   formatFieldName,
   resourceTypeColor,
   formatResourceType,
   resolveResourceName,
+  isAuditChanges,
 } from './audit-table.utils';
 import { useActorName } from '../hooks/use-actor-name';
 
 // Fields in audit changes that hold org-structure UUIDs
 const ORG_STRUCTURE_FIELDS = new Set(['departamentoId', 'areaId', 'cargoId']);
-
-type AuditChanges = Record<string, { from: unknown; to: unknown }>;
-
-function isAuditChanges(value: unknown): value is AuditChanges {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.values(value).every(
-    (entry) => entry && typeof entry === 'object' && 'from' in entry && 'to' in entry,
-  );
-}
 
 function hasOrgStructureChanges(changes: AuditChanges | null): boolean {
   if (!changes) return false;

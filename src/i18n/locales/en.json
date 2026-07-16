@@ -805,6 +805,7 @@
       "zipFolderApproval": "approval-attachments",
       "zipFolderCycles": "review-cycles",
       "downloadError": "Failed to download the file. Please try again.",
+      "auditLogDownloadError": "The attachments downloaded, but the audit log couldn't be included. Try again from the audit page if you need it.",
       "previewLoading": "Loading preview...",
       "previewError": "Couldn't load the preview. Use the download button instead.",
       "previewTruncated": "Showing only the first {{rows}} rows and {{cols}} columns — the file is larger than that.",
@@ -925,6 +926,8 @@
       "finalUsersEmpty": "No users match the structure of this typology",
       "errorMinFinalUser": "Add at least one end user",
       "removeApprover": "Remove approver",
+      "approverMoveUp": "Move {{name}} up",
+      "approverMoveDown": "Move {{name}} down",
       "editDocCurrent": "Current:",
       "attachedDocsLabel": "Attached documents",
       "attachmentsShort": "Attachments",
@@ -1060,6 +1063,8 @@
     "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "You cannot change your own super admin status.",
     "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization.",
     "SYSTEM_ROLE_NOT_MODIFIABLE": "System roles are shared across all organizations and cannot be edited. Create a custom role instead.",
-    "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted."
+    "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted.",
+    "ROLE_HAS_ASSIGNED_USERS_one": "The role \"{{name}}\" still has {{count}} user assigned and cannot be deleted.",
+    "ROLE_HAS_ASSIGNED_USERS_other": "The role \"{{name}}\" still has {{count}} users assigned and cannot be deleted."
   }
 }
