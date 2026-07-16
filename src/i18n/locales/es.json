@@ -805,6 +805,7 @@
       "zipFolderApproval": "adjuntos-aprobacion",
       "zipFolderCycles": "ciclos-revision",
       "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
+      "auditLogDownloadError": "Los adjuntos se descargaron, pero no se pudo incluir el log de auditoría. Intenta de nuevo desde la página de auditoría si lo necesitas.",
       "previewLoading": "Cargando previsualización...",
       "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
       "previewTruncated": "Mostrando solo las primeras {{rows}} filas y {{cols}} columnas — el archivo es más grande.",
@@ -1060,6 +1061,8 @@
     "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "No puedes cambiar tu propio estado de super administrador.",
     "USER_CANNOT_REMOVE_SELF_FROM_ORG": "No puedes quitarte a ti mismo de una organización.",
     "SYSTEM_ROLE_NOT_MODIFIABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden editar. Crea un rol personalizado en su lugar.",
-    "SYSTEM_ROLE_NOT_DELETABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden eliminar."
+    "SYSTEM_ROLE_NOT_DELETABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden eliminar.",
+    "ROLE_HAS_ASSIGNED_USERS_one": "El rol \"{{name}}\" todavía tiene {{count}} usuario asignado y no se puede eliminar.",
+    "ROLE_HAS_ASSIGNED_USERS_other": "El rol \"{{name}}\" todavía tiene {{count}} usuarios asignados y no se puede eliminar."
   }
 }
