@@ -10,6 +10,20 @@ export interface SimpleUser {
   email?: string | null;
 }
 
+// metadata.changes comes straight out of Elasticsearch as loosely-typed JSON
+// — nothing guarantees every entry actually has the {from, to} shape, so this
+// validates the whole object before any caller destructures it. All-or-
+// nothing (not per-entry filtering) so AuditDetailModal and the export always
+// agree on whether a given log's metadata is well-formed.
+export type AuditChanges = Record<string, { from: unknown; to: unknown }>;
+
+export function isAuditChanges(value: unknown): value is AuditChanges {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value).every(
+    (entry) => entry && typeof entry === 'object' && 'from' in entry && 'to' in entry,
+  );
+}
+
 export const RESOURCE_TYPES = [
   'user',
   'company',
@@ -124,6 +138,55 @@ export function resourceTypeColor(type: string) {
 
 export function formatResourceType(type: string, t: TFn): string {
   return String(t(`audit.resourceTypes.${type}`, { defaultValue: type }));
+}
+
+export interface AuditExportLog {
+  timestamp: string;
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  resourceName?: string | null;
+  actorId: string;
+  actorName?: string | null;
+  ip?: string | null;
+  correlationId?: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+// Shared by AuditExportModal (org-wide export) and DetailWorkflowDialog's
+// "Descargar todo" (a single workflow's own audit trail via its Correlation
+// ID) — kept in one place so a translation fix like formatFieldName only
+// needs to happen once instead of drifting between two copies.
+export function buildAuditExportRows(
+  logs: AuditExportLog[],
+  users: SimpleUser[],
+  t: TFn,
+): Record<string, string>[] {
+  return logs.map((log) => {
+    const rawChanges = log.metadata?.['changes'];
+    const changes = isAuditChanges(rawChanges) ? rawChanges : null;
+    const changesText = changes
+      ? Object.entries(changes)
+          .map(([field, { from: f, to: tv }]) => {
+            const label = formatFieldName(field, t);
+            return f === null && tv === null
+              ? `${label}: ${t('audit.detail.modified')}`
+              : `${label}: "${f === true ? t('common.active') : f === false ? t('common.inactive') : (f ?? '—')}" → "${tv === true ? t('common.active') : tv === false ? t('common.inactive') : (tv ?? '—')}"`;
+          })
+          .join(' | ')
+      : '';
+
+    return {
+      [t('audit.columns.timestamp')]: new Date(log.timestamp).toLocaleString(),
+      [t('audit.columns.action')]: formatAction(log.action, t),
+      [t('audit.columns.resourceType')]: formatResourceType(log.resourceType, t),
+      [t('audit.columns.resource')]: log.resourceName ?? log.resourceId,
+      [t('audit.columns.actor')]: resolveActorName(log.actorId, users, log.actorName),
+      [t('audit.columns.ip')]: log.ip ?? '',
+      [t('audit.columns.correlationId')]: log.correlationId ?? '',
+      [t('audit.detail.changes')]: changesText,
+    };
+  });
 }
 
 export function resolveResourceName(log: {

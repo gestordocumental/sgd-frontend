@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { AuditLogEntry } from './audit';
 
 // ── Enums ────────────────────────────────────────────────────────────────────
 
@@ -292,6 +293,11 @@ export const workflowsApi = {
 
   getTimeline: (id: string, signal?: AbortSignal) =>
     apiClient.get<ApiTimelineEvent[]>(`/workflows/${id}/timeline`, { signal }).then((r) => r.data),
+
+  // Same access check as getting the workflow itself (WORKFLOWS:READ) — no
+  // AUDIT:READ required, see workflows.controller.ts#getAuditLog.
+  getAuditLog: (id: string, signal?: AbortSignal) =>
+    apiClient.get<AuditLogEntry[]>(`/workflows/${id}/audit-log`, { signal }).then((r) => r.data),
 
   notifyNoFinalUsers: (dto: { typologyId: string; typologyName: string; recipientIds: string[] }) =>
     apiClient.post<void>('/workflows/notify-no-final-users', dto).then((r) => r.data),

@@ -11,12 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { auditApi, type AuditLogEntry } from '@/lib/api/audit';
-import {
-  type SimpleUser,
-  resolveActorName,
-  formatAction,
-  formatResourceType,
-} from './audit-table.utils';
+import { type SimpleUser, buildAuditExportRows } from './audit-table.utils';
 
 const MAX_LIMIT_OPTIONS = [500, 1000, 2500, 5000];
 const CORRELATION_EXPORT_LIMIT = 5000;
@@ -98,32 +93,7 @@ export function AuditExportModal({
         return;
       }
 
-      const rows = data.map((log) => {
-        const changes = (log.metadata?.['changes'] ?? null) as Record<
-          string,
-          { from: unknown; to: unknown }
-        > | null;
-        const changesText = changes
-          ? Object.entries(changes)
-              .map(([field, { from: f, to: tv }]) =>
-                f === null && tv === null
-                  ? `${field}: ${t('audit.detail.modified')}`
-                  : `${field}: "${f === true ? t('common.active') : f === false ? t('common.inactive') : (f ?? '—')}" → "${tv === true ? t('common.active') : tv === false ? t('common.inactive') : (tv ?? '—')}"`,
-              )
-              .join(' | ')
-          : '';
-
-        return {
-          [t('audit.columns.timestamp')]: new Date(log.timestamp).toLocaleString(),
-          [t('audit.columns.action')]: formatAction(log.action, t),
-          [t('audit.columns.resourceType')]: formatResourceType(log.resourceType, t),
-          [t('audit.columns.resource')]: log.resourceName ?? log.resourceId,
-          [t('audit.columns.actor')]: resolveActorName(log.actorId, users, log.actorName),
-          [t('audit.columns.ip')]: log.ip ?? '',
-          [t('audit.columns.correlationId')]: log.correlationId ?? '',
-          [t('audit.detail.changes')]: changesText,
-        };
-      });
+      const rows = buildAuditExportRows(data, users, t);
 
       const wb = new Workbook();
       const ws = wb.addWorksheet(t('audit.title'));

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import ExcelJS from 'exceljs';
-import '@/i18n';
+import i18n from '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
 import type { ApiWorkflow } from '@/lib/api/workflows';
@@ -32,11 +32,19 @@ vi.mock('sonner', () => ({
 
 const mockGetSignedUrl = vi.fn();
 const mockGetContent = vi.fn();
+const mockDownloadZip = vi.fn();
 vi.mock('@/lib/api/workflow-files', () => ({
   workflowFilesApi: {
     getSignedUrl: (...args: unknown[]) => mockGetSignedUrl(...args),
     getContent: (...args: unknown[]) => mockGetContent(...args),
-    downloadZip: vi.fn(),
+    downloadZip: (...args: unknown[]) => mockDownloadZip(...args),
+  },
+}));
+
+const mockGetAuditLog = vi.fn();
+vi.mock('@/lib/api/workflows', () => ({
+  workflowsApi: {
+    getAuditLog: (...args: unknown[]) => mockGetAuditLog(...args),
   },
 }));
 
@@ -603,5 +611,138 @@ describe('DetailWorkflowDialog — main document preview', () => {
     clickPreviewEye();
 
     expect(await screen.findByText(/couldn't load the preview/i)).toBeInTheDocument();
+  });
+});
+
+describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s audit log', () => {
+  let createdBlobs: Blob[] = [];
+  let createdAnchors: HTMLAnchorElement[] = [];
+  let createElementSpy: ReturnType<typeof vi.spyOn>;
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+  const originalCreateElement = document.createElement.bind(document);
+
+  beforeEach(() => {
+    mockDownloadZip.mockReset();
+    mockGetAuditLog.mockReset();
+    toastError.mockClear();
+    createdBlobs = [];
+    createdAnchors = [];
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      createdBlobs.push(blob);
+      return `blob:mock-url-${createdBlobs.length}`;
+    });
+    URL.revokeObjectURL = vi.fn();
+    // Captures the <a download=...> elements the component creates, so tests
+    // can assert on filenames/order — not just "some blob was made".
+    createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName);
+      if (tagName === 'a') createdAnchors.push(el as HTMLAnchorElement);
+      return el;
+    });
+  });
+
+  afterEach(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    createElementSpy.mockRestore();
+  });
+
+  function renderWithMainDoc() {
+    const wf = makeWorkflow({
+      id: 'wf-download-all',
+      mainDocumentMetadata: {
+        storageKey: 'key-1',
+        originalName: 'contract.pdf',
+        mimeType: 'application/pdf',
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+  }
+
+  it('downloads both the attachments ZIP and a second .xlsx with the audit trail, keyed by workflow.id as the Correlation ID', async () => {
+    mockDownloadZip.mockResolvedValue(new Blob(['zip-bytes']));
+    mockGetAuditLog.mockResolvedValue([
+      {
+        id: 'log-1',
+        service: 'workflow-service',
+        actorId: 'user-1',
+        actorName: 'Ana Gomez',
+        orgId: 'org-1',
+        action: 'WORKFLOW_CREATED',
+        resourceType: 'workflow',
+        resourceId: 'wf-download-all',
+        correlationId: 'wf-download-all',
+        ip: null,
+        metadata: null,
+        timestamp: '2024-01-01T00:00:00Z',
+      },
+    ]);
+
+    renderWithMainDoc();
+    fireEvent.click(screen.getByRole('button', { name: 'Download all' }));
+
+    await vi.waitFor(() => expect(mockGetAuditLog).toHaveBeenCalledWith('wf-download-all'));
+    await vi.waitFor(() => expect(createdBlobs).toHaveLength(2));
+    expect(toastError).not.toHaveBeenCalled();
+
+    // Order and filenames: the ZIP downloads first, the audit-log workbook
+    // second — a swap or a wrong extension would slip past a test that only
+    // counts blobs.
+    expect(createdAnchors).toHaveLength(2);
+    expect(createdAnchors[0].download).toMatch(/\.zip$/);
+    expect(createdAnchors[1].download).toMatch(/_audit-log\.xlsx$/);
+
+    // The second blob must actually be a readable XLSX whose Correlation ID
+    // column carries the workflow's own id — not just "some blob".
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await createdBlobs[1].arrayBuffer());
+    const sheet = wb.worksheets[0];
+    const headerRow = sheet.getRow(1);
+    const correlationColIndex = Array.from({ length: headerRow.cellCount }, (_, i) => i + 1).find(
+      (i) => headerRow.getCell(i).text === i18n.t('audit.columns.correlationId'),
+    );
+    expect(correlationColIndex).toBeDefined();
+    expect(sheet.getRow(2).getCell(correlationColIndex!).text).toBe('wf-download-all');
+  });
+
+  it('skips the second download silently when the workflow has no audit events yet', async () => {
+    mockDownloadZip.mockResolvedValue(new Blob(['zip-bytes']));
+    mockGetAuditLog.mockResolvedValue([]);
+
+    renderWithMainDoc();
+    fireEvent.click(screen.getByRole('button', { name: 'Download all' }));
+
+    await vi.waitFor(() => expect(mockGetAuditLog).toHaveBeenCalled());
+    await vi.waitFor(() => expect(createdBlobs).toHaveLength(1));
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it('still completes the ZIP download and only warns via toast when the audit-log fetch fails (soft-fail)', async () => {
+    mockDownloadZip.mockResolvedValue(new Blob(['zip-bytes']));
+    mockGetAuditLog.mockRejectedValue(new Error('audit-service unavailable'));
+
+    renderWithMainDoc();
+    fireEvent.click(screen.getByRole('button', { name: 'Download all' }));
+
+    await vi.waitFor(() => expect(createdBlobs).toHaveLength(1));
+    await vi.waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith(
+        "The attachments downloaded, but the audit log couldn't be included. Try again from the audit page if you need it.",
+      ),
+    );
+  });
+
+  it('shows the generic download error (and never calls getAuditLog) when the ZIP itself fails', async () => {
+    mockDownloadZip.mockRejectedValue(new Error('document-service unavailable'));
+
+    renderWithMainDoc();
+    fireEvent.click(screen.getByRole('button', { name: 'Download all' }));
+
+    await vi.waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith('Failed to download the file. Please try again.'),
+    );
+    expect(mockGetAuditLog).not.toHaveBeenCalled();
+    expect(createdBlobs).toHaveLength(0);
   });
 });
