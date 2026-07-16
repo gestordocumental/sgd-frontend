@@ -807,6 +807,7 @@
       "downloadError": "Failed to download the file. Please try again.",
       "previewLoading": "Loading preview...",
       "previewError": "Couldn't load the preview. Use the download button instead.",
+      "previewTruncated": "Showing only the first {{rows}} rows and {{cols}} columns — the file is larger than that.",
       "previewTitle": "Preview of {{name}}"
     },
     "actions": {

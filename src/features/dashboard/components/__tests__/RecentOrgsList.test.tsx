@@ -52,24 +52,30 @@ describe('RecentOrgsList', () => {
     expect(screen.getByText(expectedDate)).toBeInTheDocument();
   });
 
-  it('groups the date and status badge together instead of stretching the name column to fill the row', () => {
-    // Regression: the name wrapper had flex-1 (grow), so for a short name it
-    // stretched far past its own content, leaving a large blank gap between
-    // the name and the date while the date and badge — direct flex siblings
-    // with no shared grouping — looked glued together right after that gap.
+  it('lays out the name, date, and status in three balanced columns', () => {
+    // Date and status are independent grid cells so they keep a proportional
+    // distance from the company name and from each other.
     render(<RecentOrgsList companies={[makeCompany({ name: 'Acme Corp' })]} />);
 
     const nameWrapper = screen.getByText('Acme Corp').closest('div');
     expect(nameWrapper).not.toBeNull();
-    expect(nameWrapper!.className).not.toContain('flex-1');
 
     const dateEl = screen.getByText(
       new Date('2024-01-01T00:00:00Z').toLocaleDateString(i18n.resolvedLanguage ?? i18n.language),
     );
     const badgeEl = screen.getByText('Active');
-    // Date and badge share the same immediate parent — a dedicated group with
-    // its own small gap, independent of how much space the name column needs.
-    expect(dateEl.parentElement).toBe(badgeEl.parentElement);
+    const row = nameWrapper!.parentElement;
+
+    expect(row).not.toBeNull();
+    expect(row!.className).toContain('grid');
+    expect(row!.className).toContain('grid-cols-12');
+    expect(dateEl.parentElement).toBe(row);
+    expect(badgeEl.parentElement).toBe(row);
+    expect(nameWrapper!.className).toContain('col-span-6');
+    expect(dateEl.className).toContain('col-span-3');
+    expect(badgeEl.className).toContain('col-span-3');
+    expect(dateEl.className).toContain('justify-self-center');
+    expect(badgeEl.className).toContain('justify-self-end');
   });
 
   it('sorts companies by createdAt descending and caps the list at 8', () => {

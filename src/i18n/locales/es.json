@@ -807,6 +807,7 @@
       "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
       "previewLoading": "Cargando previsualización...",
       "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
+      "previewTruncated": "Mostrando solo las primeras {{rows}} filas y {{cols}} columnas — el archivo es más grande.",
       "previewTitle": "Previsualización de {{name}}"
     },
     "actions": {

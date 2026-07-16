@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
@@ -149,47 +149,90 @@ function makeHook(detailWorkflow: ApiWorkflow | null): WorkflowsHook {
   } as unknown as WorkflowsHook;
 }
 
-function makeXlsxArrayBuffer(): ArrayBuffer {
-  const sheet = XLSX.utils.aoa_to_sheet([
-    ['Name', 'Amount'],
-    ['Widget', 42],
-  ]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet, 'Sheet1');
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+async function makeXlsxArrayBuffer(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.addRow(['Name', 'Amount']);
+  sheet.addRow(['Widget', 42]);
+  return wb.xlsx.writeBuffer();
 }
 
 function clickPreviewEye() {
   fireEvent.click(screen.getByRole('button', { name: 'Preview document' }));
 }
 
-function makeXlsxWithMergedHeaderAndDate(): ArrayBuffer {
-  const sheet = XLSX.utils.aoa_to_sheet([
-    ['Report', ''],
-    ['Item', 'Date'],
-    ['Widget', new Date(2024, 0, 15)],
-  ]);
-  sheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet, 'Sheet1');
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+async function makeXlsxWithMergedHeaderAndDate(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.addRow(['Report', '']);
+  sheet.addRow(['Item', 'Date']);
+  const dataRow = sheet.addRow(['Widget', new Date(2024, 0, 15)]);
+  dataRow.getCell(2).numFmt = 'm/d/yy';
+  sheet.mergeCells('A1:B1');
+  return wb.xlsx.writeBuffer();
 }
 
-// Built cell-by-cell (not via aoa_to_sheet) so the sheet's used range starts
-// at B2, not A1 — aoa_to_sheet always anchors !ref at A1 even with `origin`.
-function makeXlsxWithMergeOffFromA1(): ArrayBuffer {
-  const sheet: XLSX.WorkSheet = {
-    B2: { t: 's', v: 'Report' },
-    C2: { t: 's', v: '' },
-    B3: { t: 's', v: 'Item' },
-    C3: { t: 's', v: 'Date' },
-    B4: { t: 's', v: 'Widget' },
-    C4: { t: 'n', v: 45306, z: 'm/d/yy' },
-    '!ref': 'B2:C4',
-    '!merges': [{ s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }],
-  };
-  const wb: XLSX.WorkBook = { SheetNames: ['Sheet1'], Sheets: { Sheet1: sheet } };
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+// Cells are set individually (not via a full row range) so the sheet's used
+// range — worksheet.dimensions, derived from the cells actually touched —
+// starts at B2, not A1.
+async function makeXlsxWithMergeOffFromA1(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.getCell('B2').value = 'Report';
+  sheet.getCell('C2').value = '';
+  sheet.getCell('B3').value = 'Item';
+  sheet.getCell('C3').value = 'Date';
+  sheet.getCell('B4').value = 'Widget';
+  const dateCell = sheet.getCell('C4');
+  dateCell.value = new Date(2024, 0, 15);
+  dateCell.numFmt = 'm/d/yy';
+  sheet.mergeCells('B2:C2');
+  return wb.xlsx.writeBuffer();
+}
+
+// 1x1 red PNG, base64-encoded — just needs to be a valid PNG for ExcelJS/the
+// browser <img> to accept it, pixel content is irrelevant to the test.
+const RED_DOT_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+async function makeXlsxWithImageAndStyledCell(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  const cell = sheet.getCell('A1');
+  cell.value = 'Styled';
+  cell.font = { bold: true, color: { argb: 'FFFF0000' } };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+  cell.border = { top: { style: 'thick', color: { argb: 'FF000000' } } };
+
+  const imageId = wb.addImage({ base64: RED_DOT_PNG_BASE64, extension: 'png' });
+  sheet.addImage(imageId, 'B1:B1');
+
+  return wb.xlsx.writeBuffer();
+}
+
+// A single stray value far from the rest of the sheet — e.g. left behind by
+// a formula that once referenced a distant cell — used to blow the used
+// range out to over a billion cells (row 1..1048576 x col A) and hang the
+// preview trying to materialise them all.
+async function makeXlsxWithRemoteCell(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.getCell('A1').value = 'Near';
+  sheet.getCell('A1048576').value = 'Far';
+  return wb.xlsx.writeBuffer();
+}
+
+// Anchors the image on B1 — the *covered* half of an A1:B1 merge, not its
+// anchor (top-left) cell — since that's the cell a real header logo would
+// commonly float over.
+async function makeXlsxWithImageInsideMerge(): Promise<ExcelJS.Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet('Sheet1');
+  sheet.getCell('A1').value = 'Report';
+  sheet.mergeCells('A1:B1');
+  const imageId = wb.addImage({ base64: RED_DOT_PNG_BASE64, extension: 'png' });
+  sheet.addImage(imageId, 'B1:B1');
+  return wb.xlsx.writeBuffer();
 }
 
 describe('DetailWorkflowDialog — main document preview', () => {
@@ -389,8 +432,8 @@ describe('DetailWorkflowDialog — main document preview', () => {
     expect(container).not.toHaveTextContent('rendered:8');
   });
 
-  it('renders an XLSX main document client-side as a table, with real sheet data parsed via xlsx', async () => {
-    mockGetContent.mockResolvedValue(makeXlsxArrayBuffer());
+  it('renders an XLSX main document client-side as a table, with real sheet data parsed via ExcelJS', async () => {
+    mockGetContent.mockResolvedValue(await makeXlsxArrayBuffer());
     const wf = makeWorkflow({
       mainDocumentMetadata: {
         storageKey: 'key-4',
@@ -416,7 +459,7 @@ describe('DetailWorkflowDialog — main document preview', () => {
     // unlocalized Date.toString()) instead of "1/15/24", and merged cells
     // (a very common header pattern in real spreadsheets) rendered as
     // duplicated/misaligned values across every cell they used to span.
-    mockGetContent.mockResolvedValue(makeXlsxWithMergedHeaderAndDate());
+    mockGetContent.mockResolvedValue(await makeXlsxWithMergedHeaderAndDate());
     const wf = makeWorkflow({
       mainDocumentMetadata: {
         storageKey: 'key-5',
@@ -441,7 +484,7 @@ describe('DetailWorkflowDialog — main document preview', () => {
     // offset the merge coordinates by the range's own start would misalign
     // them against the rendered rows — re-rendering a cell that should have
     // been covered by the merge, or attaching the wrong colSpan.
-    mockGetContent.mockResolvedValue(makeXlsxWithMergeOffFromA1());
+    mockGetContent.mockResolvedValue(await makeXlsxWithMergeOffFromA1());
     const wf = makeWorkflow({
       mainDocumentMetadata: {
         storageKey: 'key-6',
@@ -457,6 +500,93 @@ describe('DetailWorkflowDialog — main document preview', () => {
     expect(screen.getAllByText('Report')).toHaveLength(1);
     expect(screen.getByText('Report').closest('td')).toHaveAttribute('colspan', '2');
     expect(screen.getByText('1/15/24')).toBeInTheDocument();
+  });
+
+  it('applies font/fill/border styling and renders an embedded image, read via ExcelJS', async () => {
+    // Regression: the free `xlsx` package couldn't read cell styles or
+    // images at all — this exercises the ExcelJS-based replacement's style
+    // mapping (font/fill/border) and image extraction.
+    mockGetContent.mockResolvedValue(await makeXlsxWithImageAndStyledCell());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-7',
+        originalName: 'styled.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    const styledCell = await screen.findByText('Styled');
+    expect(styledCell.closest('td')).toHaveStyle({
+      fontWeight: 'bold',
+      color: '#ff0000',
+      backgroundColor: '#ffff00',
+      borderTop: '3px solid #000000',
+    });
+
+    // The <img> is decorative (alt="") since ExcelJS doesn't preserve a
+    // usable name for embedded media, which drops it from the accessibility
+    // tree — queried by tag rather than role for that reason. The dialog
+    // renders into a portal outside render()'s container, so the query goes
+    // through `document` rather than a destructured `container`.
+    const image = await vi.waitFor(() => {
+      const el = document.querySelector('img');
+      if (!el) throw new Error('image not rendered yet');
+      return el;
+    });
+    expect(image).toHaveAttribute('src', expect.stringContaining('data:image/png;base64,'));
+  });
+
+  it('caps the rendered grid and shows a truncation notice for a sheet with a far-off cell', async () => {
+    // Regression: the used range spans row 1..1048576 x col A here — without
+    // a cap, the preview would try to materialise ~1M ExcelJS Cell objects
+    // (or over a billion for a range that was also wide) and hang the tab.
+    mockGetContent.mockResolvedValue(await makeXlsxWithRemoteCell());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-8',
+        originalName: 'huge.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    expect(await screen.findByText('Near')).toBeInTheDocument();
+    expect(screen.getByText(/2000/)).toBeInTheDocument();
+    expect(screen.queryByText('Far')).not.toBeInTheDocument();
+  });
+
+  it('renders an image anchored on the covered half of a merge, redirected to the merge anchor cell', async () => {
+    // Regression: imageAt used to key an image by its raw anchor cell — if
+    // that cell falls inside a merge but isn't the merge's own anchor (e.g.
+    // a logo floated over B1 inside a merged A1:B1), the covered <td> is
+    // never rendered at all (see the `mergeCovered.has` check), so the image
+    // silently disappeared instead of showing up in the merged cell.
+    mockGetContent.mockResolvedValue(await makeXlsxWithImageInsideMerge());
+    const wf = makeWorkflow({
+      mainDocumentMetadata: {
+        storageKey: 'key-9',
+        originalName: 'logo-header.xlsx',
+        mimeType: XLSX_MIME,
+      },
+    });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    clickPreviewEye();
+
+    const mergedCell = (await screen.findByText('Report')).closest('td');
+    expect(mergedCell).toHaveAttribute('colspan', '2');
+
+    const image = await vi.waitFor(() => {
+      const el = document.querySelector('img');
+      if (!el) throw new Error('image not rendered yet');
+      return el;
+    });
+    expect(image.closest('td')).toBe(mergedCell);
   });
 
   it('shows a fallback message if fetching the DOCX/XLSX content fails', async () => {

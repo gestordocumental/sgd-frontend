@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, type CSSProperties } from 'react';
 import { renderAsync as renderDocxAsync } from 'docx-preview';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import SSF from 'ssf';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -35,57 +36,260 @@ const PDF_MIME = 'application/pdf';
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
+// ExcelJS reads what the free `xlsx` package couldn't: font/fill/border
+// styles and embedded images. What it does NOT do is format a cell's value
+// through its numFmt — cell.text is just String(value) — so date/currency/
+// percentage cells still need ssf (the same formatting engine `xlsx` used
+// internally under raw: false) applied by hand below.
+const BORDER_CSS: Partial<Record<ExcelJS.BorderStyle, string>> = {
+  thin: '1px solid',
+  hair: '1px solid',
+  dotted: '1px dotted',
+  dashed: '1px dashed',
+  dashDot: '1px dashed',
+  dashDotDot: '1px dashed',
+  slantDashDot: '1px dashed',
+  medium: '2px solid',
+  mediumDashed: '2px dashed',
+  mediumDashDot: '2px dashed',
+  mediumDashDotDot: '2px dashed',
+  thick: '3px solid',
+  double: '3px double',
+};
+
+function argbToCss(color?: Partial<ExcelJS.Color>): string | undefined {
+  return color?.argb ? `#${color.argb.slice(2)}` : undefined;
+}
+
+function borderSideCss(side?: Partial<ExcelJS.Border>): string | undefined {
+  if (!side?.style) return undefined;
+  return `${BORDER_CSS[side.style] ?? '1px solid'} ${argbToCss(side.color) ?? '#000'}`;
+}
+
+function cellStyleCss(cell: ExcelJS.Cell): CSSProperties {
+  const style: CSSProperties = {};
+  const font = cell.font;
+  if (font?.bold) style.fontWeight = 'bold';
+  if (font?.italic) style.fontStyle = 'italic';
+  if (font?.underline) style.textDecoration = 'underline';
+  if (font?.size) style.fontSize = `${font.size}px`;
+  const fontColor = argbToCss(font?.color);
+  if (fontColor) style.color = fontColor;
+
+  const fill = cell.fill;
+  if (fill?.type === 'pattern' && fill.pattern === 'solid') {
+    const bg = argbToCss(fill.fgColor);
+    if (bg) style.backgroundColor = bg;
+  }
+
+  const top = borderSideCss(cell.border?.top);
+  const left = borderSideCss(cell.border?.left);
+  const bottom = borderSideCss(cell.border?.bottom);
+  const right = borderSideCss(cell.border?.right);
+  if (top) style.borderTop = top;
+  if (left) style.borderLeft = left;
+  if (bottom) style.borderBottom = bottom;
+  if (right) style.borderRight = right;
+
+  if (cell.alignment?.horizontal) {
+    style.textAlign =
+      cell.alignment.horizontal === 'center' || cell.alignment.horizontal === 'right'
+        ? cell.alignment.horizontal
+        : 'left';
+  }
+  if (cell.alignment?.wrapText) style.whiteSpace = 'normal';
+
+  return style;
+}
+
+// ssf.format(fmt, aDateObject) converts via Date#getTimezoneOffset(), diffed
+// against the offset of its Dec-31-1899 epoch anchor — but IANA zones that
+// used a non-round historical LMT offset before standardization (e.g.
+// America/Bogota was -4:56 until 1914, vs -5:00 today) return a *different*
+// offset for that 1899 anchor than for the cell's actual date, so the diff
+// is off by a few minutes and the resulting serial rounds down to the wrong
+// day. Converting to the Excel serial ourselves via Date.UTC — reading the
+// Date's local Y/M/D/H/M/S fields as if they were UTC, against a UTC epoch
+// anchor — never calls getTimezoneOffset() and so never hits that skew.
+function dateToExcelSerial(date: Date): number {
+  const asUtcMs = Date.UTC(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    date.getMilliseconds(),
+  );
+  const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
+  return (asUtcMs - EXCEL_EPOCH_UTC) / 86400000;
+}
+
+// cell.value can be a plain scalar, or one of ExcelJS's structured value
+// shapes (rich text runs, a formula + its computed result, a hyperlink
+// wrapper, or an error code) — this unwraps to the underlying scalar before
+// formatting.
+function cellDisplayValue(cell: ExcelJS.Cell): string {
+  let value: ExcelJS.CellValue = cell.value;
+  if (value != null && typeof value === 'object') {
+    if ('richText' in value) value = value.richText.map((r) => r.text).join('');
+    else if ('result' in value) value = value.result ?? '';
+    else if ('text' in value) value = value.text;
+  }
+  if (value != null && typeof value === 'object' && 'error' in value) value = value.error;
+  if (value == null) return '';
+  if (value instanceof Date) return SSF.format(cell.numFmt || 'General', dateToExcelSerial(value));
+  if (typeof value === 'number') return SSF.format(cell.numFmt || 'General', value);
+  return String(value);
+}
+
+// exceljs's own typings declare a global `Buffer extends ArrayBuffer {}`
+// (see node_modules/exceljs/index.d.ts:1) that shadows @types/node's real
+// Buffer and drops its `toString(encoding)` overload — so media.buffer's
+// declared type only has the 0-arg Object.toString. The object itself is a
+// real Buffer at runtime (Node in tests, the `buffer` polyfill exceljs's
+// browser bundle ships in the app), so this narrows through `unknown`
+// instead of fighting the ambient type.
+function bufferToBase64(buffer: unknown): string | undefined {
+  const withToString = buffer as { toString?: (encoding: string) => string } | undefined;
+  return typeof withToString?.toString === 'function' ? withToString.toString('base64') : undefined;
+}
+
+function decodeAddress(addr: string): { row: number; col: number } {
+  const match = /^([A-Za-z]+)(\d+)$/.exec(addr);
+  if (!match) return { row: 1, col: 1 };
+  let col = 0;
+  for (const ch of match[1].toUpperCase()) col = col * 26 + (ch.charCodeAt(0) - 64);
+  return { row: Number(match[2]), col };
+}
+
+// A sheet's used range can be sparse — a single stray value (or a formula
+// that once referenced a far-off cell) at, say, XFD1048576 would otherwise
+// make the loops below try to materialise over a billion Cell objects and
+// hang or OOM the tab. Real workflow attachments are nowhere near this size,
+// so the preview is simply capped and a truncation notice shown instead.
+const MAX_PREVIEW_ROWS = 2000;
+const MAX_PREVIEW_COLS = 200;
+
 // Renders a parsed XLSX workbook as a plain HTML table, with sheet tabs when
 // there's more than one sheet. Keyed by the caller on the file's storageKey
 // so switching to a different spreadsheet resets `activeSheet` instead of
 // keeping a sheet name that may not exist in the new workbook.
-//
-// This can only approximate the original formatting: reading cell colors,
-// fonts and borders is a SheetJS Pro-only feature — the free `xlsx` package
-// this app uses cannot read them at all. What CAN be preserved with the free
-// package, and previously wasn't, is handled below: number formats (raw:
-// false renders a date/currency/percentage cell through its format string
-// instead of the raw underlying number) and merged cells (otherwise a merged
-// header would render as duplicated/misaligned values across the cells it
-// used to span).
-function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
-  const [activeSheet, setActiveSheet] = useState(workbook.SheetNames[0]);
-  const sheet = workbook.Sheets[activeSheet];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    raw: false,
-    defval: '',
-  });
+function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
+  const [activeSheet, setActiveSheet] = useState(workbook.worksheets[0]?.name ?? '');
+  const sheet = workbook.getWorksheet(activeSheet) ?? workbook.worksheets[0];
 
-  // sheet_to_json indexes `rows` from 0 at the start of the sheet's used
-  // range — but !merges uses absolute sheet coordinates. On a sheet whose
-  // range doesn't start at A1 (e.g. "B2:D10"), those would disagree without
-  // subtracting the range's own start offset first.
-  const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null;
-  const rowOffset = range?.s.r ?? 0;
-  const colOffset = range?.s.c ?? 0;
+  // worksheet.dimensions indexes rows/cols from 1 at the start of the used
+  // range (not necessarily A1) — !merges and image anchors use absolute
+  // sheet coordinates, so both need the same offset subtracted to line up
+  // with the 0-based `rows` grid built below.
+  //
+  // dimensions only covers cells that hold a value — a floating image
+  // anchored over an otherwise-empty cell (a logo in a blank header column,
+  // say) sits outside it, so the grid's bounds are widened to the union of
+  // dimensions and every image anchor before building `rows`, or that column/
+  // row would never be rendered and the image would silently disappear.
+  const { rows, mergeSpanAt, mergeCovered, imageAt, truncated } = useMemo(() => {
+    const empty = {
+      rows: [] as ExcelJS.Cell[][],
+      mergeSpanAt: new Map<string, { rowSpan: number; colSpan: number }>(),
+      mergeCovered: new Set<string>(),
+      imageAt: new Map<string, string>(),
+      truncated: false,
+    };
+    if (!sheet) return empty;
 
-  const merges = sheet['!merges'] ?? [];
-  const mergeSpanAt = new Map<string, { rowSpan: number; colSpan: number }>();
-  const mergeCovered = new Set<string>();
-  for (const { s, e } of merges) {
-    const sr = s.r - rowOffset;
-    const sc = s.c - colOffset;
-    const er = e.r - rowOffset;
-    const ec = e.c - colOffset;
-    mergeSpanAt.set(`${sr}:${sc}`, { rowSpan: er - sr + 1, colSpan: ec - sc + 1 });
-    for (let r = sr; r <= er; r++) {
-      for (let c = sc; c <= ec; c++) {
-        if (r !== sr || c !== sc) mergeCovered.add(`${r}:${c}`);
+    const images = sheet.getImages();
+    const dim = sheet.dimensions;
+    if (!dim && images.length === 0) return empty;
+
+    let top = dim?.top ?? Infinity;
+    let left = dim?.left ?? Infinity;
+    let bottom = dim?.bottom ?? -Infinity;
+    let right = dim?.right ?? -Infinity;
+    for (const img of images) {
+      const r = Math.floor(img.range.tl.row) + 1;
+      const c = Math.floor(img.range.tl.col) + 1;
+      top = Math.min(top, r);
+      left = Math.min(left, c);
+      bottom = Math.max(bottom, r);
+      right = Math.max(right, c);
+    }
+    const rowOffset = top - 1;
+    const colOffset = left - 1;
+
+    const truncated = bottom - top + 1 > MAX_PREVIEW_ROWS || right - left + 1 > MAX_PREVIEW_COLS;
+    bottom = Math.min(bottom, top + MAX_PREVIEW_ROWS - 1);
+    right = Math.min(right, left + MAX_PREVIEW_COLS - 1);
+
+    const rows: ExcelJS.Cell[][] = [];
+    for (let r = top; r <= bottom; r++) {
+      const row = sheet.getRow(r);
+      const cells: ExcelJS.Cell[] = [];
+      for (let c = left; c <= right; c++) cells.push(row.getCell(c));
+      rows.push(cells);
+    }
+
+    const mergeSpanAt = new Map<string, { rowSpan: number; colSpan: number }>();
+    const mergeCovered = new Set<string>();
+    // Maps a covered cell's key to the key of the merge's anchor (top-left)
+    // cell — an image anchored on a covered cell (e.g. B1 inside a merged
+    // A1:B1) needs to be redirected there, since the covered <td> itself is
+    // never rendered (see the `mergeCovered.has` check below).
+    const mergeAnchorAt = new Map<string, string>();
+    for (const range of sheet.model.merges ?? []) {
+      const [tl, br] = range.split(':');
+      const s = decodeAddress(tl);
+      const e = decodeAddress(br);
+      const sr = s.row - 1 - rowOffset;
+      const sc = s.col - 1 - colOffset;
+      const er = e.row - 1 - rowOffset;
+      const ec = e.col - 1 - colOffset;
+      const anchorKey = `${sr}:${sc}`;
+      mergeSpanAt.set(anchorKey, { rowSpan: er - sr + 1, colSpan: ec - sc + 1 });
+      for (let r = sr; r <= er; r++) {
+        for (let c = sc; c <= ec; c++) {
+          if (r !== sr || c !== sc) {
+            const coveredKey = `${r}:${c}`;
+            mergeCovered.add(coveredKey);
+            mergeAnchorAt.set(coveredKey, anchorKey);
+          }
+        }
       }
     }
-  }
+
+    const imageAt = new Map<string, string>();
+    for (const img of images) {
+      const media = workbook.getImage(Number(img.imageId));
+      const base64 = media.base64 ?? bufferToBase64(media.buffer);
+      if (!base64) continue;
+      const arrRow = Math.floor(img.range.tl.row) - rowOffset;
+      const arrCol = Math.floor(img.range.tl.col) - colOffset;
+      const imageKey = `${arrRow}:${arrCol}`;
+      imageAt.set(
+        mergeAnchorAt.get(imageKey) ?? imageKey,
+        `data:image/${media.extension};base64,${base64}`,
+      );
+    }
+
+    return { rows, mergeSpanAt, mergeCovered, imageAt, truncated };
+  }, [sheet, workbook]);
+
+  const { t } = useTranslation();
 
   return (
     <div className="h-full flex flex-col rounded-md border border-border overflow-hidden">
-      {workbook.SheetNames.length > 1 && (
+      {truncated && (
+        <div className="shrink-0 border-b border-border bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          {t('workflows.detail.previewTruncated', {
+            rows: MAX_PREVIEW_ROWS,
+            cols: MAX_PREVIEW_COLS,
+          })}
+        </div>
+      )}
+      {workbook.worksheets.length > 1 && (
         <div className="flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1 overflow-x-auto shrink-0">
-          {workbook.SheetNames.map((name) => (
+          {workbook.worksheets.map(({ name }) => (
             <button
               key={name}
               type="button"
@@ -109,14 +313,23 @@ function XlsxPreviewTable({ workbook }: { workbook: XLSX.WorkBook }) {
                 {row.map((cell, j) => {
                   if (mergeCovered.has(`${i}:${j}`)) return null;
                   const span = mergeSpanAt.get(`${i}:${j}`);
+                  const image = imageAt.get(`${i}:${j}`);
                   return (
                     <td
                       key={j}
                       rowSpan={span?.rowSpan}
                       colSpan={span?.colSpan}
+                      style={cellStyleCss(cell)}
                       className="border border-border px-2 py-1 whitespace-nowrap text-black"
                     >
-                      {cell != null ? String(cell) : ''}
+                      {image && (
+                        <img
+                          src={image}
+                          alt=""
+                          className="block max-h-24 max-w-[12rem] object-contain mb-1"
+                        />
+                      )}
+                      {cellDisplayValue(cell)}
                     </td>
                   );
                 })}
@@ -153,7 +366,7 @@ export function DetailWorkflowDialog({
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [docxPreviewBuffer, setDocxPreviewBuffer] = useState<ArrayBuffer | null>(null);
-  const [xlsxPreviewWorkbook, setXlsxPreviewWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [xlsxPreviewWorkbook, setXlsxPreviewWorkbook] = useState<ExcelJS.Workbook | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const docxContainerRef = useRef<HTMLDivElement>(null);
@@ -231,7 +444,12 @@ export function DetailWorkflowDialog({
         const buffer = await workflowFilesApi.getContent(orgId, storageKey, mimeType);
         if (cancelled) return;
         if (isDocxMainDoc) setDocxPreviewBuffer(buffer);
-        else setXlsxPreviewWorkbook(XLSX.read(buffer, { type: 'array' }));
+        else {
+          const wb = new ExcelJS.Workbook();
+          await wb.xlsx.load(buffer);
+          if (cancelled) return;
+          setXlsxPreviewWorkbook(wb);
+        }
         previewLoadedKeyRef.current = storageKey;
       } catch {
         if (!cancelled) setPreviewError(true);
