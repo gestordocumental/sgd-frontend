@@ -1,32 +1,27 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Copy, Filter } from 'lucide-react';
+import { toast } from 'sonner';
+import { Copy, Check, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import {
   type AuditLog,
   type SimpleUser,
+  type AuditChanges,
   formatDate,
   formatAction,
   formatFieldName,
   resourceTypeColor,
   formatResourceType,
   resolveResourceName,
+  isAuditChanges,
 } from './audit-table.utils';
 import { useActorName } from '../hooks/use-actor-name';
 
 // Fields in audit changes that hold org-structure UUIDs
 const ORG_STRUCTURE_FIELDS = new Set(['departamentoId', 'areaId', 'cargoId']);
-
-type AuditChanges = Record<string, { from: unknown; to: unknown }>;
-
-function isAuditChanges(value: unknown): value is AuditChanges {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.values(value).every(
-    (entry) => entry && typeof entry === 'object' && 'from' in entry && 'to' in entry,
-  );
-}
 
 function hasOrgStructureChanges(changes: AuditChanges | null): boolean {
   if (!changes) return false;
@@ -51,7 +46,8 @@ export function AuditDetailModal({
   companyId,
 }: AuditDetailModalProps) {
   const { t } = useTranslation();
-  const actorName = useActorName(log.actorId, users);
+  const [copied, setCopied] = useState(false);
+  const actorName = useActorName(log.actorId, users, log.actorName);
   const rawChanges = log.metadata?.['changes'];
   const changes: AuditChanges | null = isAuditChanges(rawChanges) ? rawChanges : null;
 
@@ -106,7 +102,7 @@ export function AuditDetailModal({
           <DialogTitle className="text-sm">{t('audit.detail.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 text-sm overflow-y-auto max-h-[70vh]">
+        <div className="space-y-4 text-sm overflow-y-auto max-h-[70vh] [scrollbar-gutter:stable]">
           {/* Campos principales */}
           <div className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-2 min-w-0">
             <span className="text-muted-foreground whitespace-nowrap">
@@ -164,10 +160,20 @@ export function AuditDetailModal({
                     aria-label={t('audit.detail.copy')}
                     onClick={() => {
                       if (!navigator.clipboard?.writeText) return;
-                      void navigator.clipboard.writeText(log.correlationId!).catch(() => undefined);
+                      void navigator.clipboard
+                        .writeText(log.correlationId!)
+                        .then(() => {
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        })
+                        .catch(() => undefined);
                     }}
                   >
-                    <Copy className="size-3" />
+                    {copied ? (
+                      <Check className="size-3 text-emerald-500" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -177,6 +183,7 @@ export function AuditDetailModal({
                     aria-label={t('audit.detail.filterByCorrelation')}
                     onClick={() => {
                       onFilterByCorrelation(log.correlationId!);
+                      toast.success(t('audit.detail.filterApplied'));
                       onClose();
                     }}
                   >

@@ -87,6 +87,7 @@
     "switchContext": "Switch to",
     "changeAvatar": "Change profile photo",
     "exitCompanyFailed": "Could not restore the super-admin session. Reload the page to try again.",
+    "switchCompanyFailed": "Could not switch companies. You may no longer have access; the list has been refreshed.",
     "sessionRevoked": {
       "unknownCompany": "the company",
       "switchToGlobal": "You were removed from {{company}}. Returning to global view.",
@@ -116,6 +117,7 @@
     "loginLocked": "Too many failed attempts. Please wait {{seconds}} seconds before trying again.",
     "loginLockedButton": "Paused ({{seconds}}s)",
     "idleLogoutNotice": "Your session was automatically closed due to inactivity.",
+    "accountDisabledMessage": "Your account was disabled by an administrator.",
     "forgotPasswordPage": {
       "title": "Recover password",
       "subtitle": "Enter your email address and we will send you a link to reset your password.",
@@ -123,7 +125,7 @@
       "backToSignIn": "Back to sign in",
       "serverErrorFallback": "Error sending the email. Please try again.",
       "success": {
-        "title": "Email sent!",
+        "title": "Check your email",
         "description": "If your email is registered, you will receive a reset link within the next few minutes. Check your spam folder too.",
         "goToSignIn": "Go to sign in"
       }
@@ -198,7 +200,7 @@
       "activeOrgs": "Active orgs",
       "orgActiveSub": "{{active}} active · {{inactive}} inactive",
       "userGlobalSub": "{{active}} active · {{superAdmins}} super admin",
-      "registeredThisMonth": "Registered this month",
+      "registeredThisMonth": "Companies registered this month",
       "storageWithData": "{{count}} orgs with data",
       "typologiesTotal": "{{count}} total",
       "docsBreakdown": "{{typologies}} typol. · {{workflows}} workflows",
@@ -212,7 +214,7 @@
     "charts": {
       "workflowStatus": "Workflow status",
       "extractionStatus": "Extraction status",
-      "weeklyTrend": "Weekly creation (8 weeks)",
+      "weeklyTrend": "Weekly workflow creation (8 weeks)",
       "storagePerOrg": "Storage used per organization",
       "workflowsPerOrg": "Workflows per org",
       "usersPerOrg": "Users per org",
@@ -220,6 +222,7 @@
       "usersCenterLabel": "users",
       "usersActive": "Active",
       "usersInactive": "Inactive",
+      "usersDeleted": "Deleted",
       "usersRegistrationTitle": "Registration status",
       "usersRegistered": "Registered",
       "usersPending": "Pending",
@@ -228,11 +231,15 @@
       "orgsActive": "Active",
       "orgsInactive": "Inactive",
       "globalUsers": "Users (global)",
-      "monthlyRegistrations": "Registrations by month (6 months)",
+      "monthlyRegistrations": "Companies registered by month (6 months)",
       "recentOrgs": "Recent organizations",
       "usersCount": "{{count}} users",
-      "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive (of {{total}} users)",
-      "storageBarLabel": "{{name}}: {{storage}} used"
+      "usersPerOrgBarLabel": "{{org}}: {{active}} active, {{inactive}} inactive, {{deleted}} deleted (of {{total}} users)",
+      "storageBarLabel": "{{name}}: {{storage}} used",
+      "weeklyTrendBarLabel_one": "Week of {{week}}: {{count}} workflow created",
+      "weeklyTrendBarLabel_other": "Week of {{week}}: {{count}} workflows created",
+      "monthlyRegistrationsBarLabel_one": "{{label}}: {{count}} company registered",
+      "monthlyRegistrationsBarLabel_other": "{{label}}: {{count}} companies registered"
     },
     "orgStatus": {
       "active": "Active",
@@ -324,7 +331,8 @@
       "changes": "Changes",
       "modified": "Modified",
       "copy": "Copy correlation ID",
-      "filterByCorrelation": "Filter by this correlation ID"
+      "filterByCorrelation": "Filter by this correlation ID",
+      "filterApplied": "Correlation ID filter applied"
     },
     "fields": {
       "firstName": "First name",
@@ -455,6 +463,7 @@
       "editUser": "Edit user",
       "activateUser": "Activate user",
       "deactivateUser": "Deactivate user",
+      "restoreUser": "Restore user",
       "deleteUser": "Delete user",
       "expandCompany": "Expand {{name}}",
       "collapseCompany": "Collapse {{name}}",
@@ -585,6 +594,8 @@
     "noUsersWithPermission": "No users have this permission",
     "direct": "Direct",
     "revokeDirectPermissionTitle": "Revoke direct permission",
+    "systemBadge": "System",
+    "systemRoleTooltip": "System roles are shared across all organizations and cannot be edited or deleted",
     "systemDescriptions": {
       "ADMIN": "Organization administrator",
       "MANAGER": "Manager with approval permissions",
@@ -610,6 +621,9 @@
       "rolePermissionsLabel": "Role permissions",
       "createButton": "Create role",
       "deleteButton": "Delete role",
+      "createRoleError": "The role could not be created. Please try again.",
+      "editRoleError": "The role could not be saved. Please try again.",
+      "deleteRoleError": "The role could not be deleted. Please try again.",
       "assignRoleTitle": "Assign role · {{roleName}}",
       "allUsersHaveRole": "All active users already have this role",
       "assignPermissionTitle": "Assign permission directly",
@@ -655,6 +669,7 @@
       "uploadDocument": "Upload document",
       "extractionFailed": "Could not extract information from the document",
       "retryExtraction": "Retry extraction",
+      "resolveExtraction": "Resolve discrepancy",
       "newTypology": "New typology",
       "resourceId": "Resource ID"
     },
@@ -714,6 +729,22 @@
       "empty": "No records.",
       "deletedSuffix": "· deleted"
     },
+    "resolve": {
+      "title": "Review document information",
+      "intro": "This document doesn't match the data you registered for this typology. Use the data extracted from the document, or upload a document whose content matches the data you want to declare.",
+      "fieldColumn": "Field",
+      "declaredColumn": "What you entered",
+      "extractedColumn": "What was extracted from the document",
+      "fieldNames": {
+        "nombre": "Name",
+        "codigo": "Code",
+        "version": "Version"
+      },
+      "extractedDataLabel": "Data that will be used",
+      "adoptExtracted": "Use what was extracted from the document",
+      "uploadCorrected": "Upload a corrected document",
+      "submitting": "Saving…"
+    },
     "file": {
       "selectLabel": "Select file",
       "clearLabel": "Remove file",
@@ -765,6 +796,7 @@
       "noCommentsOrAttachments": "No comments or attachments.",
       "finalUser": "End user",
       "downloadDoc": "Download document",
+      "previewDoc": "Preview document",
       "downloadAttachment": "Download attachment",
       "downloadAll": "Download all",
       "downloadingAll": "Generating ZIP...",
@@ -772,7 +804,12 @@
       "zipFolderAttachments": "attachments",
       "zipFolderApproval": "approval-attachments",
       "zipFolderCycles": "review-cycles",
-      "downloadError": "Failed to download the file. Please try again."
+      "downloadError": "Failed to download the file. Please try again.",
+      "auditLogDownloadError": "The attachments downloaded, but the audit log couldn't be included. Try again from the audit page if you need it.",
+      "previewLoading": "Loading preview...",
+      "previewError": "Couldn't load the preview. Use the download button instead.",
+      "previewTruncated": "Showing only the first {{rows}} rows and {{cols}} columns — the file is larger than that.",
+      "previewTitle": "Preview of {{name}}"
     },
     "actions": {
       "viewDetail": "View details",
@@ -889,6 +926,8 @@
       "finalUsersEmpty": "No users match the structure of this typology",
       "errorMinFinalUser": "Add at least one end user",
       "removeApprover": "Remove approver",
+      "approverMoveUp": "Move {{name}} up",
+      "approverMoveDown": "Move {{name}} down",
       "editDocCurrent": "Current:",
       "attachedDocsLabel": "Attached documents",
       "attachmentsShort": "Attachments",
@@ -992,6 +1031,40 @@
     }
   },
   "errors": {
-    "FILE_CONTENT_MISMATCH": "The file content does not match the declared format. Make sure the file is a valid PDF, DOCX, XLSX or image."
+    "FILE_CONTENT_MISMATCH": "The file content does not match the declared format. Make sure the file is a valid PDF, DOCX, XLSX or image.",
+    "MALWARE_DETECTED": "The file was rejected: a security threat was detected.",
+    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "ACCOUNT_LOCKED": "Account temporarily locked due to too many failed attempts. Please try again later.",
+    "RESET_TOKEN_INVALID": "The password reset link is invalid or has expired.",
+    "INVITATION_TOKEN_INVALID": "The invitation link is invalid or has expired.",
+    "REGISTRATION_DATA_INVALID": "The registration data is invalid.",
+    "REGISTRATION_FAILED": "Registration could not be completed. Please try again.",
+    "EMAIL_ALREADY_REGISTERED": "This email is already registered for another account.",
+    "CREDENTIALS_DISABLED": "This account's credentials are disabled.",
+    "DEPARTMENT_ALREADY_EXISTS": "The department \"{{name}}\" already exists in this organization.",
+    "DEPARTMENT_NOT_FOUND": "The department was not found.",
+    "AREA_ALREADY_EXISTS": "The area \"{{name}}\" already exists in this department.",
+    "AREA_NOT_FOUND": "The area was not found.",
+    "CARGO_ALREADY_EXISTS_IN_AREA": "The position \"{{name}}\" already exists in this area.",
+    "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "The position \"{{name}}\" already exists in this department.",
+    "CARGO_NOT_FOUND": "The position was not found.",
+    "TYPOLOGY_CODE_ALREADY_EXISTS": "An active typology with code \"{{codigo}}\" already exists in this organization. Only one active typology per code is allowed.",
+    "TYPOLOGY_NOT_FOUND": "The typology was not found.",
+    "TYPOLOGY_INVALID_ID": "The typology identifier is not valid.",
+    "TYPOLOGY_VERSION_INVALID": "The new version ({{newVersion}}) must be equal to or exactly one increment above the current version ({{oldVersion}}).",
+    "TYPOLOGY_NO_PENDING_ACTION": "There is no pending discrepancy or confirmation for this typology.",
+    "TYPOLOGY_DECLARED_STILL_MISMATCHED": "The declared data still doesn't match the content of the uploaded document. Choose \"Use what was extracted from the document\", or upload a document whose content matches the declared data.",
+    "USER_PREVIOUSLY_DELETED": "This user was previously deleted. Use the restore option to reactivate them.",
+    "USER_ALREADY_IN_ANOTHER_ORG": "A user with this email already exists in another organization.",
+    "USER_ALREADY_EXISTS": "A user with this email already exists.",
+    "ROLE_NOT_FOUND": "The selected role was not found.",
+    "USER_CANNOT_DELETE_SELF": "You cannot delete your own account.",
+    "USER_CANNOT_DISABLE_SELF": "You cannot disable your own account.",
+    "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "You cannot change your own super admin status.",
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "You cannot remove yourself from an organization.",
+    "SYSTEM_ROLE_NOT_MODIFIABLE": "System roles are shared across all organizations and cannot be edited. Create a custom role instead.",
+    "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted.",
+    "ROLE_HAS_ASSIGNED_USERS_one": "The role \"{{name}}\" still has {{count}} user assigned and cannot be deleted.",
+    "ROLE_HAS_ASSIGNED_USERS_other": "The role \"{{name}}\" still has {{count}} users assigned and cannot be deleted."
   }
 }

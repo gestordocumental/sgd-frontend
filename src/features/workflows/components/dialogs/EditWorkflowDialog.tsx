@@ -1,4 +1,4 @@
-import { Trash2, Upload, FileText, Paperclip, GripVertical, User } from 'lucide-react';
+import { Trash2, Upload, FileText, Paperclip, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { FormField } from '@/components/ui/form-field';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { SelectOption } from '@/components/ui/searchable-select';
 import type { WorkflowsHook } from './workflow-dialog.types';
+import { ApproversList } from './workflow-dialog-shared';
 
 export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
   const {
@@ -44,6 +45,14 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
   };
   const removeEditApprover = (userId: string) =>
     setEditApproverIds((prev) => prev.filter((id) => id !== userId));
+  const reorderEditApprovers = (fromIndex: number, toIndex: number) => {
+    setEditApproverIds((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  };
 
   const availableApproverOptions: SelectOption[] = approverEligibleUsers
     .filter((u) => !editApproverIds.includes(u.id))
@@ -284,38 +293,12 @@ export function EditWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
                 {t('workflows.dialogs.editApproversHint')}
               </p>
             </div>
-            {selectedApproversData.length > 0 && (
-              <div className="rounded-md border border-border divide-y divide-border">
-                {selectedApproversData.map(({ id, user }, index) => (
-                  <div key={id} className="flex items-center gap-2.5 px-3 py-2.5">
-                    <GripVertical className="size-3.5 text-muted-foreground/40 shrink-0" />
-                    <div className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {user
-                          ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
-                          : id}
-                      </p>
-                      {user?.position && (
-                        <p className="text-xs text-muted-foreground truncate">{user.position}</p>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('workflows.dialogs.editApproverRemove')}
-                      className="size-7 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => removeEditApprover(id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ApproversList
+              approvers={selectedApproversData}
+              onReorder={reorderEditApprovers}
+              onRemove={removeEditApprover}
+              removeLabel={t('workflows.dialogs.editApproverRemove')}
+            />
             <SearchableSelect
               options={availableApproverOptions}
               value=""

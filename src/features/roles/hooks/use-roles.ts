@@ -3,9 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { rolesApi, type ApiRole } from '@/lib/api/roles';
 import { usersApi } from '@/lib/api/users';
 import { requiredString, optionalString } from '@/lib/validations/schemas';
+import { resolveApiError } from '@/lib/utils/api-error';
 
 const roleSchema = z.object({
   name: requiredString(),
@@ -16,6 +19,7 @@ export type RoleForm = z.infer<typeof roleSchema>;
 
 export function useRoles(companyId: string) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
   const [editRole, setEditRole] = useState<ApiRole | null>(null);
@@ -57,6 +61,9 @@ export function useRoles(companyId: string) {
       invalidateRoles();
       setCreateRoleOpen(false);
     },
+    onError: (error: unknown) => {
+      toast.error(resolveApiError(error, t, t('roles.dialogs.createRoleError')));
+    },
   });
 
   const editRoleMutation = useMutation({
@@ -76,6 +83,9 @@ export function useRoles(companyId: string) {
       invalidateMyOrgRoles();
       setEditRole(null);
     },
+    onError: (error: unknown) => {
+      toast.error(resolveApiError(error, t, t('roles.dialogs.editRoleError')));
+    },
   });
 
   const deleteRoleMutation = useMutation({
@@ -83,6 +93,9 @@ export function useRoles(companyId: string) {
     onSuccess: () => {
       invalidateRoles();
       setDeleteRole(null);
+    },
+    onError: (error: unknown) => {
+      toast.error(resolveApiError(error, t, t('roles.dialogs.deleteRoleError')));
     },
   });
 

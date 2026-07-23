@@ -104,6 +104,15 @@ const READER_ROLE = {
   permissions: [{ id: 'p-2', module: 'DOCUMENTS', action: 'READ', description: null }],
 };
 
+const ADMIN_ROLE = {
+  id: 'role-3',
+  name: 'Administrador',
+  orgId: 'org-1',
+  description: null,
+  createdAt: '2024-01-01T00:00:00Z',
+  permissions: [{ id: 'p-3', module: 'USERS', action: 'WRITE', description: null }],
+};
+
 function makeUser(overrides = {}) {
   return {
     id: 'u-1',
@@ -194,6 +203,58 @@ describe('useWorkflows — approverEligibleUsers', () => {
     );
 
     expect(result.current.queries.approverEligibleUsers.map((u) => u.id)).toEqual(['u-2']);
+  });
+});
+
+// ── 1b. adminEligibleUsers ────────────────────────────────────────────────────
+
+describe('useWorkflows — adminEligibleUsers', () => {
+  it('returns only users with USERS:WRITE role, not the global isSuperAdmin flag', async () => {
+    mockListUsersByOrg.mockResolvedValue({
+      data: [
+        makeUser({ id: 'u-1', roles: [{ roleId: 'role-3', roleName: 'Administrador' }] }),
+        makeUser({ id: 'u-2', roles: [{ roleId: 'role-2', roleName: 'Lector' }] }),
+        // isSuperAdmin alone must NOT make a user count as an admin — that flag
+        // belongs to the global seeded superuser, not an org-level admin role.
+        makeUser({
+          id: 'u-3',
+          isSuperAdmin: true,
+          roles: [{ roleId: 'role-2', roleName: 'Lector' }],
+        }),
+      ],
+      total: 3,
+    });
+    mockListRoles.mockResolvedValue([READER_ROLE, ADMIN_ROLE]);
+    mockTypologiesList.mockResolvedValue([BASE_TYPOLOGY]);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+    act(() => {
+      result.current.actions.openCreate();
+    });
+
+    await waitFor(() =>
+      expect(result.current.queries.adminEligibleUsers.length).toBeGreaterThan(0),
+    );
+
+    expect(result.current.queries.adminEligibleUsers.map((u) => u.id)).toEqual(['u-1']);
+  });
+
+  it('returns empty array when no org user has a USERS:WRITE role', async () => {
+    mockListUsersByOrg.mockResolvedValue({
+      data: [makeUser({ id: 'u-1', roles: [{ roleId: 'role-2', roleName: 'Lector' }] })],
+      total: 1,
+    });
+    mockListRoles.mockResolvedValue([READER_ROLE]);
+    mockTypologiesList.mockResolvedValue([BASE_TYPOLOGY]);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+    act(() => {
+      result.current.actions.openCreate();
+    });
+
+    await waitFor(() => expect(result.current.queries.activeOrgUsers.length).toBeGreaterThan(0));
+
+    expect(result.current.queries.adminEligibleUsers).toEqual([]);
   });
 });
 
@@ -410,6 +471,40 @@ describe('useWorkflows — openDetailById', () => {
 
     expect(mockGetById).toHaveBeenCalledWith('wf-99');
     expect(result.current.dialogs.detailWorkflow?.id).toBe('wf-99');
+  });
+
+  it('reactively replaces a cached (name-less) row with the fully-resolved detail once GET /workflows/:id settles', async () => {
+    // Regression guard: list rows never carry participantNames (only a
+    // dedicated GET /workflows/:id resolves those). openDetailById's
+    // cache-hit path just sets the cached row instantly — the exposed
+    // detailWorkflow (dialogs.detailWorkflow, overridden with
+    // queries.detailWorkflowFull ?? dialogs.detailWorkflow) is what
+    // reactively fetches and prefers the fresh, fully-resolved version once
+    // detailWorkflowId is derived from that row's id. Without this, a
+    // viewer lacking USERS:READ would permanently see "Unknown user" for
+    // createdBy/approval steps/final users.
+    const cachedWorkflow = { id: 'wf-1', title: 'Cached', participantNames: {} } as ApiWorkflow;
+    const freshWorkflow = {
+      id: 'wf-1',
+      title: 'Cached',
+      participantNames: { 'user-1': 'Ada Lovelace' },
+    } as unknown as ApiWorkflow;
+    mockWorkflowsList.mockResolvedValue({ data: [cachedWorkflow], total: 1 });
+    mockGetById.mockResolvedValue(freshWorkflow);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+    await waitFor(() => expect(result.current.queries.workflows).toContainEqual(cachedWorkflow));
+
+    act(() => {
+      result.current.actions.openDetailById('wf-1');
+    });
+
+    await waitFor(() => expect(mockGetById).toHaveBeenCalledWith('wf-1'));
+    await waitFor(() =>
+      expect(result.current.dialogs.detailWorkflow?.participantNames).toEqual({
+        'user-1': 'Ada Lovelace',
+      }),
+    );
   });
 });
 

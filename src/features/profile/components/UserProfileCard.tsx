@@ -53,11 +53,12 @@ export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserPr
     currentCompanyId,
     currentCompany,
     companies,
-    companyIds,
+    switchableCompanyIds,
     canSwitchContext,
     hasSuperAdminToken,
     switchToCompany,
     switchToSuperAdmin,
+    refreshCompanies,
   } = useUserProfile();
 
   const logoutMutation = useMutation({
@@ -176,7 +177,7 @@ export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserPr
               </DropdownMenuItem>
             )}
 
-            {companyIds.map((id) => {
+            {switchableCompanyIds.map((id) => {
               const company = companies.find((c) => c.id === id);
               return (
                 <DropdownMenuItem key={id} onClick={() => switchToCompany(id)} className="gap-2">
@@ -257,7 +258,7 @@ export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserPr
           className="hidden"
           onChange={handleAvatarChange}
         />
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={(open) => open && refreshCompanies()}>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent transition-colors text-left">
             <Avatar className="size-7 shrink-0">
               {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}
@@ -298,7 +299,7 @@ export function UserProfileCard({ variant = 'sidebar', onWorkflowClick }: UserPr
         onChange={handleAvatarChange}
       />
       {/* ── User info + context switcher ──────────────────────────── */}
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(open) => open && refreshCompanies()}>
         <DropdownMenuTrigger className="flex items-center gap-2.5 w-full rounded-lg px-1.5 py-1.5 hover:bg-accent transition-colors text-left">
           <Avatar className="size-8 shrink-0">
             {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? ''} />}

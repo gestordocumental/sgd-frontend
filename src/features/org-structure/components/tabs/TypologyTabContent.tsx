@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Copy,
   Check,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
@@ -53,8 +54,8 @@ interface TypologyTabContentProps {
 export function TypologyTabContent({ typologiesHook, canWrite = false }: TypologyTabContentProps) {
   const { t } = useTranslation();
 
+  const { statusFilter: typoStatus, setStatusFilter: setTypoStatus } = typologiesHook;
   const [typoSearch, setTypoSearch] = useState('');
-  const [typoStatus, setTypoStatus] = useState<TypologyStatus | 'all'>('all');
   const [typoPage, setTypoPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -63,16 +64,18 @@ export function TypologyTabContent({ typologiesHook, canWrite = false }: Typolog
     { value: 'ACTIVE', label: t('docGovernance.typologyStatus.ACTIVE') },
     { value: 'INCOMPLETE', label: t('docGovernance.typologyStatus.INCOMPLETE') },
     { value: 'ARCHIVED', label: t('docGovernance.typologyStatus.ARCHIVED') },
+    { value: 'DELETED', label: t('docGovernance.typologyStatus.DELETED') },
   ];
 
+  // Status filtering happens server-side (see use-typologies.ts) — only free-text
+  // search over name/code is applied here, on top of whatever the server returned.
   const filteredTypos = typologiesHook.typologies.filter((ty: ApiTypology) => {
     const q = typoSearch.toLowerCase();
-    const matchesSearch =
+    return (
       !q ||
       (ty.datosDeclarados.nombre ?? '').toLowerCase().includes(q) ||
-      (ty.datosDeclarados.codigo ?? '').toLowerCase().includes(q);
-    const matchesStatus = typoStatus === 'all' || ty.typologyStatus === typoStatus;
-    return matchesSearch && matchesStatus;
+      (ty.datosDeclarados.codigo ?? '').toLowerCase().includes(q)
+    );
   });
   const typoTotalPages = Math.max(1, Math.ceil(filteredTypos.length / PAGE_SIZE));
   const typoSafePage = Math.min(typoPage, typoTotalPages);
@@ -271,6 +274,19 @@ export function TypologyTabContent({ typologiesHook, canWrite = false }: Typolog
                         )}
                         {canWrite && (
                           <>
+                            {(typo.documento.extractionStatus === 'DISCREPANCY' ||
+                              typo.documento.extractionStatus === 'PENDING_CONFIRMATION') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 text-orange-600 hover:text-orange-700"
+                                title={t('docGovernance.table.resolveExtraction')}
+                                aria-label={t('docGovernance.table.resolveExtraction')}
+                                onClick={() => typologiesHook.openResolve(typo)}
+                              >
+                                <AlertTriangle className="size-3.5" />
+                              </Button>
+                            )}
                             {typo.documento.extractionStatus === 'NOT_UPLOADED' && (
                               <Button
                                 variant="ghost"

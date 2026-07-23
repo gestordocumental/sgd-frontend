@@ -18,17 +18,38 @@ export const workflowFilesApi = {
       .then((r) => r.data);
   },
 
+  // forceAttachment (default true) always forces a download. Pass false to
+  // preview a PDF inline in a new tab instead of downloading it immediately
+  // — the backend only honors inline disposition for application/pdf either way.
   getSignedUrl: (
     orgId: string,
     storageKey: string,
     originalName?: string,
     mimeType?: string,
+    forceAttachment = true,
   ): Promise<{ signedUrl: string; expiresAt: string }> =>
     apiClient
       .post<{
         signedUrl: string;
         expiresAt: string;
-      }>(`/documents/${orgId}/workflow-files/signed-url`, { storageKey, originalName, mimeType })
+      }>(`/documents/${orgId}/workflow-files/signed-url`, {
+        storageKey,
+        originalName,
+        mimeType,
+        forceAttachment,
+      })
+      .then((r) => r.data),
+
+  // Fetches the raw file bytes through our own API (not a direct R2 signed
+  // URL) — client-side preview libraries need fetch()-readable bytes, and the
+  // R2 bucket has no CORS policy configured for direct browser access.
+  getContent: (orgId: string, storageKey: string, mimeType?: string): Promise<ArrayBuffer> =>
+    apiClient
+      .post<ArrayBuffer>(
+        `/documents/${orgId}/workflow-files/content`,
+        { storageKey, mimeType },
+        { responseType: 'arraybuffer' },
+      )
       .then((r) => r.data),
 
   downloadZip: (

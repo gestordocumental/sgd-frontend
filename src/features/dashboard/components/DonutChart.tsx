@@ -73,13 +73,21 @@ export function DonutChart({ slices, title, centerLabel, noDataLabel }: DonutCha
             </text>
           </svg>
           <ul className="space-y-2.5 min-w-0 flex-1">
-            {paths.map((p) => (
-              <li key={p.label} className="flex items-center gap-2">
-                <span className="size-3 rounded-sm shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-sm text-muted-foreground truncate">{p.label}</span>
-                <span className="ml-auto text-sm font-bold shrink-0">{p.value}</span>
+            {/* Every slice is listed, even at 0 — a category silently vanishing
+                from the legend reads as missing/broken data, not "none yet". */}
+            {slices.map((sl) => (
+              <li
+                key={sl.label}
+                className={`flex items-center gap-2 ${sl.value === 0 ? 'opacity-40' : ''}`}
+              >
+                <span
+                  className="size-3 rounded-sm shrink-0"
+                  style={{ backgroundColor: sl.color }}
+                />
+                <span className="text-sm text-muted-foreground truncate">{sl.label}</span>
+                <span className="ml-auto text-sm font-bold shrink-0">{sl.value}</span>
                 <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
-                  {Math.round((p.value / total) * 100)}%
+                  {total > 0 ? Math.round((sl.value / total) * 100) : 0}%
                 </span>
               </li>
             ))}

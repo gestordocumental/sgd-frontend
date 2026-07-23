@@ -1,5 +1,4 @@
 import { useMemo, useEffect, useRef } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ElementType, CSSProperties } from 'react';
 import {
   Clock,
@@ -260,13 +259,6 @@ function WorkflowList({
   const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const rowVirtualizer = useVirtualizer({
-    count: workflows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 65,
-    overscan: 5,
-  });
-
   // Reset scroll position when the dataset changes (page navigation, filter change)
   useEffect(() => {
     parentRef.current?.scrollTo({ top: 0 });
@@ -297,8 +289,6 @@ function WorkflowList({
     );
   }
 
-  const virtualItems = rowVirtualizer.getVirtualItems();
-
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Sticky column header */}
@@ -317,29 +307,24 @@ function WorkflowList({
         </span>
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-8" />
       </div>
-      {/* Virtualized rows */}
-      <div ref={parentRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-          {virtualItems.map((vr) => (
-            <div
-              key={workflows[vr.index].id}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${vr.start}px)`,
-              }}
-            >
-              <WorkflowRow
-                workflow={workflows[vr.index]}
-                hook={hook}
-                canWrite={canWrite}
-                canApprove={canApprove}
-              />
-            </div>
-          ))}
-        </div>
+      {/* Rows — plain flow layout. Row height varies (a workflow may or may not
+          have a description), so absolute-positioned virtualization with a
+          fixed size estimate misjudged real row heights, causing uneven
+          spacing/overlap and a scrollbar sized off the wrong total height. */}
+      <div
+        ref={parentRef}
+        className="overflow-y-auto divide-y divide-border"
+        style={{ maxHeight: 'calc(100vh - 260px)' }}
+      >
+        {workflows.map((workflow) => (
+          <WorkflowRow
+            key={workflow.id}
+            workflow={workflow}
+            hook={hook}
+            canWrite={canWrite}
+            canApprove={canApprove}
+          />
+        ))}
       </div>
     </div>
   );
@@ -357,9 +342,10 @@ interface WorkflowRowProps {
 function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { setDetailWorkflow, setDeleteWorkflow } = hook.dialogs;
+  const { setDeleteWorkflow } = hook.dialogs;
   const { startApprovalMutation } = hook.mutations;
-  const { openTimeline, openReviewCycle, openCompleteStep, openForwardStep } = hook.actions;
+  const { openDetailById, openTimeline, openReviewCycle, openCompleteStep, openForwardStep } =
+    hook.actions;
   const {
     canStartApproval,
     canDelete,
@@ -369,13 +355,13 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
   } = getWorkflowActions(workflow, { userId: user?.id, canWrite, canApprove });
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors border-b border-border">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
       {/* Title + description */}
       <div className="min-w-0">
         <button
           type="button"
           className="text-sm font-medium text-left hover:underline truncate block max-w-full"
-          onClick={() => setDetailWorkflow(workflow)}
+          onClick={() => openDetailById(workflow.id)}
         >
           {workflow.title}
         </button>
@@ -426,7 +412,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setDetailWorkflow(workflow)}>
+            <DropdownMenuItem onClick={() => openDetailById(workflow.id)}>
               <FileText className="size-4" />
               {t('workflows.actions.viewDetail')}
             </DropdownMenuItem>

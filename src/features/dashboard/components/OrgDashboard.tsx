@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { FileText, GitBranch, HardDrive, CheckCircle, ClipboardList, Users } from 'lucide-react';
 import type { TypologyStats } from '@/lib/api/typologies';
 import type { WorkflowStats } from '@/lib/api/workflows';
-import type { ApiUser } from '@/lib/api/users';
+import type { ApiUserWithRoles } from '@/lib/api/users';
+import { isPendingRegistration } from '@/lib/formatters';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -194,43 +195,60 @@ function DonutChart({
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <p className="text-base font-semibold mb-4">{title}</p>
-      {total === 0 ? (
+      {slices.length === 0 ? (
         <p className="text-sm text-muted-foreground">{noDataLabel}</p>
       ) : (
         <div className="flex items-center gap-5">
-          <svg viewBox="0 0 128 128" className="size-32 shrink-0 drop-shadow-sm">
-            {paths.map((p) => (
-              <path key={p.label} d={p.path} fill={p.color} />
-            ))}
-            <text
-              x={cx}
-              y={cy - 4}
-              textAnchor="middle"
-              fontSize={18}
-              fontWeight="bold"
-              fill="currentColor"
-            >
-              {total}
-            </text>
-            <text
-              x={cx}
-              y={cy + 13}
-              textAnchor="middle"
-              fontSize={9}
-              fill="currentColor"
-              opacity={0.5}
-            >
-              {centerLabel ?? 'total'}
-            </text>
-          </svg>
+          {total === 0 ? (
+            // No category has any data yet, but with showAllCategories the
+            // legend below still lists every known one at 0 — the "no data"
+            // placeholder only takes over the donut's slot, not the legend.
+            <div className="size-32 shrink-0 flex items-center justify-center text-center px-2">
+              <p className="text-xs text-muted-foreground">{noDataLabel}</p>
+            </div>
+          ) : (
+            <svg viewBox="0 0 128 128" className="size-32 shrink-0 drop-shadow-sm">
+              {paths.map((p) => (
+                <path key={p.label} d={p.path} fill={p.color} />
+              ))}
+              <text
+                x={cx}
+                y={cy - 4}
+                textAnchor="middle"
+                fontSize={18}
+                fontWeight="bold"
+                fill="currentColor"
+              >
+                {total}
+              </text>
+              <text
+                x={cx}
+                y={cy + 13}
+                textAnchor="middle"
+                fontSize={9}
+                fill="currentColor"
+                opacity={0.5}
+              >
+                {centerLabel ?? 'total'}
+              </text>
+            </svg>
+          )}
           <ul className="space-y-2.5 min-w-0 flex-1">
-            {paths.map((p) => (
-              <li key={p.label} className="flex items-center gap-2">
-                <span className="size-3 rounded-sm shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-sm text-muted-foreground truncate">{p.label}</span>
-                <span className="ml-auto text-sm font-bold shrink-0">{p.value}</span>
+            {/* Every slice is listed, even at 0 — a category silently vanishing
+                from the legend reads as missing/broken data, not "none yet". */}
+            {slices.map((sl) => (
+              <li
+                key={sl.label}
+                className={`flex items-center gap-2 ${sl.value === 0 ? 'opacity-40' : ''}`}
+              >
+                <span
+                  className="size-3 rounded-sm shrink-0"
+                  style={{ backgroundColor: sl.color }}
+                />
+                <span className="text-sm text-muted-foreground truncate">{sl.label}</span>
+                <span className="ml-auto text-sm font-bold shrink-0">{sl.value}</span>
                 <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
-                  {Math.round((p.value / total) * 100)}%
+                  {total > 0 ? Math.round((sl.value / total) * 100) : 0}%
                 </span>
               </li>
             ))}
@@ -250,6 +268,7 @@ function StatusDonutChart({
   title,
   noDataLabel,
   loading = false,
+  showAllCategories = false,
 }: {
   data: Record<string, number>;
   colorMap: Record<string, string>;
@@ -257,18 +276,24 @@ function StatusDonutChart({
   title: string;
   noDataLabel: string;
   loading?: boolean;
+  // When true, every known category is listed (0 if it never occurred)
+  // instead of only the ones present in `data` — for enums with a small,
+  // stable set of values where an always-zero category is still useful
+  // context, not clutter.
+  showAllCategories?: boolean;
 }) {
   const { t } = useTranslation();
   const slices = useMemo(
     () =>
-      Object.entries(data)
-        .filter(([, v]) => v > 0)
-        .map(([key, value]) => ({
-          label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
-          value,
-          color: colorMap[key] ?? '#cbd5e1',
-        })),
-    [data, colorMap, labelKeyMap, t],
+      (showAllCategories
+        ? Object.keys(labelKeyMap)
+        : Object.keys(data).filter((k) => data[k] > 0)
+      ).map((key) => ({
+        label: labelKeyMap[key] ? t(labelKeyMap[key]) : key,
+        value: data[key] ?? 0,
+        color: colorMap[key] ?? '#cbd5e1',
+      })),
+    [data, colorMap, labelKeyMap, showAllCategories, t],
   );
   if (loading) {
     return (
@@ -301,6 +326,8 @@ function WeeklyBarChart({
   noDataLabel: string;
   loading?: boolean;
 }) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-card p-5">
@@ -342,8 +369,13 @@ function WeeklyBarChart({
             const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0);
             const x = i * (chartW / cols) + 2;
             const y = chartH - barH;
+            const barLabel = t('dashboard.charts.weeklyTrendBarLabel', {
+              week: d.week,
+              count: d.count,
+            });
             return (
-              <g key={d.week}>
+              <g key={d.week} role="img" aria-label={barLabel}>
+                <title>{barLabel}</title>
                 <rect x={x} y={y} width={barW} height={barH} rx={4} fill="url(#orgBarGrad)" />
                 <text
                   x={x + barW / 2}
@@ -355,18 +387,17 @@ function WeeklyBarChart({
                 >
                   {d.week}
                 </text>
-                {d.count > 0 && (
-                  <text
-                    x={x + barW / 2}
-                    y={y - 5}
-                    textAnchor="middle"
-                    fontSize={10}
-                    fill="#6366f1"
-                    fontWeight="bold"
-                  >
-                    {d.count}
-                  </text>
-                )}
+                <text
+                  x={x + barW / 2}
+                  y={d.count > 0 ? y - 5 : chartH - 5}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill={d.count > 0 ? '#6366f1' : 'currentColor'}
+                  fillOpacity={d.count > 0 ? 1 : 0.4}
+                  fontWeight="bold"
+                >
+                  {d.count}
+                </text>
               </g>
             );
           })}
@@ -382,8 +413,14 @@ interface OrgDashboardProps {
   typologyStats: TypologyStats | undefined;
   workflowStats: WorkflowStats | undefined;
   isLoading: boolean;
-  users: ApiUser[];
+  users: ApiUserWithRoles[];
   usersLoading: boolean;
+  // Each section is only rendered when the viewer holds the permission that
+  // backs its module — mirrors the guards already applied to the other tabs,
+  // so the overview can't leak counts/status data the role isn't authorized to see.
+  canViewOrgStructure: boolean;
+  canViewWorkflows: boolean;
+  canViewUsers: boolean;
 }
 
 export function OrgDashboard({
@@ -392,140 +429,186 @@ export function OrgDashboard({
   isLoading,
   users,
   usersLoading,
+  canViewOrgStructure,
+  canViewWorkflows,
+  canViewUsers,
 }: OrgDashboardProps) {
   const { t } = useTranslation();
   const noData = t('dashboard.noData');
 
   const totalStorageBytes =
-    (typologyStats?.storageTotalBytes ?? 0) + (workflowStats?.storageTotalBytes ?? 0);
+    (canViewOrgStructure ? (typologyStats?.storageTotalBytes ?? 0) : 0) +
+    (canViewWorkflows ? (workflowStats?.storageTotalBytes ?? 0) : 0);
   const totalAttachments =
-    (typologyStats?.uploadedDocuments ?? 0) + (workflowStats?.totalAttachments ?? 0);
+    (canViewOrgStructure ? (typologyStats?.uploadedDocuments ?? 0) : 0) +
+    (canViewWorkflows ? (workflowStats?.totalAttachments ?? 0) : 0);
 
-  const { activeUsers, inactiveUsers, registeredUsers, pendingUsers } = useMemo(
-    () => ({
-      activeUsers: users.filter((u) => u.isActive && !u.deletedAt).length,
-      inactiveUsers: users.filter((u) => !u.isActive || !!u.deletedAt).length,
+  const { activeUsers, inactiveUsers, registeredUsers, pendingUsers } = useMemo(() => {
+    // A user removed from the org (orgRemovedAt set) must not count as an active
+    // member here — matches the "active" definition used everywhere else (CompanyTab,
+    // RoleDialogs' assignable-users list), so this KPI doesn't disagree with them.
+    const isRemoved = (u: ApiUserWithRoles) => !!u.deletedAt || !!u.orgRemovedAt;
+    return {
+      activeUsers: users.filter((u) => u.isActive && !isRemoved(u)).length,
+      inactiveUsers: users.filter((u) => !u.isActive && !isRemoved(u)).length,
       registeredUsers: users.filter((u) => u.registrationStatus === 'active').length,
-      pendingUsers: users.filter((u) => u.registrationStatus === 'pending_credentials').length,
-    }),
-    [users],
-  );
+      pendingUsers: users.filter((u) => isPendingRegistration(u)).length,
+    };
+  }, [users]);
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard
-          icon={FileText}
-          label={t('dashboard.kpi.activeTypologies')}
-          value={typologyStats?.activeTypologies ?? '—'}
-          sub={t('dashboard.kpi.typologiesTotal', { count: typologyStats?.totalTypologies ?? 0 })}
-          loading={isLoading}
-          colorIdx={0}
-        />
-        <KpiCard
-          icon={CheckCircle}
-          label={t('dashboard.kpi.uploadedDocuments')}
-          value={isLoading ? '—' : totalAttachments}
-          sub={t('dashboard.kpi.docsBreakdown', {
-            typologies: typologyStats?.uploadedDocuments ?? 0,
-            workflows: workflowStats?.totalAttachments ?? 0,
-          })}
-          loading={isLoading}
-          colorIdx={1}
-        />
-        <KpiCard
-          icon={HardDrive}
-          label={t('dashboard.kpi.storageUsed')}
-          value={isLoading ? '—' : formatBytes(totalStorageBytes)}
-          valueSize="text-lg"
-          valueNote={isLoading ? undefined : formatBytesToGB(totalStorageBytes)}
-          sub={t('dashboard.kpi.storageBreakdown', {
-            typologies: formatBytes(typologyStats?.storageTotalBytes ?? 0),
-            workflows: formatBytes(workflowStats?.storageTotalBytes ?? 0),
-          })}
-          loading={isLoading}
-          colorIdx={2}
-        />
-        <KpiCard
-          icon={GitBranch}
-          label={t('dashboard.kpi.totalWorkflows')}
-          value={workflowStats?.totalWorkflows ?? '—'}
-          loading={isLoading}
-          colorIdx={3}
-        />
-        <KpiCard
-          icon={ClipboardList}
-          label={t('dashboard.kpi.myPendingTasks')}
-          value={workflowStats?.myPendingTasks ?? '—'}
-          loading={isLoading}
-          colorIdx={4}
-        />
-        <KpiCard
-          icon={Users}
-          label={t('dashboard.kpi.users')}
-          value={usersLoading ? '—' : users.length}
-          sub={
-            usersLoading
-              ? undefined
-              : t('dashboard.kpi.usersActiveSub', { active: activeUsers, inactive: inactiveUsers })
-          }
-          loading={usersLoading}
-          colorIdx={5}
-        />
-      </div>
+      {(canViewOrgStructure || canViewWorkflows || canViewUsers) && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {canViewOrgStructure && (
+            <KpiCard
+              icon={FileText}
+              label={t('dashboard.kpi.activeTypologies')}
+              value={typologyStats?.activeTypologies ?? '—'}
+              sub={t('dashboard.kpi.typologiesTotal', {
+                count: typologyStats?.totalTypologies ?? 0,
+              })}
+              loading={isLoading}
+              colorIdx={0}
+            />
+          )}
+          {(canViewOrgStructure || canViewWorkflows) && (
+            <KpiCard
+              icon={CheckCircle}
+              label={t('dashboard.kpi.uploadedDocuments')}
+              value={isLoading ? '—' : totalAttachments}
+              sub={t('dashboard.kpi.docsBreakdown', {
+                typologies: canViewOrgStructure ? (typologyStats?.uploadedDocuments ?? 0) : 0,
+                workflows: canViewWorkflows ? (workflowStats?.totalAttachments ?? 0) : 0,
+              })}
+              loading={isLoading}
+              colorIdx={1}
+            />
+          )}
+          {(canViewOrgStructure || canViewWorkflows) && (
+            <KpiCard
+              icon={HardDrive}
+              label={t('dashboard.kpi.storageUsed')}
+              value={isLoading ? '—' : formatBytes(totalStorageBytes)}
+              valueSize="text-lg"
+              valueNote={isLoading ? undefined : formatBytesToGB(totalStorageBytes)}
+              sub={t('dashboard.kpi.storageBreakdown', {
+                typologies: formatBytes(
+                  canViewOrgStructure ? (typologyStats?.storageTotalBytes ?? 0) : 0,
+                ),
+                workflows: formatBytes(
+                  canViewWorkflows ? (workflowStats?.storageTotalBytes ?? 0) : 0,
+                ),
+              })}
+              loading={isLoading}
+              colorIdx={2}
+            />
+          )}
+          {canViewWorkflows && (
+            <KpiCard
+              icon={GitBranch}
+              label={t('dashboard.kpi.totalWorkflows')}
+              value={workflowStats?.totalWorkflows ?? '—'}
+              loading={isLoading}
+              colorIdx={3}
+            />
+          )}
+          {canViewWorkflows && (
+            <KpiCard
+              icon={ClipboardList}
+              label={t('dashboard.kpi.myPendingTasks')}
+              value={workflowStats?.myPendingTasks ?? '—'}
+              loading={isLoading}
+              colorIdx={4}
+            />
+          )}
+          {canViewUsers && (
+            <KpiCard
+              icon={Users}
+              label={t('dashboard.kpi.users')}
+              value={usersLoading ? '—' : users.length}
+              sub={
+                usersLoading
+                  ? undefined
+                  : t('dashboard.kpi.usersActiveSub', {
+                      active: activeUsers,
+                      inactive: inactiveUsers,
+                    })
+              }
+              loading={usersLoading}
+              colorIdx={5}
+            />
+          )}
+        </div>
+      )}
 
       {/* Charts row 1: status donuts + weekly trend */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatusDonutChart
-          data={workflowStats?.statusCounts ?? {}}
-          colorMap={WORKFLOW_STATUS_COLORS}
-          labelKeyMap={WORKFLOW_STATUS_LABEL_KEYS}
-          title={t('dashboard.charts.workflowStatus')}
-          noDataLabel={noData}
-          loading={isLoading}
-        />
-        <StatusDonutChart
-          data={typologyStats?.extractionStatusCounts ?? {}}
-          colorMap={EXTRACTION_STATUS_COLORS}
-          labelKeyMap={EXTRACTION_STATUS_LABEL_KEYS}
-          title={t('dashboard.charts.extractionStatus')}
-          noDataLabel={noData}
-          loading={isLoading}
-        />
-        <WeeklyBarChart
-          data={workflowStats?.weeklyTrend ?? []}
-          title={t('dashboard.charts.weeklyTrend')}
-          noDataLabel={noData}
-          loading={isLoading}
-        />
-      </div>
+      {(canViewWorkflows || canViewOrgStructure) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {canViewWorkflows && (
+            <StatusDonutChart
+              data={workflowStats?.statusCounts ?? {}}
+              colorMap={WORKFLOW_STATUS_COLORS}
+              labelKeyMap={WORKFLOW_STATUS_LABEL_KEYS}
+              title={t('dashboard.charts.workflowStatus')}
+              noDataLabel={noData}
+              loading={isLoading}
+              showAllCategories
+            />
+          )}
+          {canViewOrgStructure && (
+            <StatusDonutChart
+              data={typologyStats?.extractionStatusCounts ?? {}}
+              colorMap={EXTRACTION_STATUS_COLORS}
+              labelKeyMap={EXTRACTION_STATUS_LABEL_KEYS}
+              title={t('dashboard.charts.extractionStatus')}
+              noDataLabel={noData}
+              loading={isLoading}
+            />
+          )}
+          {canViewWorkflows && (
+            <WeeklyBarChart
+              data={workflowStats?.weeklyTrend ?? []}
+              title={t('dashboard.charts.weeklyTrend')}
+              noDataLabel={noData}
+              loading={isLoading}
+            />
+          )}
+        </div>
+      )}
 
       {/* Charts row 2: users active/inactive */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <DonutChart
-          slices={[
-            { label: t('dashboard.charts.usersActive'), value: activeUsers, color: '#6366f1' },
-            { label: t('dashboard.charts.usersInactive'), value: inactiveUsers, color: '#f87171' },
-          ]}
-          title={t('dashboard.charts.usersActiveTitle')}
-          centerLabel={t('dashboard.charts.usersCenterLabel')}
-          noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
-        />
-        <DonutChart
-          slices={[
-            {
-              label: t('dashboard.charts.usersRegistered'),
-              value: registeredUsers,
-              color: '#10b981',
-            },
-            { label: t('dashboard.charts.usersPending'), value: pendingUsers, color: '#f59e0b' },
-          ]}
-          title={t('dashboard.charts.usersRegistrationTitle')}
-          centerLabel={t('dashboard.charts.usersCenterLabel')}
-          noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
-        />
-      </div>
+      {canViewUsers && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DonutChart
+            slices={[
+              { label: t('dashboard.charts.usersActive'), value: activeUsers, color: '#6366f1' },
+              {
+                label: t('dashboard.charts.usersInactive'),
+                value: inactiveUsers,
+                color: '#f87171',
+              },
+            ]}
+            title={t('dashboard.charts.usersActiveTitle')}
+            centerLabel={t('dashboard.charts.usersCenterLabel')}
+            noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
+          />
+          <DonutChart
+            slices={[
+              {
+                label: t('dashboard.charts.usersRegistered'),
+                value: registeredUsers,
+                color: '#10b981',
+              },
+              { label: t('dashboard.charts.usersPending'), value: pendingUsers, color: '#f59e0b' },
+            ]}
+            title={t('dashboard.charts.usersRegistrationTitle')}
+            centerLabel={t('dashboard.charts.usersCenterLabel')}
+            noDataLabel={usersLoading ? t('dashboard.kpi.loadingUsers') : noData}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { typologiesApi, type ApiTypology, type UpdateTypologyDto } from '@/lib/api/typologies';
+import {
+  typologiesApi,
+  type ApiTypology,
+  type TypologyStatus,
+  type UpdateTypologyDto,
+  type ResolveExtractionDto,
+} from '@/lib/api/typologies';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { useAuthStore } from '@/store/authStore';
 import { resolveApiError } from '@/lib/utils/api-error';
@@ -120,6 +126,15 @@ const uploadDocSchema = z.object({
 
 export type UploadDocForm = z.infer<typeof uploadDocSchema>;
 
+// The dialog no longer collects any input — resolving a discrepancy always
+// adopts the extracted data (the only action the backend accepts without
+// requiring it to already match the document), or the user leaves to upload
+// a corrected document. This form only exists to surface the mutation's
+// root-level API error via react-hook-form's error state.
+const resolveExtractionSchema = z.object({});
+
+export type ResolveExtractionForm = z.infer<typeof resolveExtractionSchema>;
+
 // ── Hook ───────────────────────────────────────────────────────────────────
 
 export function useTypologies(orgId: string, enabled = true) {
@@ -145,9 +160,15 @@ export function useTypologies(orgId: string, enabled = true) {
   const [uploadDocTypology, setUploadDocTypology] = useState<ApiTypology | null>(null);
   const [uploadDocFile, setUploadDocFile] = useState<File | null>(null);
 
+  // ── Resolve extraction dialog (discrepancy / pending confirmation) ─────
+  const [resolveTypology, setResolveTypology] = useState<ApiTypology | null>(null);
+
   // ── Cascading selectors inside the create/edit form ────────────────────
   const [formDeptId, setFormDeptId] = useState('');
   const [formAreaId, setFormAreaId] = useState('');
+
+  // ── Table status filter — defaults to ACTIVE, 'all' shows every status ──
+  const [statusFilter, setStatusFilter] = useState<TypologyStatus | 'all'>('ACTIVE');
 
   // ── Forms ──────────────────────────────────────────────────────────────
   const form = useForm<TypologyForm>({
@@ -169,10 +190,20 @@ export function useTypologies(orgId: string, enabled = true) {
     defaultValues: { nombre: '', version: '' },
   });
 
+  const resolveExtractionForm = useForm<ResolveExtractionForm>({
+    resolver: zodResolver(resolveExtractionSchema),
+    mode: 'onChange',
+  });
+
   // ── Queries ────────────────────────────────────────────────────────────
   const { data: typologies = [], isLoading } = useQuery({
-    queryKey: ['typologies', orgId],
-    queryFn: ({ signal }) => typologiesApi.list(orgId, undefined, signal),
+    queryKey: ['typologies', orgId, statusFilter],
+    queryFn: ({ signal }) =>
+      typologiesApi.list(
+        orgId,
+        { limit: 100, ...(statusFilter === 'all' ? {} : { status: statusFilter }) },
+        signal,
+      ),
     staleTime: 30_000,
     enabled: enabled && !!orgId,
     // Poll every 3 s while any typology is being processed — stops automatically
@@ -229,13 +260,21 @@ export function useTypologies(orgId: string, enabled = true) {
   });
 
   // ── Invalidation ───────────────────────────────────────────────────────
-  // Clears the typology list AND the version history for this org so that
-  // re-opening the history dialog after a mutation always shows fresh data.
+  // Clears the typology list, version history, dashboard "Resumen" KPIs, and
+  // "Auditoría" log for this org so that any of those views show the change
+  // immediately instead of only after a full page reload (they otherwise keep
+  // serving cached data until their own staleTime/refetch trigger kicks in).
   // history key prefix: ['typologies-history', orgId, <codigo>] → partial match
   const invalidate = () => {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['typologies-history', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['typology-stats', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', orgId] }),
+      // Super-admin's cross-org audit view keys on 'all' instead of an orgId
+      // (see use-audit.ts) — a separate, non-prefix-matching cache entry that
+      // the line above never touches.
+      queryClient.invalidateQueries({ queryKey: ['audit-logs', 'all'] }),
     ]);
   };
 
@@ -356,6 +395,21 @@ export function useTypologies(orgId: string, enabled = true) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['typologies', orgId] }),
   });
 
+  // ── Resolve extraction mutation (discrepancy / pending confirmation) ────
+  const resolveExtractionMutation = useMutation({
+    mutationFn: (dto: ResolveExtractionDto) =>
+      typologiesApi.resolveExtraction(orgId, resolveTypology!.id, dto),
+    onSuccess: () => {
+      invalidate();
+      setResolveTypology(null);
+      resolveExtractionForm.reset();
+    },
+    onError: (e: unknown) => {
+      const msg = resolveApiError(e, t);
+      if (msg) resolveExtractionForm.setError('root', { message: msg });
+    },
+  });
+
   // ── View document (fetch signed URL and open in new tab) ──────────────
   const viewDocumentMutation = useMutation({
     mutationFn: (typologyId: string) => typologiesApi.signedUrl(orgId, typologyId),
@@ -462,6 +516,11 @@ export function useTypologies(orgId: string, enabled = true) {
     });
   };
 
+  const openResolve = (typo: ApiTypology) => {
+    setResolveTypology(typo);
+    resolveExtractionForm.reset({});
+  };
+
   const handleFormDeptChange = (id: string) => {
     setFormDeptId(id);
     setFormAreaId('');
@@ -484,6 +543,8 @@ export function useTypologies(orgId: string, enabled = true) {
     // Data
     typologies,
     isLoading,
+    statusFilter,
+    setStatusFilter,
 
     // Form org-structure data
     departamentos,
@@ -516,6 +577,13 @@ export function useTypologies(orgId: string, enabled = true) {
     uploadDocFile,
     setUploadDocFile,
     uploadDocForm,
+
+    // Resolve extraction dialog
+    resolveTypology,
+    setResolveTypology,
+    openResolve,
+    resolveExtractionForm,
+    resolveExtractionMutation,
 
     // Edit file (triggers new-version flow when set)
     editFile,

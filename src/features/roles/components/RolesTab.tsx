@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -247,7 +248,21 @@ function RoleRow({
           <Shield className="size-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">{role.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium">{role.name}</p>
+            {role.isSystem && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {t('roles.systemBadge')}
+                    </Badge>
+                  }
+                />
+                <TooltipContent>{t('roles.systemRoleTooltip')}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">
             {t(`roles.systemDescriptions.${role.name}`, { defaultValue: role.description })}
           </p>
@@ -261,7 +276,7 @@ function RoleRow({
               ? t('roles.usersCount_one', { count: roleUsers.length })
               : t('roles.usersCount_other', { count: roleUsers.length })}
           </span>
-          {canWrite && (
+          {canWrite && !role.isSystem && (
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={t('roles.actions.menuLabel', { name: role.name })}

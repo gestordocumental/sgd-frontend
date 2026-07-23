@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { authApi } from '@/lib/api/auth';
+import { resolveApiError, type ApiErrorData } from '@/lib/utils/api-error';
 import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 import { loginSchema, type LoginFormValues } from '@/lib/validations/schemas';
@@ -92,6 +93,12 @@ function LoginPage() {
     return !!flag;
   });
 
+  const [accountDisabled] = useState(() => {
+    const flag = localStorage.getItem('sgd-account-disabled');
+    if (flag) localStorage.removeItem('sgd-account-disabled');
+    return !!flag;
+  });
+
   const {
     register,
     handleSubmit,
@@ -152,10 +159,9 @@ function LoginPage() {
       trackSuccess();
       navigate({ to: '/dashboard' });
     },
-    onError: (error: AxiosError<{ message: string | string[] }>) => {
-      const raw = error.response?.data?.message;
-      const msg = Array.isArray(raw) ? raw[0] : (raw ?? t('auth.serverErrorFallback'));
-      setServerError(msg);
+    onError: (error: AxiosError<ApiErrorData>) => {
+      const fallback = t('auth.serverErrorFallback');
+      setServerError(resolveApiError(error, t, fallback) ?? fallback);
       if (error.response?.status === 401) {
         trackFailure();
       }
@@ -232,6 +238,14 @@ function LoginPage() {
               <div className="flex items-start gap-2.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2.5 text-sm text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
                 <Info className="size-4 mt-0.5 shrink-0" />
                 <span>{t('auth.idleLogoutNotice')}</span>
+              </div>
+            )}
+
+            {/* Aviso de cuenta desactivada por un administrador */}
+            {accountDisabled && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
+                <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                <span>{t('auth.accountDisabledMessage')}</span>
               </div>
             )}
 

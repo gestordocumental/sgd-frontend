@@ -29,6 +29,7 @@ export interface ApiRole {
   description: string | null;
   permissions: ApiPermission[];
   orgId: string;
+  isSystem: boolean;
   createdAt: string;
 }
 

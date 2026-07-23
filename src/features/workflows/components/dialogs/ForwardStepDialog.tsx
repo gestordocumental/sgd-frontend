@@ -32,9 +32,12 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
   const cycle = forwardStepWorkflow.activeAdminCycle;
   const allowedIds = cycle?.allowedOptionalReviewerIds ?? [];
 
+  // Prefer names resolved server-side (see WorkflowsService.resolveParticipantNames)
+  // — works regardless of the viewer's Users-module permission. orgUsersMap is
+  // only a fallback for the rare case the backend couldn't resolve it either.
   const optionalReviewerOptions = allowedIds.map((id) => ({
     value: id,
-    label: orgUsersMap.get(id) ?? id,
+    label: forwardStepWorkflow.participantNames?.[id] ?? orgUsersMap.get(id) ?? id,
   }));
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {

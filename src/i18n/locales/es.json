@@ -87,6 +87,7 @@
     "switchContext": "Cambiar a",
     "changeAvatar": "Cambiar foto de perfil",
     "exitCompanyFailed": "No se pudo restaurar la sesión de super-admin. Recarga la página para intentarlo de nuevo.",
+    "switchCompanyFailed": "No se pudo cambiar de empresa. Es posible que ya no tengas acceso; la lista se ha actualizado.",
     "sessionRevoked": {
       "unknownCompany": "la empresa",
       "switchToGlobal": "Fuiste removido de {{company}}. Regresando a la vista global.",
@@ -116,6 +117,7 @@
     "loginLocked": "Demasiados intentos fallidos. Espera {{seconds}} segundos para volver a intentarlo.",
     "loginLockedButton": "Pausado ({{seconds}}s)",
     "idleLogoutNotice": "Tu sesión se cerró automáticamente por inactividad.",
+    "accountDisabledMessage": "Tu cuenta fue desactivada por un administrador.",
     "forgotPasswordPage": {
       "title": "Recuperar contraseña",
       "subtitle": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
@@ -123,7 +125,7 @@
       "backToSignIn": "Volver al inicio de sesión",
       "serverErrorFallback": "Error al enviar el correo. Por favor intenta de nuevo.",
       "success": {
-        "title": "¡Correo enviado!",
+        "title": "Revisa tu correo",
         "description": "Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos. Revisa también tu carpeta de spam.",
         "goToSignIn": "Ir al inicio de sesión"
       }
@@ -198,7 +200,7 @@
       "activeOrgs": "Orgs activas",
       "orgActiveSub": "{{active}} activas · {{inactive}} inactivas",
       "userGlobalSub": "{{active}} activos · {{superAdmins}} super admin",
-      "registeredThisMonth": "Registradas este mes",
+      "registeredThisMonth": "Empresas registradas este mes",
       "storageWithData": "{{count}} orgs con datos",
       "typologiesTotal": "{{count}} total",
       "docsBreakdown": "{{typologies}} tipol. · {{workflows}} flujos",
@@ -212,7 +214,7 @@
     "charts": {
       "workflowStatus": "Estado de flujos",
       "extractionStatus": "Estado de extracción",
-      "weeklyTrend": "Creación semanal (8 semanas)",
+      "weeklyTrend": "Creación semanal de flujos de trabajo (8 semanas)",
       "storagePerOrg": "Espacio usado por organización",
       "workflowsPerOrg": "Flujos por organización",
       "usersPerOrg": "Usuarios por organización",
@@ -220,6 +222,7 @@
       "usersCenterLabel": "usuarios",
       "usersActive": "Activos",
       "usersInactive": "Inactivos",
+      "usersDeleted": "Eliminados",
       "usersRegistrationTitle": "Estado de registro",
       "usersRegistered": "Registrados",
       "usersPending": "Pendientes",
@@ -228,11 +231,15 @@
       "orgsActive": "Activas",
       "orgsInactive": "Inactivas",
       "globalUsers": "Usuarios (globales)",
-      "monthlyRegistrations": "Registros por mes (6 meses)",
+      "monthlyRegistrations": "Empresas registradas por mes (6 meses)",
       "recentOrgs": "Organizaciones recientes",
       "usersCount": "{{count}} usuarios",
-      "usersPerOrgBarLabel": "{{org}}: {{active}} activos, {{inactive}} inactivos (de {{total}} usuarios)",
-      "storageBarLabel": "{{name}}: {{storage}} en uso"
+      "usersPerOrgBarLabel": "{{org}}: {{active}} activos, {{inactive}} inactivos, {{deleted}} eliminados (de {{total}} usuarios)",
+      "storageBarLabel": "{{name}}: {{storage}} en uso",
+      "weeklyTrendBarLabel_one": "Semana del {{week}}: {{count}} flujo de trabajo creado",
+      "weeklyTrendBarLabel_other": "Semana del {{week}}: {{count}} flujos de trabajo creados",
+      "monthlyRegistrationsBarLabel_one": "{{label}}: {{count}} empresa registrada",
+      "monthlyRegistrationsBarLabel_other": "{{label}}: {{count}} empresas registradas"
     },
     "orgStatus": {
       "active": "Activa",
@@ -324,7 +331,8 @@
       "changes": "Cambios",
       "modified": "Modificado",
       "copy": "Copiar ID de correlación",
-      "filterByCorrelation": "Filtrar por este ID de correlación"
+      "filterByCorrelation": "Filtrar por este ID de correlación",
+      "filterApplied": "Filtro por ID de correlación aplicado"
     },
     "fields": {
       "firstName": "Nombre",
@@ -455,6 +463,7 @@
       "editUser": "Editar usuario",
       "activateUser": "Activar usuario",
       "deactivateUser": "Desactivar usuario",
+      "restoreUser": "Restablecer usuario",
       "deleteUser": "Eliminar usuario",
       "expandCompany": "Expandir {{name}}",
       "collapseCompany": "Colapsar {{name}}",
@@ -585,6 +594,8 @@
     "noUsersWithPermission": "Ningún usuario tiene este permiso",
     "direct": "Directo",
     "revokeDirectPermissionTitle": "Revocar permiso directo",
+    "systemBadge": "Sistema",
+    "systemRoleTooltip": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden editar ni eliminar",
     "systemDescriptions": {
       "ADMIN": "Administrador de la organización",
       "MANAGER": "Gestor con permisos de aprobación",
@@ -610,6 +621,9 @@
       "rolePermissionsLabel": "Permisos del rol",
       "createButton": "Crear rol",
       "deleteButton": "Eliminar rol",
+      "createRoleError": "No se pudo crear el rol. Intenta nuevamente.",
+      "editRoleError": "No se pudo guardar el rol. Intenta nuevamente.",
+      "deleteRoleError": "No se pudo eliminar el rol. Intenta nuevamente.",
       "assignRoleTitle": "Asignar rol · {{roleName}}",
       "allUsersHaveRole": "Todos los usuarios activos ya tienen este rol",
       "assignPermissionTitle": "Asignar permiso directamente",
@@ -655,6 +669,7 @@
       "uploadDocument": "Cargar documento",
       "extractionFailed": "No se pudo extraer la información del documento",
       "retryExtraction": "Reintentar extracción",
+      "resolveExtraction": "Resolver discrepancia",
       "newTypology": "Nueva tipología",
       "resourceId": "ID de recurso"
     },
@@ -714,6 +729,22 @@
       "empty": "Sin registros.",
       "deletedSuffix": "· eliminada"
     },
+    "resolve": {
+      "title": "Revisar información del documento",
+      "intro": "El documento no coincide con los datos que registraste para esta tipología. Usa la información extraída del documento, o sube un documento cuyo contenido coincida con los datos que quieres declarar.",
+      "fieldColumn": "Campo",
+      "declaredColumn": "Lo que registraste",
+      "extractedColumn": "Lo que se extrajo del documento",
+      "fieldNames": {
+        "nombre": "Nombre",
+        "codigo": "Código",
+        "version": "Versión"
+      },
+      "extractedDataLabel": "Datos que se usarán",
+      "adoptExtracted": "Usar lo extraído del documento",
+      "uploadCorrected": "Subir un documento corregido",
+      "submitting": "Guardando…"
+    },
     "file": {
       "selectLabel": "Seleccionar archivo",
       "clearLabel": "Quitar archivo",
@@ -765,6 +796,7 @@
       "noCommentsOrAttachments": "Sin comentarios ni adjuntos.",
       "finalUser": "Usuario final",
       "downloadDoc": "Descargar documento",
+      "previewDoc": "Ver documento",
       "downloadAttachment": "Descargar adjunto",
       "downloadAll": "Descargar todo",
       "downloadingAll": "Generando ZIP...",
@@ -772,7 +804,12 @@
       "zipFolderAttachments": "adjuntos",
       "zipFolderApproval": "adjuntos-aprobacion",
       "zipFolderCycles": "ciclos-revision",
-      "downloadError": "No se pudo descargar el archivo. Intenta de nuevo."
+      "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
+      "auditLogDownloadError": "Los adjuntos se descargaron, pero no se pudo incluir el log de auditoría. Intenta de nuevo desde la página de auditoría si lo necesitas.",
+      "previewLoading": "Cargando previsualización...",
+      "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
+      "previewTruncated": "Mostrando solo las primeras {{rows}} filas y {{cols}} columnas — el archivo es más grande.",
+      "previewTitle": "Previsualización de {{name}}"
     },
     "actions": {
       "viewDetail": "Ver detalle",
@@ -889,6 +926,8 @@
       "finalUsersEmpty": "No hay usuarios que coincidan con la estructura de esta tipología",
       "errorMinFinalUser": "Agrega al menos un usuario final",
       "removeApprover": "Eliminar aprobador",
+      "approverMoveUp": "Subir a {{name}}",
+      "approverMoveDown": "Bajar a {{name}}",
       "editDocCurrent": "Actual:",
       "attachedDocsLabel": "Documentos adjuntos",
       "attachmentsShort": "Adjuntos",
@@ -992,6 +1031,40 @@
     }
   },
   "errors": {
-    "FILE_CONTENT_MISMATCH": "El contenido del archivo no coincide con el formato declarado. Verifique que el archivo sea realmente un PDF, DOCX, XLSX o imagen válida."
+    "FILE_CONTENT_MISMATCH": "El contenido del archivo no coincide con el formato declarado. Verifique que el archivo sea realmente un PDF, DOCX, XLSX o imagen válida.",
+    "MALWARE_DETECTED": "El archivo fue rechazado: se detectó una amenaza de seguridad.",
+    "INVALID_CREDENTIALS": "Correo electrónico o contraseña incorrectos.",
+    "ACCOUNT_LOCKED": "Cuenta bloqueada temporalmente por demasiados intentos fallidos. Intente nuevamente más tarde.",
+    "RESET_TOKEN_INVALID": "El enlace para restablecer la contraseña es inválido o ha expirado.",
+    "INVITATION_TOKEN_INVALID": "El enlace de invitación es inválido o ha expirado.",
+    "REGISTRATION_DATA_INVALID": "Los datos de registro no son válidos.",
+    "REGISTRATION_FAILED": "No se pudo completar el registro. Intente nuevamente.",
+    "EMAIL_ALREADY_REGISTERED": "Este correo electrónico ya está registrado para otra cuenta.",
+    "CREDENTIALS_DISABLED": "Las credenciales de esta cuenta están deshabilitadas.",
+    "DEPARTMENT_ALREADY_EXISTS": "El departamento \"{{name}}\" ya existe en esta organización.",
+    "DEPARTMENT_NOT_FOUND": "El departamento no fue encontrado.",
+    "AREA_ALREADY_EXISTS": "El área \"{{name}}\" ya existe en este departamento.",
+    "AREA_NOT_FOUND": "El área no fue encontrada.",
+    "CARGO_ALREADY_EXISTS_IN_AREA": "El cargo \"{{name}}\" ya existe en esta área.",
+    "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "El cargo \"{{name}}\" ya existe en este departamento.",
+    "CARGO_NOT_FOUND": "El cargo no fue encontrado.",
+    "TYPOLOGY_CODE_ALREADY_EXISTS": "Ya existe una tipología activa con el código \"{{codigo}}\" en esta organización. Solo se permite una tipología activa por código.",
+    "TYPOLOGY_NOT_FOUND": "La tipología no fue encontrada.",
+    "TYPOLOGY_INVALID_ID": "El identificador de la tipología no es válido.",
+    "TYPOLOGY_VERSION_INVALID": "La nueva versión ({{newVersion}}) debe ser igual o exactamente un incremento sobre la versión actual ({{oldVersion}}).",
+    "TYPOLOGY_NO_PENDING_ACTION": "No hay una discrepancia o confirmación pendiente para esta tipología.",
+    "TYPOLOGY_DECLARED_STILL_MISMATCHED": "Los datos declarados siguen sin coincidir con el contenido del documento cargado. Elige \"Usar lo extraído del documento\" o sube un documento cuyo contenido coincida con los datos declarados.",
+    "USER_PREVIOUSLY_DELETED": "Este usuario fue eliminado previamente. Use la opción de restaurar para reactivarlo.",
+    "USER_ALREADY_IN_ANOTHER_ORG": "Ya existe un usuario con este correo electrónico en otra organización.",
+    "USER_ALREADY_EXISTS": "Ya existe un usuario con este correo electrónico.",
+    "ROLE_NOT_FOUND": "El rol seleccionado no fue encontrado.",
+    "USER_CANNOT_DELETE_SELF": "No puedes eliminar tu propia cuenta.",
+    "USER_CANNOT_DISABLE_SELF": "No puedes desactivar tu propia cuenta.",
+    "USER_CANNOT_MODIFY_OWN_SUPER_ADMIN": "No puedes cambiar tu propio estado de super administrador.",
+    "USER_CANNOT_REMOVE_SELF_FROM_ORG": "No puedes quitarte a ti mismo de una organización.",
+    "SYSTEM_ROLE_NOT_MODIFIABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden editar. Crea un rol personalizado en su lugar.",
+    "SYSTEM_ROLE_NOT_DELETABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden eliminar.",
+    "ROLE_HAS_ASSIGNED_USERS_one": "El rol \"{{name}}\" todavía tiene {{count}} usuario asignado y no se puede eliminar.",
+    "ROLE_HAS_ASSIGNED_USERS_other": "El rol \"{{name}}\" todavía tiene {{count}} usuarios asignados y no se puede eliminar."
   }
 }

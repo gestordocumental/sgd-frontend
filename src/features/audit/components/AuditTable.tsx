@@ -8,10 +8,12 @@ import {
   Eye,
   Download,
   Copy,
+  Check,
   Filter,
   RefreshCw,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,8 +36,16 @@ import {
 } from './audit-table.utils';
 import { useActorName } from '../hooks/use-actor-name';
 
-function ActorCell({ actorId, users }: { actorId: string; users: SimpleUser[] }) {
-  const name = useActorName(actorId, users);
+function ActorCell({
+  actorId,
+  actorName,
+  users,
+}: {
+  actorId: string;
+  actorName?: string | null;
+  users: SimpleUser[];
+}) {
+  const name = useActorName(actorId, users, actorName);
   return <>{name}</>;
 }
 
@@ -64,6 +74,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
 
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [copiedCorrelationId, setCopiedCorrelationId] = useState<string | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -351,7 +362,11 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                             className="text-xs text-muted-foreground max-w-[160px] truncate"
                             title={log.actorId}
                           >
-                            <ActorCell actorId={log.actorId} users={users} />
+                            <ActorCell
+                              actorId={log.actorId}
+                              actorName={log.actorName}
+                              users={users}
+                            />
                           </TableCell>
                           <TableCell className="text-xs">
                             {CORRELATION_RESOURCE_TYPES.has(log.resourceType) &&
@@ -373,10 +388,18 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                     if (!navigator.clipboard?.writeText) return;
                                     void navigator.clipboard
                                       .writeText(log.correlationId!)
+                                      .then(() => {
+                                        setCopiedCorrelationId(log.correlationId!);
+                                        setTimeout(() => setCopiedCorrelationId(null), 2000);
+                                      })
                                       .catch(() => undefined);
                                   }}
                                 >
-                                  <Copy className="size-3" />
+                                  {copiedCorrelationId === log.correlationId ? (
+                                    <Check className="size-3 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="size-3" />
+                                  )}
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -387,6 +410,7 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
                                   onClick={() => {
                                     setDraft({ ...emptyDraft, correlationId: log.correlationId! });
                                     applyFilters({ correlationId: log.correlationId! });
+                                    toast.success(t('audit.detail.filterApplied'));
                                   }}
                                 >
                                   <Filter className="size-3" />

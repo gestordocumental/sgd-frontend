@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { usersApi } from '@/lib/api/users';
+import { resolveApiError, type ApiErrorData } from '@/lib/utils/api-error';
 import { newPasswordField, requiredString } from '@/lib/validations/schemas';
 
 // ── Route ────────────────────────────────────────────────────────────────────
@@ -67,12 +68,9 @@ function CompleteRegistrationPage() {
       return usersApi.completeRegistration({ ...payload, token: token! });
     },
     onSuccess: () => setSuccess(true),
-    onError: (error: AxiosError<{ message: string | string[] }>) => {
-      const raw = error.response?.data?.message;
-      const msg = Array.isArray(raw)
-        ? raw[0]
-        : (raw ?? t('auth.completeRegistration.serverErrorFallback'));
-      setServerError(msg);
+    onError: (error: AxiosError<ApiErrorData>) => {
+      const fallback = t('auth.completeRegistration.serverErrorFallback');
+      setServerError(resolveApiError(error, t, fallback) ?? fallback);
     },
   });
 
