@@ -209,12 +209,6 @@ function LoginPage() {
             />
           </div>
 
-          {/* Encabezado */}
-          <div className="mb-7">
-            <h1 className="text-2xl font-semibold tracking-tight">{t('auth.welcomeTitle')}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t('auth.welcomeSubtitle')}</p>
-          </div>
-
           {/* Formulario */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
             {/* Aviso de acceso revocado */}

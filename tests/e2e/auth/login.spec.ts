@@ -76,7 +76,6 @@ test.describe('Login page', () => {
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-    await expect(page.getByText('Welcome to SGD')).toBeVisible();
   });
 
   test('authenticated user is redirected away from /login to /dashboard', async ({ page }) => {

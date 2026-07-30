@@ -193,7 +193,6 @@ function AdminDashboardPage() {
               <AdminDashboard
                 companies={companies.companies}
                 users={users.users}
-                superAdmins={users.superAdmins}
                 loading={companies.companiesLoading}
                 storageStats={storageStats}
                 storageLoading={storageLoading}
@@ -232,6 +231,7 @@ function AdminDashboardPage() {
                       ? users.disableMutation.mutate(u.id)
                       : users.enableMutation.mutate(u.id)
                 }
+                onResendInvitation={(u) => users.resendInvitationMutation.mutate(u.id)}
               />
             </Suspense>
           </ErrorBoundary>
