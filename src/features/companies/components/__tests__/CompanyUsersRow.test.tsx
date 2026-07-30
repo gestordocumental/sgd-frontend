@@ -228,4 +228,42 @@ describe('CompanyUsersRow — status action menu', () => {
       screen.queryByRole('button', { name: 'Actions for Alice Smith' }),
     ).not.toBeInTheDocument();
   });
+
+  it('offers Restore (not Resend invitation) for a pending user removed from the org', async () => {
+    // Regression: excluding removed users from Resend invitation (they no
+    // longer belong to the org) must not leave the menu empty — Restore has
+    // to take over for the isPending && isRemoved combination.
+    const user = userEvent.setup();
+    renderRow([
+      makeUser({
+        registrationStatus: 'pending_credentials',
+        orgRemovedAt: '2024-06-01T00:00:00Z',
+      }),
+    ]);
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+
+    expect(await screen.findByRole('menuitem', { name: /Restore user/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Resend invitation/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Edit user/ })).not.toBeInTheDocument();
+  });
+
+  it('calls onToggleUserStatus (Restore) for a pending, soft-deleted user', async () => {
+    const onToggleUserStatus = vi.fn();
+    const user = userEvent.setup();
+    renderRow(
+      [makeUser({ registrationStatus: 'pending_credentials', deletedAt: '2024-06-01T00:00:00Z' })],
+      onToggleUserStatus,
+    );
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Restore user/ }));
+
+    expect(onToggleUserStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'u-1' }),
+      'org-1',
+    );
+  });
 });

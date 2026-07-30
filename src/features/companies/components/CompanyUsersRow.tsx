@@ -214,11 +214,9 @@ export function CompanyUsersRow({
                     {paginated.map((u) => {
                       const isSelf = u.id === currentUserId;
                       const isPending = isPendingRegistration(u);
+                      const isRemoved = isDeleted(u) || !!u.orgRemovedAt;
                       return (
-                        <TableRow
-                          key={u.id}
-                          className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}
-                        >
+                        <TableRow key={u.id} className={isRemoved ? 'opacity-50' : ''}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="size-8">
@@ -310,11 +308,11 @@ export function CompanyUsersRow({
                                       {t('companies.actions.editUser')}
                                     </DropdownMenuItem>
                                   )}
-                                  {!isSelf && !isPending && (
+                                  {!isSelf && (!isPending || isRemoved) && (
                                     <DropdownMenuItem
                                       onClick={() => onToggleUserStatus(u, companyId)}
                                     >
-                                      {isDeleted(u) || !!u.orgRemovedAt ? (
+                                      {isRemoved ? (
                                         <>
                                           <RotateCcw className="size-4" />{' '}
                                           {t('companies.actions.restoreUser')}
@@ -332,7 +330,7 @@ export function CompanyUsersRow({
                                       )}
                                     </DropdownMenuItem>
                                   )}
-                                  {!isSelf && isPending && (
+                                  {!isSelf && isPending && !isRemoved && (
                                     <DropdownMenuItem
                                       onClick={() => onResendInvitation(u, companyId)}
                                     >
