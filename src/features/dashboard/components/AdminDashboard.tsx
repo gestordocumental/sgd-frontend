@@ -51,8 +51,13 @@ export function AdminDashboard({
   // "Usuarios totales"/"Usuarios (globales)" must reflect every user actually
   // registered in the Usuarios module — a user's isSuperAdmin flag is an
   // unrelated global privilege and must not make them disappear from this count.
-  const activeUsers = users.filter((u) => u.isActive && !u.deletedAt).length;
-  const inactiveUsers = users.length - activeUsers;
+  // Soft-deleted users, like soft-deleted orgs above, no longer exist for this
+  // dashboard's purposes — they must not inflate the total, and (the bug this
+  // replaced) must not get counted as "inactive" just because they're not
+  // "active" either.
+  const existingUsers = users.filter((u) => !u.deletedAt);
+  const activeUsers = existingUsers.filter((u) => u.isActive).length;
+  const inactiveUsers = existingUsers.length - activeUsers;
   const monthlyData = buildMonthlyOrgData(activeCompanies);
   const totalStorageBytes = filteredStorageStats.reduce((s, r) => s + r.storageTotalBytes, 0);
 
@@ -79,7 +84,7 @@ export function AdminDashboard({
         <KpiCard
           icon={Users}
           label={t('dashboard.kpi.totalUsers')}
-          value={users.length}
+          value={existingUsers.length}
           sub={t('dashboard.kpi.userGlobalSub', {
             active: activeUsers,
             superAdmins: superAdmins.length,

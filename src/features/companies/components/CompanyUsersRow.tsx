@@ -10,6 +10,7 @@ import {
   XCircle as XIcon,
   RefreshCw,
   RotateCcw,
+  MailCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,7 @@ interface CompanyUsersRowProps {
   companyId: string;
   onEditUser: (u: ApiUserWithRoles, companyId: string) => void;
   onToggleUserStatus: (u: ApiUserWithRoles, companyId: string) => void;
+  onResendInvitation: (u: ApiUserWithRoles, companyId: string) => void;
 }
 
 export function CompanyUsersRow({
@@ -49,6 +51,7 @@ export function CompanyUsersRow({
   companyId,
   onEditUser,
   onToggleUserStatus,
+  onResendInvitation,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation();
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -290,46 +293,54 @@ export function CompanyUsersRow({
                             )}
                           </TableCell>
                           <TableCell className="py-2.5">
-                            {!isPending && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  aria-label={t('companies.actions.openUserMenu', {
-                                    name: `${u.firstName} ${u.lastName}`,
-                                  })}
-                                  className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                                >
-                                  <MoreHorizontal className="size-3.5" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                aria-label={t('companies.actions.openUserMenu', {
+                                  name: `${u.firstName} ${u.lastName}`,
+                                })}
+                                className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {!isPending && (
                                   <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
                                     <PencilIcon className="size-4" />{' '}
                                     {t('companies.actions.editUser')}
                                   </DropdownMenuItem>
-                                  {!isSelf && (
-                                    <DropdownMenuItem
-                                      onClick={() => onToggleUserStatus(u, companyId)}
-                                    >
-                                      {isDeleted(u) || !!u.orgRemovedAt ? (
-                                        <>
-                                          <RotateCcw className="size-4" />{' '}
-                                          {t('companies.actions.restoreUser')}
-                                        </>
-                                      ) : u.isActive ? (
-                                        <>
-                                          <XIcon className="size-4" />{' '}
-                                          {t('companies.actions.deactivateUser')}
-                                        </>
-                                      ) : (
-                                        <>
-                                          <CheckIcon className="size-4" />{' '}
-                                          {t('companies.actions.activateUser')}
-                                        </>
-                                      )}
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                                )}
+                                {!isSelf && !isPending && (
+                                  <DropdownMenuItem
+                                    onClick={() => onToggleUserStatus(u, companyId)}
+                                  >
+                                    {isDeleted(u) || !!u.orgRemovedAt ? (
+                                      <>
+                                        <RotateCcw className="size-4" />{' '}
+                                        {t('companies.actions.restoreUser')}
+                                      </>
+                                    ) : u.isActive ? (
+                                      <>
+                                        <XIcon className="size-4" />{' '}
+                                        {t('companies.actions.deactivateUser')}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckIcon className="size-4" />{' '}
+                                        {t('companies.actions.activateUser')}
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
+                                {!isSelf && isPending && (
+                                  <DropdownMenuItem
+                                    onClick={() => onResendInvitation(u, companyId)}
+                                  >
+                                    <MailCheck className="size-4" />{' '}
+                                    {t('users.actions.resendInvitation')}
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       );
