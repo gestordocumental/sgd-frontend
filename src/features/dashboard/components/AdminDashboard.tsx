@@ -16,7 +16,6 @@ export type { MergedOrgStorage };
 interface AdminDashboardProps {
   companies: ApiCompany[];
   users: ApiUser[];
-  superAdmins: ApiUser[];
   loading: boolean;
   storageStats: MergedOrgStorage[];
   storageLoading: boolean;
@@ -27,7 +26,6 @@ interface AdminDashboardProps {
 export function AdminDashboard({
   companies,
   users,
-  superAdmins,
   loading,
   storageStats,
   storageLoading,
@@ -87,7 +85,7 @@ export function AdminDashboard({
           value={existingUsers.length}
           sub={t('dashboard.kpi.userGlobalSub', {
             active: activeUsers,
-            superAdmins: superAdmins.length,
+            superAdmins: existingUsers.filter((u) => u.isSuperAdmin).length,
           })}
           loading={loading}
           colorIdx={2}

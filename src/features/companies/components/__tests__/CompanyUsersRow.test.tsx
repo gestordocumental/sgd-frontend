@@ -212,16 +212,20 @@ describe('CompanyUsersRow — status action menu', () => {
     );
   });
 
-  it("hides Resend invitation for the logged-in user's own pending row", async () => {
+  it("hides the actions menu entirely for the logged-in user's own pending row", async () => {
+    // Regression: the trigger used to render unconditionally, but every item
+    // inside requires !isPending (Edit) or !isSelf (toggle/Resend) — so
+    // isSelf && isPending left a clickable button opening a completely empty
+    // menu, a dead-end for admins.
     useAuthStore.setState({
       user: { id: 'u-1', email: 'alice@company.com', name: 'Alice', role: 'user' },
     });
-    const user = userEvent.setup();
     renderRow([makeUser({ registrationStatus: 'pending_credentials' })]);
 
     await screen.findByText('Alice Smith');
-    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
 
-    expect(screen.queryByRole('menuitem', { name: /Resend invitation/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Actions for Alice Smith' }),
+    ).not.toBeInTheDocument();
   });
 });

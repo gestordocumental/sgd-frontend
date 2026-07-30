@@ -193,7 +193,6 @@ function AdminDashboardPage() {
               <AdminDashboard
                 companies={companies.companies}
                 users={users.users}
-                superAdmins={users.superAdmins}
                 loading={companies.companiesLoading}
                 storageStats={storageStats}
                 storageLoading={storageLoading}

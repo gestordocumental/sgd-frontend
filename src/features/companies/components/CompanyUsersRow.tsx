@@ -293,54 +293,56 @@ export function CompanyUsersRow({
                             )}
                           </TableCell>
                           <TableCell className="py-2.5">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                aria-label={t('companies.actions.openUserMenu', {
-                                  name: `${u.firstName} ${u.lastName}`,
-                                })}
-                                className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                              >
-                                <MoreHorizontal className="size-3.5" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {!isPending && (
-                                  <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
-                                    <PencilIcon className="size-4" />{' '}
-                                    {t('companies.actions.editUser')}
-                                  </DropdownMenuItem>
-                                )}
-                                {!isSelf && !isPending && (
-                                  <DropdownMenuItem
-                                    onClick={() => onToggleUserStatus(u, companyId)}
-                                  >
-                                    {isDeleted(u) || !!u.orgRemovedAt ? (
-                                      <>
-                                        <RotateCcw className="size-4" />{' '}
-                                        {t('companies.actions.restoreUser')}
-                                      </>
-                                    ) : u.isActive ? (
-                                      <>
-                                        <XIcon className="size-4" />{' '}
-                                        {t('companies.actions.deactivateUser')}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CheckIcon className="size-4" />{' '}
-                                        {t('companies.actions.activateUser')}
-                                      </>
-                                    )}
-                                  </DropdownMenuItem>
-                                )}
-                                {!isSelf && isPending && (
-                                  <DropdownMenuItem
-                                    onClick={() => onResendInvitation(u, companyId)}
-                                  >
-                                    <MailCheck className="size-4" />{' '}
-                                    {t('users.actions.resendInvitation')}
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            {!(isPending && isSelf) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  aria-label={t('companies.actions.openUserMenu', {
+                                    name: `${u.firstName} ${u.lastName}`,
+                                  })}
+                                  className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                                >
+                                  <MoreHorizontal className="size-3.5" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {!isPending && (
+                                    <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
+                                      <PencilIcon className="size-4" />{' '}
+                                      {t('companies.actions.editUser')}
+                                    </DropdownMenuItem>
+                                  )}
+                                  {!isSelf && !isPending && (
+                                    <DropdownMenuItem
+                                      onClick={() => onToggleUserStatus(u, companyId)}
+                                    >
+                                      {isDeleted(u) || !!u.orgRemovedAt ? (
+                                        <>
+                                          <RotateCcw className="size-4" />{' '}
+                                          {t('companies.actions.restoreUser')}
+                                        </>
+                                      ) : u.isActive ? (
+                                        <>
+                                          <XIcon className="size-4" />{' '}
+                                          {t('companies.actions.deactivateUser')}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckIcon className="size-4" />{' '}
+                                          {t('companies.actions.activateUser')}
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                  )}
+                                  {!isSelf && isPending && (
+                                    <DropdownMenuItem
+                                      onClick={() => onResendInvitation(u, companyId)}
+                                    >
+                                      <MailCheck className="size-4" />{' '}
+                                      {t('users.actions.resendInvitation')}
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </TableCell>
                         </TableRow>
                       );

@@ -54,7 +54,6 @@ function renderDashboard(users: ApiUser[]) {
     <AdminDashboard
       companies={[]}
       users={users}
-      superAdmins={users.filter((u) => u.isSuperAdmin)}
       loading={false}
       storageStats={[]}
       storageLoading={false}
@@ -157,7 +156,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[]}
         storageLoading={false}
@@ -179,7 +177,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[]}
         storageLoading={false}
@@ -198,7 +195,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[]}
         storageLoading={false}
@@ -224,7 +220,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[
           {
