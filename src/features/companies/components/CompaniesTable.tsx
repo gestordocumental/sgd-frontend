@@ -29,6 +29,7 @@ interface CompaniesTableProps {
   onCreateUser: (companyId: string) => void;
   onEditUser: (u: ApiUserWithRoles, companyId: string) => void;
   onToggleUserStatus: (u: ApiUserWithRoles, companyId: string) => void;
+  onResendInvitation: (u: ApiUserWithRoles, companyId: string) => void;
 }
 
 export function CompaniesTable({
@@ -36,6 +37,7 @@ export function CompaniesTable({
   onCreateUser,
   onEditUser,
   onToggleUserStatus,
+  onResendInvitation,
 }: CompaniesTableProps) {
   const {
     companies,
@@ -241,6 +243,7 @@ export function CompaniesTable({
                       companyId={company.id}
                       onEditUser={onEditUser}
                       onToggleUserStatus={onToggleUserStatus}
+                      onResendInvitation={onResendInvitation}
                     />
                   )}
                 </Fragment>

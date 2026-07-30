@@ -56,7 +56,11 @@ function makeUser(overrides: Partial<ApiUserWithRoles> = {}): ApiUserWithRoles {
   };
 }
 
-function renderRow(users: ApiUserWithRoles[], onToggleUserStatus = vi.fn()) {
+function renderRow(
+  users: ApiUserWithRoles[],
+  onToggleUserStatus = vi.fn(),
+  onResendInvitation = vi.fn(),
+) {
   mockFetchAllUsersByOrg.mockResolvedValue({ data: users, nextCursor: null, hasMore: false });
   return render(
     createElement(
@@ -70,6 +74,7 @@ function renderRow(users: ApiUserWithRoles[], onToggleUserStatus = vi.fn()) {
           companyId: 'org-1',
           onEditUser: vi.fn(),
           onToggleUserStatus,
+          onResendInvitation,
         }),
       ),
     ),
@@ -175,15 +180,90 @@ describe('CompanyUsersRow — status action menu', () => {
     );
   });
 
-  it('hides the actions menu entirely for a user still completing registration', async () => {
+  it('offers only Resend invitation for a user still completing registration', async () => {
+    const user = userEvent.setup();
+    renderRow([makeUser({ registrationStatus: 'pending_credentials' })]);
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+
+    expect(await screen.findByRole('menuitem', { name: /Resend invitation/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Edit user/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Deactivate user/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Activate user/ })).not.toBeInTheDocument();
+  });
+
+  it('calls onResendInvitation with the user and companyId when clicked', async () => {
+    const onResendInvitation = vi.fn();
+    const user = userEvent.setup();
+    renderRow(
+      [makeUser({ registrationStatus: 'pending_credentials' })],
+      vi.fn(),
+      onResendInvitation,
+    );
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Resend invitation/ }));
+
+    expect(onResendInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'u-1' }),
+      'org-1',
+    );
+  });
+
+  it("hides the actions menu entirely for the logged-in user's own pending row", async () => {
+    // Regression: the trigger used to render unconditionally, but every item
+    // inside requires !isPending (Edit) or !isSelf (toggle/Resend) — so
+    // isSelf && isPending left a clickable button opening a completely empty
+    // menu, a dead-end for admins.
+    useAuthStore.setState({
+      user: { id: 'u-1', email: 'alice@company.com', name: 'Alice', role: 'user' },
+    });
     renderRow([makeUser({ registrationStatus: 'pending_credentials' })]);
 
     await screen.findByText('Alice Smith');
 
-    // No actions are available for a pending user, so the trigger itself
-    // shouldn't render — an empty popover would be a dead-end for admins.
     expect(
       screen.queryByRole('button', { name: 'Actions for Alice Smith' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('offers Restore (not Resend invitation) for a pending user removed from the org', async () => {
+    // Regression: excluding removed users from Resend invitation (they no
+    // longer belong to the org) must not leave the menu empty — Restore has
+    // to take over for the isPending && isRemoved combination.
+    const user = userEvent.setup();
+    renderRow([
+      makeUser({
+        registrationStatus: 'pending_credentials',
+        orgRemovedAt: '2024-06-01T00:00:00Z',
+      }),
+    ]);
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+
+    expect(await screen.findByRole('menuitem', { name: /Restore user/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Resend invitation/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Edit user/ })).not.toBeInTheDocument();
+  });
+
+  it('calls onToggleUserStatus (Restore) for a pending, soft-deleted user', async () => {
+    const onToggleUserStatus = vi.fn();
+    const user = userEvent.setup();
+    renderRow(
+      [makeUser({ registrationStatus: 'pending_credentials', deletedAt: '2024-06-01T00:00:00Z' })],
+      onToggleUserStatus,
+    );
+
+    await screen.findByText('Alice Smith');
+    await user.click(screen.getByRole('button', { name: 'Actions for Alice Smith' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Restore user/ }));
+
+    expect(onToggleUserStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'u-1' }),
+      'org-1',
+    );
   });
 });

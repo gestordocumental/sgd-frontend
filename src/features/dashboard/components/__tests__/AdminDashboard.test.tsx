@@ -54,7 +54,6 @@ function renderDashboard(users: ApiUser[]) {
     <AdminDashboard
       companies={[]}
       users={users}
-      superAdmins={users.filter((u) => u.isSuperAdmin)}
       loading={false}
       storageStats={[]}
       storageLoading={false}
@@ -104,6 +103,34 @@ describe('AdminDashboard — Usuarios indicators', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
   });
+
+  it('excludes soft-deleted users from "Total users" and does not fold them into "Inactive"', () => {
+    // Regression: inactiveUsers was computed as `users.length - activeUsers`,
+    // so a deletedAt user (neither counted as active nor filtered out first)
+    // silently inflated the "Inactive" slice — 6 real inactive users plus 2
+    // deleted ones showed up as "8 inactive".
+    const users = [
+      ...Array.from({ length: 6 }, (_, i) => makeUser({ id: `active-${i}`, isActive: true })),
+      ...Array.from({ length: 6 }, (_, i) => makeUser({ id: `inactive-${i}`, isActive: false })),
+      ...Array.from({ length: 2 }, (_, i) =>
+        makeUser({ id: `deleted-${i}`, isActive: false, deletedAt: '2024-06-01T00:00:00Z' }),
+      ),
+    ];
+
+    renderDashboard(users);
+
+    // 12 non-deleted users (6 active + 6 inactive), not 14.
+    const totalUsersLabel = screen.getByText('Total users');
+    const kpiCard = totalUsersLabel.closest('div');
+    expect(kpiCard).not.toBeNull();
+    expect(within(kpiCard!).getByText('12')).toBeInTheDocument();
+
+    // "Inactive" must read 6, not 8 — the 2 deleted users must not count here.
+    const inactiveLabel = screen.getByText('Inactive');
+    const donutSlice = inactiveLabel.closest('li') ?? inactiveLabel.parentElement;
+    expect(donutSlice).not.toBeNull();
+    expect(within(donutSlice!).getByText('6')).toBeInTheDocument();
+  });
 });
 
 describe('AdminDashboard — org boards exclude soft-deleted organizations', () => {
@@ -129,7 +156,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[]}
         storageLoading={false}
@@ -151,7 +177,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[]}
         storageLoading={false}
@@ -170,7 +195,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[]}
         storageLoading={false}
@@ -196,7 +220,6 @@ describe('AdminDashboard — org boards exclude soft-deleted organizations', () 
       <AdminDashboard
         companies={companies}
         users={[]}
-        superAdmins={[]}
         loading={false}
         storageStats={[
           {

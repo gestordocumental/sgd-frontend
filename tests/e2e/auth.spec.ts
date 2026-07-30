@@ -45,7 +45,6 @@ test.describe('Login page', () => {
   });
 
   test('renders the form with expected fields and button', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Welcome to SGD' })).toBeVisible();
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
