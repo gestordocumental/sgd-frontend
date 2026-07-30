@@ -10,6 +10,7 @@ import {
   XCircle as XIcon,
   RefreshCw,
   RotateCcw,
+  MailCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,7 @@ interface CompanyUsersRowProps {
   companyId: string;
   onEditUser: (u: ApiUserWithRoles, companyId: string) => void;
   onToggleUserStatus: (u: ApiUserWithRoles, companyId: string) => void;
+  onResendInvitation: (u: ApiUserWithRoles, companyId: string) => void;
 }
 
 export function CompanyUsersRow({
@@ -49,6 +51,7 @@ export function CompanyUsersRow({
   companyId,
   onEditUser,
   onToggleUserStatus,
+  onResendInvitation,
 }: CompanyUsersRowProps) {
   const { t } = useTranslation();
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -211,11 +214,9 @@ export function CompanyUsersRow({
                     {paginated.map((u) => {
                       const isSelf = u.id === currentUserId;
                       const isPending = isPendingRegistration(u);
+                      const isRemoved = isDeleted(u) || !!u.orgRemovedAt;
                       return (
-                        <TableRow
-                          key={u.id}
-                          className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}
-                        >
+                        <TableRow key={u.id} className={isRemoved ? 'opacity-50' : ''}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="size-8">
@@ -290,7 +291,7 @@ export function CompanyUsersRow({
                             )}
                           </TableCell>
                           <TableCell className="py-2.5">
-                            {!isPending && (
+                            {!(isPending && isSelf) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger
                                   aria-label={t('companies.actions.openUserMenu', {
@@ -301,15 +302,17 @@ export function CompanyUsersRow({
                                   <MoreHorizontal className="size-3.5" />
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
-                                    <PencilIcon className="size-4" />{' '}
-                                    {t('companies.actions.editUser')}
-                                  </DropdownMenuItem>
-                                  {!isSelf && (
+                                  {!isPending && (
+                                    <DropdownMenuItem onClick={() => onEditUser(u, companyId)}>
+                                      <PencilIcon className="size-4" />{' '}
+                                      {t('companies.actions.editUser')}
+                                    </DropdownMenuItem>
+                                  )}
+                                  {!isSelf && (!isPending || isRemoved) && (
                                     <DropdownMenuItem
                                       onClick={() => onToggleUserStatus(u, companyId)}
                                     >
-                                      {isDeleted(u) || !!u.orgRemovedAt ? (
+                                      {isRemoved ? (
                                         <>
                                           <RotateCcw className="size-4" />{' '}
                                           {t('companies.actions.restoreUser')}
@@ -325,6 +328,14 @@ export function CompanyUsersRow({
                                           {t('companies.actions.activateUser')}
                                         </>
                                       )}
+                                    </DropdownMenuItem>
+                                  )}
+                                  {!isSelf && isPending && !isRemoved && (
+                                    <DropdownMenuItem
+                                      onClick={() => onResendInvitation(u, companyId)}
+                                    >
+                                      <MailCheck className="size-4" />{' '}
+                                      {t('users.actions.resendInvitation')}
                                     </DropdownMenuItem>
                                   )}
                                 </DropdownMenuContent>

@@ -96,8 +96,6 @@
     }
   },
   "auth": {
-    "welcomeTitle": "Bienvenido a SGD",
-    "welcomeSubtitle": "Ingresa tus credenciales para acceder al sistema",
     "emailLabel": "Correo electrónico",
     "emailPlaceholder": "usuario@empresa.com",
     "passwordLabel": "Contraseña",
@@ -112,7 +110,7 @@
     "serverErrorFallback": "Error al conectar con el servidor. Por favor intenta de nuevo.",
     "devMode": "Modo desarrollo — mocks activos",
     "devCredentials": "admin@sgd.helisa.com · admin123",
-    "footer": "SGD v0.1.0 — Helisa S.A.S",
+    "footer": "SGD v0.1.0 — Helisa",
     "loginAttemptsWarning": "{{count}} de {{threshold}} intentos fallidos — se aplicará una pausa de 30 s al llegar al límite.",
     "loginLocked": "Demasiados intentos fallidos. Espera {{seconds}} segundos para volver a intentarlo.",
     "loginLockedButton": "Pausado ({{seconds}}s)",
