@@ -14,15 +14,21 @@ vi.mock('@/store/authStore', () => ({
   useAuthStore: vi.fn(() => ({ user: { id: 'user-1' }, accessToken: null })),
 }));
 
-vi.mock('@/features/workflows/workflow-state-machine', () => ({
-  getWorkflowActions: () => ({
+// A vi.fn() (not a plain arrow function) so individual tests can override the
+// returned actions via mockReturnValueOnce to exercise the footer buttons
+// that depend on them — most tests rely on the default all-false return.
+const { mockGetWorkflowActions } = vi.hoisted(() => ({
+  mockGetWorkflowActions: vi.fn(() => ({
     canStartApproval: false,
     canApproveStep: false,
     canStartReviewCycle: false,
     canCompleteAdminStep: false,
     canForwardAdminStep: false,
     canDelete: false,
-  }),
+  })),
+}));
+vi.mock('@/features/workflows/workflow-state-machine', () => ({
+  getWorkflowActions: mockGetWorkflowActions,
 }));
 
 const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
@@ -153,6 +159,9 @@ function makeHook(detailWorkflow: ApiWorkflow | null): WorkflowsHook {
       openReviewCycle: vi.fn(),
       openCompleteStep: vi.fn(),
       openForwardStep: vi.fn(),
+      // Mirrors the real navigateFromDetail: closes detail and immediately
+      // runs the action that opens the next dialog (see use-workflows.ts).
+      navigateFromDetail: vi.fn((action: () => void) => action()),
     },
   } as unknown as WorkflowsHook;
 }
@@ -744,5 +753,305 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     );
     expect(mockGetAuditLog).not.toHaveBeenCalled();
     expect(createdBlobs).toHaveLength(0);
+  });
+});
+
+describe('DetailWorkflowDialog — footer actions', () => {
+  it('"View timeline" navigates away from detail and opens the timeline for this workflow', () => {
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View timeline' }));
+
+    // setDetailWorkflow(null) is navigateFromDetail's own responsibility
+    // (see use-workflows.ts) — covered there, not re-asserted on this mock.
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openTimeline).toHaveBeenCalledWith(wf.id);
+  });
+
+  it('"Edit" shows only for the creator on a DRAFT workflow, and navigates to the edit dialog', () => {
+    const wf = makeWorkflow({ status: 'DRAFT', createdBy: 'user-1' });
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openEdit).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Edit" for a DRAFT workflow created by someone else', () => {
+    const wf = makeWorkflow({ status: 'DRAFT', createdBy: 'someone-else' });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('"Start approval" calls the mutation directly, without navigating away from detail', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: true,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start approval' }));
+
+    expect(hook.mutations.startApprovalMutation.mutate).toHaveBeenCalledWith(wf.id);
+    expect(hook.actions.navigateFromDetail).not.toHaveBeenCalled();
+  });
+
+  it('"Reject" navigates to the reject dialog', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: true,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openReject).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Approve" navigates to the approve dialog', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: true,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openApprove).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Start review cycle" navigates to the review cycle dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: true,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start review cycle' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openReviewCycle).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Complete step" and "Send to optional reviewer" navigate to their dialogs', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: true,
+      canForwardAdminStep: true,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete step' }));
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openCompleteStep).toHaveBeenCalledWith(wf);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send to optional reviewer' }));
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(2);
+    expect(hook.actions.openForwardStep).toHaveBeenCalledWith(wf);
+  });
+
+  it('plain "Close" clears the detail workflow directly, without navigateFromDetail', () => {
+    // Two elements share the "Close" accessible name: the dialog's own
+    // built-in X button (data-slot="dialog-close") and our footer button —
+    // only the latter is under test here.
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+    const footerClose = closeButtons.find((el) => el.getAttribute('data-slot') !== 'dialog-close');
+
+    fireEvent.click(footerClose!);
+
+    expect(hook.dialogs.setDetailWorkflow).toHaveBeenCalledWith(null);
+    expect(hook.actions.navigateFromDetail).not.toHaveBeenCalled();
+  });
+
+  it('forwards reviewCycleEnabled to getWorkflowActions, defaulting to true when omitted', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(mockGetWorkflowActions).toHaveBeenLastCalledWith(
+      wf,
+      expect.objectContaining({ reviewCycleEnabled: true }),
+    );
+  });
+
+  it('forwards an explicit reviewCycleEnabled: false to getWorkflowActions', () => {
+    const wf = makeWorkflow();
+    render(
+      <DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} reviewCycleEnabled={false} />,
+    );
+
+    expect(mockGetWorkflowActions).toHaveBeenLastCalledWith(
+      wf,
+      expect.objectContaining({ reviewCycleEnabled: false }),
+    );
+  });
+});
+
+describe('DetailWorkflowDialog — rich detail rendering', () => {
+  it('renders support/approval attachments, approval steps with observations, multi-cycle admin history and final users', () => {
+    const wf = makeWorkflow({
+      description: 'A contract pending review',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      approvalSteps: [
+        {
+          id: 'step-1',
+          workflowId: 'wf-1',
+          userId: 'approver-1',
+          stepOrder: 1,
+          status: 'APPROVED',
+          completedAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+      approvalActions: [
+        {
+          id: 'act-1',
+          workflowId: 'wf-1',
+          stepId: 'step-1',
+          userId: 'approver-1',
+          action: 'APPROVED',
+          observations: 'Looks good to me',
+          attemptNumber: 1,
+          attachments: [
+            {
+              storageKey: 'k2',
+              originalName: 'proof.pdf',
+              mimeType: 'application/pdf',
+              fileSizeBytes: 50,
+            },
+          ],
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-1',
+          workflowId: 'wf-1',
+          uploadedBy: 'user-1',
+          storageKey: 'k1',
+          originalName: 'support.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'SUPPORTING',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+      adminCycles: [
+        {
+          id: 'cycle-1',
+          workflowId: 'wf-1',
+          cycleNumber: 1,
+          initiatedBy: 'final-user-1',
+          status: 'COMPLETED',
+          currentStepOrder: null,
+          completedAt: '2024-01-02T00:00:00Z',
+          allowedOptionalReviewerIds: [],
+          steps: [
+            {
+              id: 'astep-1',
+              cycleId: 'cycle-1',
+              userId: 'admin-1',
+              stepOrder: 1,
+              status: 'COMPLETED',
+              isOptional: false,
+              insertedByStepId: null,
+              completedAt: '2024-01-02T00:00:00Z',
+              notes: [
+                {
+                  id: 'note-1',
+                  content: 'Reviewed and fine',
+                  createdBy: 'admin-1',
+                  createdAt: '2024-01-02T00:00:00Z',
+                },
+              ],
+              attachments: [
+                {
+                  id: 'aatt-1',
+                  storageKey: 'k3',
+                  originalName: 'cycle-note.pdf',
+                  mimeType: 'application/pdf',
+                  fileSizeBytes: 10,
+                  uploadedBy: 'admin-1',
+                  createdAt: '2024-01-02T00:00:00Z',
+                },
+              ],
+            },
+          ],
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 'cycle-2',
+          workflowId: 'wf-1',
+          cycleNumber: 2,
+          initiatedBy: 'final-user-1',
+          status: 'IN_PROGRESS',
+          currentStepOrder: 1,
+          completedAt: null,
+          allowedOptionalReviewerIds: [],
+          steps: [
+            {
+              id: 'astep-2',
+              cycleId: 'cycle-2',
+              userId: 'admin-2',
+              stepOrder: 1,
+              status: 'PENDING',
+              isOptional: true,
+              insertedByStepId: null,
+              completedAt: null,
+            },
+          ],
+          createdAt: '2024-01-03T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.getByText('A contract pending review')).toBeInTheDocument();
+    expect(screen.getByText('support.pdf')).toBeInTheDocument();
+    expect(screen.getByText('proof.pdf')).toBeInTheDocument();
+    expect(screen.getByText('"Looks good to me"')).toBeInTheDocument();
+    expect(screen.getByText('Reviewed and fine')).toBeInTheDocument();
+    expect(screen.getByText('cycle-note.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/Cycle #2/)).toBeInTheDocument();
+    expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
   });
 });

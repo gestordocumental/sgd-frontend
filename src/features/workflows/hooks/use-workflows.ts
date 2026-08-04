@@ -25,6 +25,18 @@ export function useWorkflows(companyId: string) {
   const extraction = useDocumentExtraction(companyId);
   const forms = useWorkflowForms();
 
+  // Reopens the detail dialog for the workflow that was open right before the
+  // user navigated to a secondary dialog from its footer — a no-op if that
+  // secondary dialog was instead opened from somewhere else (e.g. the table
+  // row menu), since returnToDetailWorkflow stays null in that case.
+  const returnToDetailIfPending = () => {
+    if (dialogs.returnToDetailWorkflow) {
+      const workflow = dialogs.returnToDetailWorkflow;
+      dialogs.setReturnToDetailWorkflow(null);
+      dialogs.setDetailWorkflow(workflow);
+    }
+  };
+
   const queries = useWorkflowQueries(companyId, {
     statusFilter: dialogs.statusFilter,
     search: dialogs.search,
@@ -51,6 +63,10 @@ export function useWorkflows(companyId: string) {
       dialogs.setSupportingFiles([]);
     },
     onUpdateSuccess: (updated) => {
+      // Reopens detail with the fresh, just-saved workflow — not the stale
+      // one returnToDetailIfPending would use — so the flag is only cleared
+      // here, never handed to that helper.
+      dialogs.setReturnToDetailWorkflow(null);
       dialogs.setDetailWorkflow(updated);
       dialogs.setEditWorkflow(null);
       dialogs.setEditApproverIds([]);
@@ -66,20 +82,24 @@ export function useWorkflows(companyId: string) {
       dialogs.setApproveWorkflow(null);
       dialogs.setApproveAttachmentFiles([]);
       forms.approveForm.reset();
+      returnToDetailIfPending();
     },
     onRejectSuccess: () => {
       dialogs.setRejectWorkflow(null);
       forms.rejectForm.reset();
+      returnToDetailIfPending();
     },
     onAdminCycleSuccess: () => {
       dialogs.setReviewCycleWorkflow(null);
       dialogs.setReviewCycleReviewerIds([]);
       dialogs.setReviewCycleOptionalIds(new Set());
+      returnToDetailIfPending();
     },
     onSkipCycleSuccess: () => {
       dialogs.setReviewCycleWorkflow(null);
       dialogs.setReviewCycleReviewerIds([]);
       dialogs.setReviewCycleOptionalIds(new Set());
+      returnToDetailIfPending();
     },
     onSkipCycleError: () => {
       toast.error(t('workflows.dialogs.skipCycleError'));
@@ -88,14 +108,26 @@ export function useWorkflows(companyId: string) {
       dialogs.setCompleteStepWorkflow(null);
       dialogs.setCompleteStepFiles([]);
       dialogs.setCompleteStepNotes('');
+      returnToDetailIfPending();
     },
     onForwardStepSuccess: () => {
       dialogs.setForwardStepWorkflow(null);
       dialogs.setForwardStepOptionalId('');
       dialogs.setForwardStepNotes('');
       dialogs.setForwardStepFiles([]);
+      returnToDetailIfPending();
     },
   });
+
+  // Closes the detail dialog to open a secondary one from its footer (view
+  // timeline, edit, approve, reject, review cycle, complete/forward step),
+  // remembering the workflow so the secondary dialog's close path can bring
+  // detail back up — see returnToDetailIfPending.
+  const navigateFromDetail = (action: () => void) => {
+    if (dialogs.detailWorkflow) dialogs.setReturnToDetailWorkflow(dialogs.detailWorkflow);
+    dialogs.setDetailWorkflow(null);
+    action();
+  };
 
   // ── Open helpers ───────────────────────────────────────────────────────────
   const openCreate = () => {
@@ -299,6 +331,39 @@ export function useWorkflows(companyId: string) {
       ...dialogs,
       // Override: expose the enriched version (with attachments) when available
       detailWorkflow: queries.detailWorkflowFull ?? dialogs.detailWorkflow,
+      // Override: each dialog closes itself by calling its setter with null
+      // (Cancel button, backdrop click, or Radix's onOpenChange) — routing
+      // that through here means every one of those close paths also reopens
+      // detail when it was the one navigated away from, with no changes
+      // needed in the individual dialog components themselves.
+      setApproveWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setApproveWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
+      setRejectWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setRejectWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
+      setTimelineWorkflowId: (workflowId: string | null) => {
+        dialogs.setTimelineWorkflowId(workflowId);
+        if (workflowId === null) returnToDetailIfPending();
+      },
+      setEditWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setEditWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
+      setReviewCycleWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setReviewCycleWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
+      setCompleteStepWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setCompleteStepWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
+      setForwardStepWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setForwardStepWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
     },
 
     // ── Server data (queries + derived) ───────────────────────────────────────
@@ -347,6 +412,7 @@ export function useWorkflows(companyId: string) {
       openReviewCycle,
       openCompleteStep,
       openForwardStep,
+      navigateFromDetail,
     },
 
     // ── Document extraction + cross-cutting derived state ──────────────────────

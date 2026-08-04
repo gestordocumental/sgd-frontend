@@ -277,6 +277,7 @@ function CompanyDashboard() {
                   canWrite={canWriteWorkflows}
                   canApprove={canApproveWorkflows}
                   canManage={canManageWorkflows}
+                  reviewCycleEnabled={companyUsers.company?.reviewCycleEnabled ?? true}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -305,7 +306,11 @@ function CompanyDashboard() {
       />
       <RoleDialogs hook={roles} activeUsers={activeUsers} allUsers={companyUsers.users} />
       <OrgStructureDialogs hook={orgStructure} />
-      <WorkflowDialogs hook={workflows} canApprove={canApproveWorkflows} />
+      <WorkflowDialogs
+        hook={workflows}
+        canApprove={canApproveWorkflows}
+        reviewCycleEnabled={companyUsers.company?.reviewCycleEnabled ?? true}
+      />
     </Tabs>
   );
 }
