@@ -17,6 +17,7 @@ function makeCompany(overrides: Partial<ApiCompany> = {}): ApiCompany {
     updatedAt: '2024-01-01T00:00:00Z',
     deletedAt: null,
     ...overrides,
+    reviewCycleEnabled: overrides.reviewCycleEnabled ?? true,
   };
 }
 

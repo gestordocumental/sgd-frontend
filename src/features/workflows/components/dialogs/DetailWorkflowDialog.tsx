@@ -347,9 +347,11 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
 export function DetailWorkflowDialog({
   hook,
   canApprove,
+  reviewCycleEnabled = true,
 }: {
   hook: WorkflowsHook;
   canApprove: boolean;
+  reviewCycleEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const { user, accessToken } = useAuthStore();
@@ -364,6 +366,7 @@ export function DetailWorkflowDialog({
     openReviewCycle,
     openCompleteStep,
     openForwardStep,
+    navigateFromDetail,
   } = hook.actions;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -503,7 +506,7 @@ export function DetailWorkflowDialog({
     canStartReviewCycle,
     canCompleteAdminStep,
     canForwardAdminStep,
-  } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove });
+  } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove, reviewCycleEnabled });
 
   const allAttachments = detailWorkflow.attachments ?? [];
   const approvalAttachments = (detailWorkflow.approvalActions ?? []).flatMap((a) =>
@@ -1045,10 +1048,7 @@ export function DetailWorkflowDialog({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              setDetailWorkflow(null);
-              openTimeline(detailWorkflow.id);
-            }}
+            onClick={() => navigateFromDetail(() => openTimeline(detailWorkflow.id))}
           >
             {t('workflows.actions.viewTimeline')}
           </Button>
@@ -1056,10 +1056,7 @@ export function DetailWorkflowDialog({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setDetailWorkflow(null);
-                openEdit(detailWorkflow);
-              }}
+              onClick={() => navigateFromDetail(() => openEdit(detailWorkflow))}
             >
               {t('common.edit')}
             </Button>
@@ -1081,19 +1078,13 @@ export function DetailWorkflowDialog({
                 size="sm"
                 variant="outline"
                 style={{ color: '#dc2626', borderColor: '#dc2626' }}
-                onClick={() => {
-                  setDetailWorkflow(null);
-                  openReject(detailWorkflow);
-                }}
+                onClick={() => navigateFromDetail(() => openReject(detailWorkflow))}
               >
                 {t('workflows.actions.reject')}
               </Button>
               <Button
                 size="sm"
-                onClick={() => {
-                  setDetailWorkflow(null);
-                  openApprove(detailWorkflow);
-                }}
+                onClick={() => navigateFromDetail(() => openApprove(detailWorkflow))}
               >
                 {t('workflows.actions.approve')}
               </Button>
@@ -1102,10 +1093,7 @@ export function DetailWorkflowDialog({
           {canStartReviewCycle && (
             <Button
               size="sm"
-              onClick={() => {
-                setDetailWorkflow(null);
-                openReviewCycle(detailWorkflow);
-              }}
+              onClick={() => navigateFromDetail(() => openReviewCycle(detailWorkflow))}
             >
               {t('workflows.actions.startReviewCycle')}
             </Button>
@@ -1113,10 +1101,7 @@ export function DetailWorkflowDialog({
           {canCompleteAdminStep && (
             <Button
               size="sm"
-              onClick={() => {
-                setDetailWorkflow(null);
-                openCompleteStep(detailWorkflow);
-              }}
+              onClick={() => navigateFromDetail(() => openCompleteStep(detailWorkflow))}
             >
               {t('workflows.actions.completeStep')}
             </Button>
@@ -1125,10 +1110,7 @@ export function DetailWorkflowDialog({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                setDetailWorkflow(null);
-                openForwardStep(detailWorkflow);
-              }}
+              onClick={() => navigateFromDetail(() => openForwardStep(detailWorkflow))}
             >
               {t('workflows.actions.forwardStep')}
             </Button>

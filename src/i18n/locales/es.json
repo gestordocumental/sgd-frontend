@@ -480,6 +480,7 @@
       "nitPlaceholder": "900.123.456-7",
       "addressPlaceholder": "Calle 123 #45-67, Ciudad",
       "phonePlaceholder": "+57 601 234 5678",
+      "reviewCycleEnabledLabel": "Habilitar ciclo de revisión en los flujos",
       "createButton": "Crear empresa",
       "deleteButton": "Eliminar"
     }

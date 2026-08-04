@@ -480,6 +480,7 @@
       "nitPlaceholder": "900.123.456-7",
       "addressPlaceholder": "123 Main St, City",
       "phonePlaceholder": "+57 601 234 5678",
+      "reviewCycleEnabledLabel": "Enable review cycle on workflows",
       "createButton": "Create company",
       "deleteButton": "Delete"
     }

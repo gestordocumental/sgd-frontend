@@ -28,6 +28,8 @@ export interface WorkflowActionContext {
   canWrite?: boolean;
   /** El usuario tiene permiso de aprobación */
   canApprove?: boolean;
+  /** La empresa tiene habilitado el ciclo de revisión administrativo (default: true) */
+  reviewCycleEnabled?: boolean;
 }
 
 /**
@@ -36,7 +38,7 @@ export interface WorkflowActionContext {
  * usando VALID_TRANSITIONS como fuente de verdad para las guardas de estado.
  */
 export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionContext) {
-  const { userId, canWrite = false, canApprove = false } = ctx;
+  const { userId, canWrite = false, canApprove = false, reviewCycleEnabled = true } = ctx;
   const isCreator = workflow.createdBy === userId;
   const isFinalUser = workflow.finalUserIds?.includes(userId ?? '') ?? false;
   const isCurrentApprover = workflow.currentAssignedUserId === userId;
@@ -55,10 +57,12 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
     /** El aprobador actual puede aprobar/rechazar solo en PENDING_APPROVAL */
     canApproveStep: canApprove && isCurrentApprover && workflow.status === 'PENDING_APPROVAL',
 
-    /** Un usuario final puede iniciar ciclo admin solo desde PENDING_REVIEW_CYCLE.
+    /** Un usuario final puede iniciar ciclo admin solo desde PENDING_REVIEW_CYCLE,
+     *  y solo si la empresa tiene el ciclo de revisión habilitado.
      *  En AVAILABLE_FOR_FINAL_USERS el documento ya fue publicado y no corresponde
      *  mostrar "Iniciar revisión" aunque la transición técnica exista en el backend. */
-    canStartReviewCycle: isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE',
+    canStartReviewCycle:
+      reviewCycleEnabled && isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE',
 
     /** El usuario asignado al paso actual puede completarlo en ADMIN_CYCLE_IN_PROGRESS */
     canCompleteAdminStep: workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && isCurrentApprover,

@@ -251,6 +251,25 @@ describe('getWorkflowActions — canStartReviewCycle', () => {
     const wf = makeWorkflow({ status: 'ADMIN_CYCLE_IN_PROGRESS', finalUserIds: ['user-1'] });
     expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(false);
   });
+
+  it('defaults to true when reviewCycleEnabled is not passed (preserves existing behavior)', () => {
+    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(true);
+  });
+
+  it('is false when the org has the review cycle disabled, even if otherwise eligible', () => {
+    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
+    expect(
+      getWorkflowActions(wf, { userId: 'user-1', reviewCycleEnabled: false }).canStartReviewCycle,
+    ).toBe(false);
+  });
+
+  it('is true when the org explicitly has the review cycle enabled', () => {
+    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
+    expect(
+      getWorkflowActions(wf, { userId: 'user-1', reviewCycleEnabled: true }).canStartReviewCycle,
+    ).toBe(true);
+  });
 });
 
 // ── getWorkflowActions — canCompleteAdminStep ─────────────────────────────────

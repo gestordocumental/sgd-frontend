@@ -16,6 +16,7 @@ const companySchema = z.object({
   nit: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
+  reviewCycleEnabled: z.boolean(),
 });
 
 export type CompanyForm = z.infer<typeof companySchema>;
@@ -174,6 +175,7 @@ export function useAdminCompanies() {
       nit: c.nit ?? '',
       address: c.address ?? '',
       phone: c.phone ?? '',
+      reviewCycleEnabled: c.reviewCycleEnabled,
     });
   };
 
@@ -197,7 +199,7 @@ export function useAdminCompanies() {
   };
 
   const openCreate = () => {
-    createForm.reset();
+    createForm.reset({ reviewCycleEnabled: true });
     setCreateOpen(true);
   };
 

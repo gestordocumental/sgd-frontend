@@ -15,14 +15,23 @@ type WorkflowsHook = ReturnType<typeof useWorkflows>;
 interface WorkflowDialogsProps {
   hook: WorkflowsHook;
   canApprove?: boolean;
+  reviewCycleEnabled?: boolean;
 }
 
-export function WorkflowDialogs({ hook, canApprove = false }: WorkflowDialogsProps) {
+export function WorkflowDialogs({
+  hook,
+  canApprove = false,
+  reviewCycleEnabled = true,
+}: WorkflowDialogsProps) {
   return (
     <>
       <CreateWorkflowDialog hook={hook} />
       <EditWorkflowDialog hook={hook} />
-      <DetailWorkflowDialog hook={hook} canApprove={canApprove} />
+      <DetailWorkflowDialog
+        hook={hook}
+        canApprove={canApprove}
+        reviewCycleEnabled={reviewCycleEnabled}
+      />
       <ApproveDialog hook={hook} />
       <RejectDialog hook={hook} />
       <TimelineDialog hook={hook} />

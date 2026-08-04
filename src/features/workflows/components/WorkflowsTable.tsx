@@ -42,6 +42,7 @@ interface WorkflowsTableProps {
   canWrite?: boolean;
   canApprove?: boolean;
   canManage?: boolean;
+  reviewCycleEnabled?: boolean;
 }
 
 export function WorkflowsTable({
@@ -49,6 +50,7 @@ export function WorkflowsTable({
   canWrite = false,
   canApprove = false,
   canManage = false,
+  reviewCycleEnabled = true,
 }: WorkflowsTableProps) {
   const { t } = useTranslation();
   const { innerTab, setInnerTab, statusFilter, setStatusFilter, search, setSearch, page, setPage } =
@@ -197,6 +199,7 @@ export function WorkflowsTable({
               hook={hook}
               canWrite={canWrite}
               canApprove={canApprove}
+              reviewCycleEnabled={reviewCycleEnabled}
               emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.empty'}
             />
             {totalPages > 1 && (
@@ -218,6 +221,7 @@ export function WorkflowsTable({
             hook={hook}
             canWrite={false}
             canApprove={canApprove}
+            reviewCycleEnabled={reviewCycleEnabled}
             emptyKey="workflows.emptyMyTasks"
           />
         </TabsContent>
@@ -229,6 +233,7 @@ export function WorkflowsTable({
             hook={hook}
             canWrite={false}
             canApprove={false}
+            reviewCycleEnabled={reviewCycleEnabled}
             emptyKey="workflows.emptyMyAvailable"
           />
         </TabsContent>
@@ -245,6 +250,7 @@ interface WorkflowListProps {
   hook: WorkflowsHook;
   canWrite: boolean;
   canApprove: boolean;
+  reviewCycleEnabled: boolean;
   emptyKey: string;
 }
 
@@ -254,6 +260,7 @@ function WorkflowList({
   hook,
   canWrite,
   canApprove,
+  reviewCycleEnabled,
   emptyKey,
 }: WorkflowListProps) {
   const { t } = useTranslation();
@@ -323,6 +330,7 @@ function WorkflowList({
             hook={hook}
             canWrite={canWrite}
             canApprove={canApprove}
+            reviewCycleEnabled={reviewCycleEnabled}
           />
         ))}
       </div>
@@ -337,9 +345,16 @@ interface WorkflowRowProps {
   hook: WorkflowsHook;
   canWrite: boolean;
   canApprove: boolean;
+  reviewCycleEnabled: boolean;
 }
 
-function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps) {
+function WorkflowRow({
+  workflow,
+  hook,
+  canWrite,
+  canApprove,
+  reviewCycleEnabled,
+}: WorkflowRowProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const { setDeleteWorkflow } = hook.dialogs;
@@ -352,7 +367,7 @@ function WorkflowRow({ workflow, hook, canWrite, canApprove }: WorkflowRowProps)
     canStartReviewCycle,
     canCompleteAdminStep: canCompleteStep,
     canForwardAdminStep: canForwardStep,
-  } = getWorkflowActions(workflow, { userId: user?.id, canWrite, canApprove });
+  } = getWorkflowActions(workflow, { userId: user?.id, canWrite, canApprove, reviewCycleEnabled });
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors">
