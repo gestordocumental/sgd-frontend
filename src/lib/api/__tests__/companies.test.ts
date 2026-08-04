@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import MockAdapter from 'axios-mock-adapter';
+import * as Sentry from '@sentry/react';
 import { apiClient } from '../client';
 import { companiesApi, fetchAllCompanies, type ApiCompany } from '../companies';
 
 vi.mock('@/store/authStore', () => ({
   useAuthStore: { getState: () => ({ accessToken: null, user: null }) },
+}));
+
+vi.mock('@sentry/react', () => ({
+  captureException: vi.fn(),
 }));
 
 const mock = new MockAdapter(apiClient, { onNoMatch: 'throwException' });
@@ -106,6 +111,7 @@ describe('companiesApi', () => {
 describe('fetchAllCompanies', () => {
   beforeEach(() => {
     mock.reset();
+    vi.mocked(Sentry.captureException).mockClear();
   });
 
   it('follows nextCursor across pages and returns a flat array', async () => {
@@ -126,5 +132,10 @@ describe('fetchAllCompanies', () => {
     mock.onGet('/org').reply(500, { message: 'boom' });
 
     await expect(fetchAllCompanies()).rejects.toBeTruthy();
+
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).toHaveBeenCalledWith(expect.anything(), {
+      tags: { context: 'fetchAllCompanies' },
+    });
   });
 });

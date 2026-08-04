@@ -822,6 +822,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
 
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
     expect(hook.actions.openReject).toHaveBeenCalledWith(wf);
   });
 
@@ -840,6 +841,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
 
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
     expect(hook.actions.openApprove).toHaveBeenCalledWith(wf);
   });
 
@@ -858,6 +860,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Start review cycle' }));
 
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
     expect(hook.actions.openReviewCycle).toHaveBeenCalledWith(wf);
   });
 
@@ -875,9 +878,11 @@ describe('DetailWorkflowDialog — footer actions', () => {
     render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Complete step' }));
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
     expect(hook.actions.openCompleteStep).toHaveBeenCalledWith(wf);
 
     fireEvent.click(screen.getByRole('button', { name: 'Send to optional reviewer' }));
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(2);
     expect(hook.actions.openForwardStep).toHaveBeenCalledWith(wf);
   });
 
@@ -925,6 +930,7 @@ describe('DetailWorkflowDialog — rich detail rendering', () => {
     const wf = makeWorkflow({
       description: 'A contract pending review',
       finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
       approvalSteps: [
         {
           id: 'step-1',
@@ -1046,5 +1052,6 @@ describe('DetailWorkflowDialog — rich detail rendering', () => {
     expect(screen.getByText('Reviewed and fine')).toBeInTheDocument();
     expect(screen.getByText('cycle-note.pdf')).toBeInTheDocument();
     expect(screen.getByText(/Cycle #2/)).toBeInTheDocument();
+    expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
   });
 });
