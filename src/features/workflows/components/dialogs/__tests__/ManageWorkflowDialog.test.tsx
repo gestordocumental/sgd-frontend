@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@/i18n';
 import { ManageWorkflowDialog } from '../ManageWorkflowDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
@@ -129,7 +130,8 @@ describe('ManageWorkflowDialog', () => {
     expect(hook.dialogs.setManageFiles).not.toHaveBeenCalled();
   });
 
-  it('the "Attach documents" button is a focusable, keyboard-operable trigger for the file input', () => {
+  it('the "Attach documents" button opens the file input from the keyboard', async () => {
+    const user = userEvent.setup();
     const hook = makeHook(makeWorkflow());
     render(<ManageWorkflowDialog hook={hook} />);
 
@@ -140,7 +142,7 @@ describe('ManageWorkflowDialog', () => {
     button.focus();
     expect(button).toHaveFocus();
 
-    fireEvent.click(button);
+    await user.keyboard('{Enter}');
     expect(clickSpy).toHaveBeenCalledTimes(1);
   });
 
