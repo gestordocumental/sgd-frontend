@@ -57,12 +57,15 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
     /** El aprobador actual puede aprobar/rechazar solo en PENDING_APPROVAL */
     canApproveStep: canApprove && isCurrentApprover && workflow.status === 'PENDING_APPROVAL',
 
-    /** Un usuario final puede iniciar ciclo admin solo desde PENDING_REVIEW_CYCLE,
-     *  y solo si la empresa tiene el ciclo de revisión habilitado.
-     *  En AVAILABLE_FOR_FINAL_USERS el documento ya fue publicado y no corresponde
-     *  mostrar "Iniciar revisión" aunque la transición técnica exista en el backend. */
+    /** Un usuario final puede iniciar ciclo admin desde PENDING_REVIEW_CYCLE (antes
+     *  del primer ciclo) o desde AVAILABLE_FOR_FINAL_USERS (tras completarse uno) —
+     *  al terminar un ciclo el usuario final decide si lo deja disponible o inicia
+     *  otro. Solo si la empresa tiene el ciclo de revisión habilitado. */
     canStartReviewCycle:
-      reviewCycleEnabled && isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE',
+      reviewCycleEnabled &&
+      isFinalUser &&
+      (workflow.status === 'PENDING_REVIEW_CYCLE' ||
+        workflow.status === 'AVAILABLE_FOR_FINAL_USERS'),
 
     /** El usuario asignado al paso actual puede completarlo en ADMIN_CYCLE_IN_PROGRESS */
     canCompleteAdminStep: workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && isCurrentApprover,

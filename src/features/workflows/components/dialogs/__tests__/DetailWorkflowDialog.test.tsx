@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act, fireEvent, within } from '@testing-library/react';
 import ExcelJS from 'exceljs';
 import i18n from '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
@@ -1123,5 +1123,68 @@ describe('DetailWorkflowDialog — rich detail rendering', () => {
     expect(screen.getByText('cycle-note.pdf')).toBeInTheDocument();
     expect(screen.getByText(/Cycle #2/)).toBeInTheDocument();
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
+  });
+
+  it('renders "Gestionar" comments and attachments with the author who added them, separately from supporting attachments', () => {
+    const wf = makeWorkflow({
+      status: 'AVAILABLE_FOR_FINAL_USERS',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      notes: [
+        {
+          id: 'note-mgmt-1',
+          content: 'Client confirmed the delivery address',
+          createdBy: 'final-user-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-support-1',
+          workflowId: 'wf-1',
+          uploadedBy: 'user-1',
+          storageKey: 'k1',
+          originalName: 'support.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'SUPPORTING',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 'att-mgmt-1',
+          workflowId: 'wf-1',
+          uploadedBy: 'final-user-1',
+          storageKey: 'k4',
+          originalName: 'proof-of-delivery.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 200,
+          attachmentType: 'MANAGEMENT',
+          noteId: 'note-mgmt-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    // The comment left via "Gestionar" is visible, attributed to the final user.
+    expect(screen.getByText('Client confirmed the delivery address')).toBeInTheDocument();
+    // The MANAGEMENT attachment shows the same uploader.
+    expect(screen.getByText('proof-of-delivery.pdf')).toBeInTheDocument();
+    const attributions = screen.getAllByText('Ada Lovelace');
+    expect(attributions.length).toBeGreaterThanOrEqual(2); // comment author + attachment uploader
+
+    // Supporting attachments section only lists the SUPPORTING file, not the MANAGEMENT one.
+    const supportingHeading = screen.getByText('Supporting attachments');
+    const supportingSection = supportingHeading.closest('div')!.parentElement!;
+    expect(within(supportingSection).getByText('support.pdf')).toBeInTheDocument();
+    expect(within(supportingSection).queryByText('proof-of-delivery.pdf')).not.toBeInTheDocument();
+  });
+
+  it('hides the management section entirely when there are no "Gestionar" comments or attachments', () => {
+    const wf = makeWorkflow({ notes: [], attachments: [] });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByText('End user comments and attachments')).not.toBeInTheDocument();
   });
 });
