@@ -359,3 +359,51 @@ describe('getWorkflowActions — canForwardAdminStep', () => {
     expect(getWorkflowActions(wf, { userId: 'other-user' }).canForwardAdminStep).toBe(false);
   });
 });
+
+// ── getWorkflowActions — canManageWorkflow ────────────────────────────────────
+
+describe('getWorkflowActions — canManageWorkflow', () => {
+  it('is true for a final user when the workflow is AVAILABLE_FOR_FINAL_USERS', () => {
+    const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canManageWorkflow).toBe(true);
+  });
+
+  it('is false for a user not in finalUserIds', () => {
+    const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['other-user'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canManageWorkflow).toBe(false);
+  });
+
+  it('is false outside AVAILABLE_FOR_FINAL_USERS (e.g. ADMIN_CYCLE_IN_PROGRESS)', () => {
+    const wf = makeWorkflow({ status: 'ADMIN_CYCLE_IN_PROGRESS', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canManageWorkflow).toBe(false);
+  });
+
+  it('is false once the workflow is CLOSED', () => {
+    const wf = makeWorkflow({ status: 'CLOSED', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canManageWorkflow).toBe(false);
+  });
+});
+
+// ── getWorkflowActions — canCloseWorkflow ─────────────────────────────────────
+
+describe('getWorkflowActions — canCloseWorkflow', () => {
+  it('is true for a final user when the workflow is AVAILABLE_FOR_FINAL_USERS', () => {
+    const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCloseWorkflow).toBe(true);
+  });
+
+  it('is false for a user not in finalUserIds', () => {
+    const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['other-user'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCloseWorkflow).toBe(false);
+  });
+
+  it('is false outside AVAILABLE_FOR_FINAL_USERS (e.g. PENDING_REVIEW_CYCLE)', () => {
+    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCloseWorkflow).toBe(false);
+  });
+
+  it('is false once the workflow is already CLOSED', () => {
+    const wf = makeWorkflow({ status: 'CLOSED', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCloseWorkflow).toBe(false);
+  });
+});

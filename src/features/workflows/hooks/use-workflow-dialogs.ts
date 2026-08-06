@@ -72,6 +72,15 @@ export function useWorkflowDialogs() {
   const [forwardStepNotes, setForwardStepNotes] = useState('');
   const [forwardStepFiles, setForwardStepFiles] = useState<File[]>([]);
 
+  // ── Close workflow dialog ──────────────────────────────────────────────────
+  const [closeWorkflow, setCloseWorkflow] = useState<ApiWorkflow | null>(null);
+  const [closingNotes, setClosingNotes] = useState('');
+
+  // ── Manage workflow dialog ("Gestionar") ───────────────────────────────────
+  const [manageWorkflow, setManageWorkflow] = useState<ApiWorkflow | null>(null);
+  const [manageContent, setManageContent] = useState('');
+  const [manageFiles, setManageFiles] = useState<File[]>([]);
+
   // ── List helpers ───────────────────────────────────────────────────────────
   const addApprover = useCallback((userId: string) => {
     setApproverIds((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
@@ -173,6 +182,18 @@ export function useWorkflowDialogs() {
     setForwardStepNotes,
     forwardStepFiles,
     setForwardStepFiles,
+    // Close workflow
+    closeWorkflow,
+    setCloseWorkflow,
+    closingNotes,
+    setClosingNotes,
+    // Manage workflow
+    manageWorkflow,
+    setManageWorkflow,
+    manageContent,
+    setManageContent,
+    manageFiles,
+    setManageFiles,
     // Helpers
     addApprover,
     removeApprover,

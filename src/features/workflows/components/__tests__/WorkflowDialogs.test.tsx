@@ -48,6 +48,12 @@ vi.mock('../dialogs/CompleteReviewStepDialog', () => ({
 vi.mock('../dialogs/ForwardStepDialog', () => ({
   ForwardStepDialog: () => <div data-testid="forward-step-dialog" />,
 }));
+vi.mock('../dialogs/CloseWorkflowDialog', () => ({
+  CloseWorkflowDialog: () => <div data-testid="close-dialog" />,
+}));
+vi.mock('../dialogs/ManageWorkflowDialog', () => ({
+  ManageWorkflowDialog: () => <div data-testid="manage-dialog" />,
+}));
 
 const hook = {} as WorkflowsHook;
 
@@ -65,6 +71,8 @@ describe('WorkflowDialogs', () => {
     expect(screen.getByTestId('review-cycle-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('complete-step-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('forward-step-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('close-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('manage-dialog')).toBeInTheDocument();
   });
 
   it('defaults canApprove to false and reviewCycleEnabled to true when omitted', () => {

@@ -24,6 +24,8 @@ const { mockGetWorkflowActions } = vi.hoisted(() => ({
     canStartReviewCycle: false,
     canCompleteAdminStep: false,
     canForwardAdminStep: false,
+    canManageWorkflow: false,
+    canCloseWorkflow: false,
     canDelete: false,
   })),
 }));
@@ -159,6 +161,8 @@ function makeHook(detailWorkflow: ApiWorkflow | null): WorkflowsHook {
       openReviewCycle: vi.fn(),
       openCompleteStep: vi.fn(),
       openForwardStep: vi.fn(),
+      openClose: vi.fn(),
+      openManage: vi.fn(),
       // Mirrors the real navigateFromDetail: closes detail and immediately
       // runs the action that opens the next dialog (see use-workflows.ts).
       navigateFromDetail: vi.fn((action: () => void) => action()),
@@ -795,6 +799,8 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canStartReviewCycle: false,
       canCompleteAdminStep: false,
       canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -814,6 +820,8 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canStartReviewCycle: false,
       canCompleteAdminStep: false,
       canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -833,6 +841,8 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canStartReviewCycle: false,
       canCompleteAdminStep: false,
       canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -852,6 +862,8 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canStartReviewCycle: true,
       canCompleteAdminStep: false,
       canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -871,6 +883,8 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canStartReviewCycle: false,
       canCompleteAdminStep: true,
       canForwardAdminStep: true,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -884,6 +898,62 @@ describe('DetailWorkflowDialog — footer actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send to optional reviewer' }));
     expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(2);
     expect(hook.actions.openForwardStep).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Manage" navigates to the manage dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: true,
+      canCloseWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openManage).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Manage" when canManageWorkflow is false', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument();
+  });
+
+  it('"Close workflow" navigates to the close dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: true,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close workflow' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openClose).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Close workflow" when canCloseWorkflow is false', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Close workflow' })).not.toBeInTheDocument();
   });
 
   it('plain "Close" clears the detail workflow directly, without navigateFromDetail', () => {

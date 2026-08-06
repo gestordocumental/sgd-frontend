@@ -18,6 +18,8 @@ export interface WorkflowMutationDeps {
   onSkipCycleError: () => void;
   onCompleteStepSuccess: () => void;
   onForwardStepSuccess: () => void;
+  onCloseSuccess: () => void;
+  onAddNoteSuccess: () => void;
 }
 
 export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDeps) {
@@ -342,6 +344,55 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     },
   });
 
+  const closeMutation = useMutation({
+    mutationFn: ({ id, closingNotes }: { id: string; closingNotes: string }) =>
+      workflowsApi.close(
+        id,
+        { closingNotes: closingNotes.trim() || undefined },
+        crypto.randomUUID(),
+      ),
+    onSuccess: () => {
+      depsRef.current.invalidateAll();
+      depsRef.current.onCloseSuccess();
+    },
+  });
+
+  const addNoteMutation = useMutation({
+    mutationFn: async ({
+      workflow,
+      content,
+      files,
+    }: {
+      workflow: ApiWorkflow;
+      content: string;
+      files: File[];
+    }) => {
+      const uploadedAttachments = await Promise.all(
+        files.map((f) => workflowFilesApi.upload(workflow.orgId, f)),
+      );
+      return workflowsApi.addNote(
+        workflow.id,
+        {
+          content: content.trim() || undefined,
+          attachments:
+            uploadedAttachments.length > 0
+              ? uploadedAttachments.map((a) => ({
+                  storageKey: a.storageKey,
+                  originalName: a.originalName,
+                  mimeType: a.mimeType,
+                  ...(typeof a.fileSizeBytes === 'number' && { fileSizeBytes: a.fileSizeBytes }),
+                }))
+              : undefined,
+        },
+        crypto.randomUUID(),
+      );
+    },
+    onSuccess: () => {
+      depsRef.current.invalidateAll();
+      depsRef.current.onAddNoteSuccess();
+    },
+  });
+
   return {
     createMutation,
     updateMutation,
@@ -354,5 +405,7 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     skipReviewCycleMutation,
     completeStepMutation,
     forwardStepMutation,
+    closeMutation,
+    addNoteMutation,
   };
 }

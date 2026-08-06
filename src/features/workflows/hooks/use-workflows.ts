@@ -117,6 +117,17 @@ export function useWorkflows(companyId: string) {
       dialogs.setForwardStepFiles([]);
       returnToDetailIfPending();
     },
+    onCloseSuccess: () => {
+      dialogs.setCloseWorkflow(null);
+      dialogs.setClosingNotes('');
+      returnToDetailIfPending();
+    },
+    onAddNoteSuccess: () => {
+      dialogs.setManageWorkflow(null);
+      dialogs.setManageContent('');
+      dialogs.setManageFiles([]);
+      returnToDetailIfPending();
+    },
   });
 
   // Closes the detail dialog to open a secondary one from its footer (view
@@ -187,6 +198,17 @@ export function useWorkflows(companyId: string) {
     );
     dialogs.setEditFinalUserId(workflow.finalUserIds?.[0] ?? null);
     dialogs.setEditWorkflow(workflow);
+  };
+
+  const openClose = (workflow: ApiWorkflow) => {
+    dialogs.setClosingNotes('');
+    dialogs.setCloseWorkflow(workflow);
+  };
+
+  const openManage = (workflow: ApiWorkflow) => {
+    dialogs.setManageContent('');
+    dialogs.setManageFiles([]);
+    dialogs.setManageWorkflow(workflow);
   };
 
   // ── Open detail by ID (used from notification bell) ────────────────────────
@@ -364,6 +386,14 @@ export function useWorkflows(companyId: string) {
         dialogs.setForwardStepWorkflow(workflow);
         if (workflow === null) returnToDetailIfPending();
       },
+      setCloseWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setCloseWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
+      setManageWorkflow: (workflow: ApiWorkflow | null) => {
+        dialogs.setManageWorkflow(workflow);
+        if (workflow === null) returnToDetailIfPending();
+      },
     },
 
     // ── Server data (queries + derived) ───────────────────────────────────────
@@ -412,6 +442,8 @@ export function useWorkflows(companyId: string) {
       openReviewCycle,
       openCompleteStep,
       openForwardStep,
+      openClose,
+      openManage,
       navigateFromDetail,
     },
 
