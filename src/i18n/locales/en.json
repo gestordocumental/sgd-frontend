@@ -755,7 +755,7 @@
     "tabs": {
       "all": "All",
       "myTasks": "My tasks",
-      "myAvailable": "Available to me"
+      "myAvailable": "My workflows"
     },
     "status": {
       "DRAFT": "Draft",
