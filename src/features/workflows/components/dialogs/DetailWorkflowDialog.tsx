@@ -513,6 +513,12 @@ export function DetailWorkflowDialog({
   } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove, reviewCycleEnabled });
 
   const allAttachments = detailWorkflow.attachments ?? [];
+  // "Adjuntos de soporte" shows only SUPPORTING/MAIN_DOCUMENT files — MANAGEMENT
+  // ones (from "Gestionar") get their own section below with the uploader shown,
+  // same as approval attachments. allAttachments itself stays unfiltered since
+  // it also feeds the ZIP download and the file count in the footer.
+  const supportingAttachments = allAttachments.filter((att) => att.attachmentType !== 'MANAGEMENT');
+  const managementAttachments = allAttachments.filter((att) => att.attachmentType === 'MANAGEMENT');
   const approvalAttachments = (detailWorkflow.approvalActions ?? []).flatMap((a) =>
     (a.attachments ?? []).map((att) => ({ ...att, userId: a.userId })),
   );
@@ -763,7 +769,7 @@ export function DetailWorkflowDialog({
               )}
 
               {/* Adjuntos de soporte */}
-              {allAttachments.length > 0 && (
+              {supportingAttachments.length > 0 && (
                 <>
                   <Separator />
                   <div>
@@ -771,7 +777,7 @@ export function DetailWorkflowDialog({
                       {t('workflows.detail.attachments')}
                     </p>
                     <div className="rounded-md border border-border divide-y divide-border">
-                      {allAttachments.map((att) => (
+                      {supportingAttachments.map((att) => (
                         <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
                           <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
                           <span className="flex-1 text-xs truncate">{att.originalName}</span>
@@ -1001,6 +1007,63 @@ export function DetailWorkflowDialog({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </>
+              )}
+
+              {/* Gestión del usuario final — comentarios y adjuntos vía "Gestionar" */}
+              {((detailWorkflow.notes?.length ?? 0) > 0 || managementAttachments.length > 0) && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      {t('workflows.detail.management')}
+                    </p>
+                    <div className="space-y-2">
+                      {(detailWorkflow.notes ?? []).map((note) => (
+                        <div
+                          key={note.id}
+                          className="rounded-md bg-muted/40 border border-border px-2.5 py-2"
+                        >
+                          <p className="text-xs font-medium text-foreground">
+                            {userName(note.createdBy)}
+                          </p>
+                          <p className="text-xs text-foreground break-words mt-0.5">
+                            {note.content}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {new Date(note.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                      {managementAttachments.length > 0 && (
+                        <div className="rounded-md border border-border divide-y divide-border">
+                          {managementAttachments.map((att) => (
+                            <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                              <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs truncate">{att.originalName}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {userName(att.uploadedBy)}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={t('workflows.detail.downloadAttachment')}
+                                className="size-7 shrink-0"
+                                onClick={() =>
+                                  handleOpenFile(att.storageKey, att.originalName, att.mimeType)
+                                }
+                              >
+                                <Download className="size-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}

@@ -793,6 +793,7 @@
       "cycleInProgress": "En progreso",
       "stepCompleted": "Completado",
       "noCommentsOrAttachments": "Sin comentarios ni adjuntos.",
+      "management": "Comentarios y adjuntos del usuario final",
       "finalUser": "Usuario final",
       "downloadDoc": "Descargar documento",
       "previewDoc": "Ver documento",

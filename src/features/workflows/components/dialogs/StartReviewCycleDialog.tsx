@@ -51,6 +51,10 @@ export function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
   };
 
   const isPending = createAdminCycleMutation.isPending || skipReviewCycleMutation.isPending;
+  // skipReviewCycle solo es válido en PENDING_REVIEW_CYCLE (antes del primer
+  // ciclo) — reabierto desde AVAILABLE_FOR_FINAL_USERS tras completar uno, el
+  // workflow ya está disponible, así que "Omitir" no aplica (basta con cerrar).
+  const canSkip = reviewCycleWorkflow.status === 'PENDING_REVIEW_CYCLE';
 
   return (
     <Dialog
@@ -141,17 +145,19 @@ export function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
           >
             {t('common.cancel')}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => skipReviewCycleMutation.mutate(reviewCycleWorkflow.id)}
-          >
-            {skipReviewCycleMutation.isPending
-              ? t('common.processing')
-              : t('workflows.dialogs.skipReviewCycle')}
-          </Button>
+          {canSkip && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+              onClick={() => skipReviewCycleMutation.mutate(reviewCycleWorkflow.id)}
+            >
+              {skipReviewCycleMutation.isPending
+                ? t('common.processing')
+                : t('workflows.dialogs.skipReviewCycle')}
+            </Button>
+          )}
           <Button
             type="button"
             size="sm"
