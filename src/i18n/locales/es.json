@@ -755,7 +755,7 @@
     "tabs": {
       "all": "Todos",
       "myTasks": "Mis tareas",
-      "myAvailable": "Disponibles para mí"
+      "myAvailable": "Mis flujos"
     },
     "status": {
       "DRAFT": "Borrador",

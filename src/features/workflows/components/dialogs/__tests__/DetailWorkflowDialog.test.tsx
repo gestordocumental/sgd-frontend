@@ -1176,7 +1176,7 @@ describe('DetailWorkflowDialog — rich detail rendering', () => {
 
     // Supporting attachments section only lists the SUPPORTING file, not the MANAGEMENT one.
     const supportingHeading = screen.getByText('Supporting attachments');
-    const supportingSection = supportingHeading.closest('div')!.parentElement!;
+    const supportingSection = supportingHeading.closest('div')!;
     expect(within(supportingSection).getByText('support.pdf')).toBeInTheDocument();
     expect(within(supportingSection).queryByText('proof-of-delivery.pdf')).not.toBeInTheDocument();
   });
