@@ -1,6 +1,6 @@
 import { FileText, XCircle, Paperclip } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +22,7 @@ export function ManageWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
   } = hook.dialogs;
   const { addNoteMutation } = hook.mutations;
   const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files ?? []);
@@ -55,10 +56,11 @@ export function ManageWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           </p>
 
           <div className="space-y-1.5 shrink-0">
-            <label className="text-sm font-medium">
+            <label htmlFor="manage-content" className="text-sm font-medium">
               {t('workflows.dialogs.manageContentLabel')}
             </label>
             <textarea
+              id="manage-content"
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
               placeholder={t('workflows.dialogs.manageContentPlaceholder')}
               maxLength={3000}
@@ -103,21 +105,27 @@ export function ManageWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
               </div>
             )}
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/40 transition-colors">
+            <input
+              ref={fileInputRef}
+              data-testid="manage-file-input"
+              type="file"
+              className="hidden"
+              accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+              multiple
+              onChange={handleFileAdd}
+            />
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/40 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Paperclip className="h-4 w-4 shrink-0" />
               <span>
                 {manageFiles.length === 0
                   ? t('workflows.dialogs.attachDocuments')
                   : t('workflows.dialogs.attachMore')}
               </span>
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
-                multiple
-                onChange={handleFileAdd}
-              />
-            </label>
+            </button>
           </div>
         </div>
 

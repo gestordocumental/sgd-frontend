@@ -31,13 +31,14 @@ export function CloseWorkflowDialog({ hook }: { hook: WorkflowsHook }) {
           {t('workflows.dialogs.closeConfirmPost')}
         </p>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">
+          <label htmlFor="closing-notes" className="text-sm font-medium">
             {t('workflows.dialogs.closingNotesLabel')}{' '}
             <span className="font-normal text-muted-foreground">
               ({t('workflows.dialogs.optional')})
             </span>
           </label>
           <textarea
+            id="closing-notes"
             className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
             placeholder={t('workflows.dialogs.closingNotesPlaceholder')}
             maxLength={2000}

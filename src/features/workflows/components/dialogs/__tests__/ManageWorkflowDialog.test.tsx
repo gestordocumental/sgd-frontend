@@ -91,7 +91,7 @@ describe('ManageWorkflowDialog', () => {
     render(<ManageWorkflowDialog hook={hook} />);
 
     const file = new File(['content'], 'evidence.pdf', { type: 'application/pdf' });
-    const input = screen.getByLabelText(/attach documents/i, { selector: 'input' });
+    const input = screen.getByTestId('manage-file-input');
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(hook.dialogs.setManageFiles).toHaveBeenCalledWith(expect.any(Function));
@@ -123,10 +123,25 @@ describe('ManageWorkflowDialog', () => {
     const hook = makeHook(makeWorkflow());
     render(<ManageWorkflowDialog hook={hook} />);
 
-    const input = screen.getByLabelText(/attach documents/i, { selector: 'input' });
+    const input = screen.getByTestId('manage-file-input');
     fireEvent.change(input, { target: { files: [] } });
 
     expect(hook.dialogs.setManageFiles).not.toHaveBeenCalled();
+  });
+
+  it('the "Attach documents" button is a focusable, keyboard-operable trigger for the file input', () => {
+    const hook = makeHook(makeWorkflow());
+    render(<ManageWorkflowDialog hook={hook} />);
+
+    const button = screen.getByRole('button', { name: 'Attach documents' });
+    const input = screen.getByTestId('manage-file-input');
+    const clickSpy = vi.spyOn(input, 'click');
+
+    button.focus();
+    expect(button).toHaveFocus();
+
+    fireEvent.click(button);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
   });
 
   it('disables the confirm button when there is no content and no files', () => {
