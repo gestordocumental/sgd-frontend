@@ -74,5 +74,14 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
       !!pendingStep &&
       !pendingStep.isOptional &&
       (activeCycle?.allowedOptionalReviewerIds?.length ?? 0) > 0,
+
+    /** Un usuario final puede dejar comentarios/adjuntos ("Gestionar") las veces
+     *  que quiera mientras el workflow está disponible, sin iniciar un ciclo
+     *  administrativo formal con revisores. */
+    canManageWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
+
+    /** Un usuario final puede cerrar definitivamente el workflow solo desde
+     *  AVAILABLE_FOR_FINAL_USERS — una vez cerrado no se permiten más cambios. */
+    canCloseWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
   };
 }

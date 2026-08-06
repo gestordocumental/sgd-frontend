@@ -822,6 +822,8 @@
       "completeReviewStep": "Completar paso de revisión",
       "completeStep": "Completar paso",
       "forwardStep": "Enviar a revisor opcional",
+      "manage": "Gestionar",
+      "close": "Cerrar flujo",
       "openMenu": "Abrir acciones del flujo"
     },
     "empty": "No hay flujos de trabajo registrados",
@@ -956,7 +958,19 @@
       "forwardStepTitle": "Enviar a revisor opcional",
       "forwardStepDesc": "Selecciona un revisor opcional para que revise el workflow antes de que continúe al siguiente revisor obligatorio.",
       "selectOptionalReviewer": "Revisor opcional",
-      "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional..."
+      "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional...",
+      "closeTitle": "Cerrar flujo",
+      "closeConfirmPre": "¿Estás seguro de que deseas cerrar definitivamente el flujo",
+      "closeConfirmPost": "? No se permitirán más cambios una vez cerrado.",
+      "closingNotesLabel": "Nota de cierre",
+      "closingNotesPlaceholder": "Comentario final opcional...",
+      "closeButton": "Cerrar flujo",
+      "manageTitle": "Gestionar flujo",
+      "manageDescPre": "Agrega un comentario y/o adjuntos al flujo",
+      "manageDescPost": ". Puedes hacerlo las veces que necesites.",
+      "manageContentLabel": "Comentario",
+      "manageContentPlaceholder": "Escribe un comentario...",
+      "manageButton": "Agregar"
     }
   },
   "session": {

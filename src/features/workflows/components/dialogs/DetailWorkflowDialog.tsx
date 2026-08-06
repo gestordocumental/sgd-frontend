@@ -366,6 +366,8 @@ export function DetailWorkflowDialog({
     openReviewCycle,
     openCompleteStep,
     openForwardStep,
+    openClose,
+    openManage,
     navigateFromDetail,
   } = hook.actions;
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
@@ -506,6 +508,8 @@ export function DetailWorkflowDialog({
     canStartReviewCycle,
     canCompleteAdminStep,
     canForwardAdminStep,
+    canManageWorkflow,
+    canCloseWorkflow,
   } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove, reviewCycleEnabled });
 
   const allAttachments = detailWorkflow.attachments ?? [];
@@ -1113,6 +1117,24 @@ export function DetailWorkflowDialog({
               onClick={() => navigateFromDetail(() => openForwardStep(detailWorkflow))}
             >
               {t('workflows.actions.forwardStep')}
+            </Button>
+          )}
+          {canManageWorkflow && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigateFromDetail(() => openManage(detailWorkflow))}
+            >
+              {t('workflows.actions.manage')}
+            </Button>
+          )}
+          {canCloseWorkflow && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigateFromDetail(() => openClose(detailWorkflow))}
+            >
+              {t('workflows.actions.close')}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => setDetailWorkflow(null)}>

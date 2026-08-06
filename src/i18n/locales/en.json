@@ -822,6 +822,8 @@
       "completeReviewStep": "Complete review step",
       "completeStep": "Complete step",
       "forwardStep": "Send to optional reviewer",
+      "manage": "Manage",
+      "close": "Close workflow",
       "openMenu": "Open workflow actions"
     },
     "empty": "No workflows registered",
@@ -956,7 +958,19 @@
       "forwardStepTitle": "Send to optional reviewer",
       "forwardStepDesc": "Select an optional reviewer to review the workflow before continuing to the next mandatory reviewer.",
       "selectOptionalReviewer": "Optional reviewer",
-      "selectOptionalReviewerPlaceholder": "Select optional reviewer..."
+      "selectOptionalReviewerPlaceholder": "Select optional reviewer...",
+      "closeTitle": "Close workflow",
+      "closeConfirmPre": "Are you sure you want to permanently close workflow",
+      "closeConfirmPost": "? No further changes will be allowed once closed.",
+      "closingNotesLabel": "Closing note",
+      "closingNotesPlaceholder": "Optional final comment...",
+      "closeButton": "Close workflow",
+      "manageTitle": "Manage workflow",
+      "manageDescPre": "Add a comment and/or attachments to workflow",
+      "manageDescPost": ". You can do this as many times as you need.",
+      "manageContentLabel": "Comment",
+      "manageContentPlaceholder": "Write a comment...",
+      "manageButton": "Add"
     }
   },
   "session": {

@@ -42,7 +42,20 @@ export interface ApiWorkflowAttachment {
   originalName: string;
   mimeType: string;
   fileSizeBytes: number | null;
-  attachmentType: 'MAIN_DOCUMENT' | 'SUPPORTING';
+  attachmentType: 'MAIN_DOCUMENT' | 'SUPPORTING' | 'MANAGEMENT';
+  // Solo para attachmentType MANAGEMENT — la nota (ver ApiWorkflowNote) que
+  // este adjunto acompaña, si hay una.
+  noteId?: string | null;
+  createdAt: string;
+}
+
+// Comentario agregado vía "Gestionar" (o al cerrar el workflow) — a nivel de
+// workflow, sin cycleId/adminStepId. Los de un ciclo administrativo van en
+// ApiAdminStep.notes en su lugar.
+export interface ApiWorkflowNote {
+  id: string;
+  content: string;
+  createdBy: string;
   createdAt: string;
 }
 
@@ -156,6 +169,7 @@ export interface ApiWorkflow {
   approvalSteps: ApiApprovalStep[];
   approvalActions: ApiApprovalAction[];
   attachments: ApiWorkflowAttachment[];
+  notes?: ApiWorkflowNote[];
   activeAdminCycle: ApiAdminCycle | null;
   adminCycles?: ApiAdminCycle[];
   createdAt: string;
@@ -368,5 +382,30 @@ export const workflowsApi = {
         dto,
         withIdempotency(idempotencyKey),
       )
+      .then((r) => r.data),
+
+  // Cierre definitivo del workflow (usuario final) — AVAILABLE_FOR_FINAL_USERS -> CLOSED.
+  close: (id: string, dto: { closingNotes?: string }, idempotencyKey?: string) =>
+    apiClient
+      .post<ApiWorkflow>(`/workflows/${id}/close`, dto, withIdempotency(idempotencyKey))
+      .then((r) => r.data),
+
+  // "Gestionar" — comentario y/o adjuntos repetibles mientras el workflow está
+  // AVAILABLE_FOR_FINAL_USERS, sin iniciar un ciclo administrativo formal.
+  addNote: (
+    id: string,
+    dto: {
+      content?: string;
+      attachments?: Array<{
+        storageKey: string;
+        originalName: string;
+        mimeType: string;
+        fileSizeBytes?: number;
+      }>;
+    },
+    idempotencyKey?: string,
+  ) =>
+    apiClient
+      .post<ApiWorkflow>(`/workflows/${id}/notes`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 };
