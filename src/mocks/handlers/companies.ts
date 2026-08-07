@@ -11,7 +11,6 @@ const MOCK_COMPANIES: ApiCompany[] = [
     address: 'Cra 15 # 93-75, Bogotá',
     phone: '+57 1 234 5678',
     status: 'active',
-    reviewCycleEnabled: true,
     createdBy: 'usr-001',
     createdAt: '2024-01-15T08:00:00Z',
     updatedAt: '2024-06-01T10:00:00Z',
@@ -24,7 +23,6 @@ const MOCK_COMPANIES: ApiCompany[] = [
     address: 'Av. El Dorado # 68-21, Bogotá',
     phone: '+57 1 345 6789',
     status: 'active',
-    reviewCycleEnabled: true,
     createdBy: 'usr-001',
     createdAt: '2024-02-20T09:30:00Z',
     updatedAt: '2024-05-15T14:20:00Z',
@@ -37,7 +35,6 @@ const MOCK_COMPANIES: ApiCompany[] = [
     address: 'Cl 72 # 11-35, Bogotá',
     phone: null,
     status: 'inactive',
-    reviewCycleEnabled: true,
     createdBy: 'usr-001',
     createdAt: '2023-11-01T11:00:00Z',
     updatedAt: '2024-01-10T16:00:00Z',
@@ -102,7 +99,6 @@ export const companiesHandlers = [
       nit?: string;
       address?: string;
       phone?: string;
-      reviewCycleEnabled?: boolean;
     };
     const newCompany: ApiCompany = {
       id: `org-${Date.now()}`,
@@ -111,7 +107,6 @@ export const companiesHandlers = [
       address: body.address ?? null,
       phone: body.phone ?? null,
       status: 'active',
-      reviewCycleEnabled: body.reviewCycleEnabled ?? true,
       createdBy: 'usr-001',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

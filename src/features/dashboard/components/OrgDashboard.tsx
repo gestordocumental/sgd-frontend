@@ -123,6 +123,7 @@ const KpiCard = memo(function KpiCard({
   sub,
   loading,
   colorIdx = 0,
+  onClick,
 }: {
   icon: ElementType;
   label: string;
@@ -132,10 +133,20 @@ const KpiCard = memo(function KpiCard({
   sub?: string;
   loading?: boolean;
   colorIdx?: number;
+  onClick?: () => void;
 }) {
   const c = KPI_COLORS[colorIdx % KPI_COLORS.length];
+  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <div className={`rounded-xl border border-border ${c.bg} p-4 flex items-start gap-3`}>
+    <Wrapper
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={`rounded-xl border border-border ${c.bg} p-4 flex items-start gap-3 text-left w-full ${
+        onClick
+          ? 'cursor-pointer transition-colors hover:brightness-95 dark:hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          : ''
+      }`}
+    >
       <div className={`flex items-center justify-center size-11 rounded-xl ${c.iconBg} shrink-0`}>
         <Icon className={`size-5 ${c.icon}`} />
       </div>
@@ -153,7 +164,7 @@ const KpiCard = memo(function KpiCard({
         )}
         {sub && <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{sub}</p>}
       </div>
-    </div>
+    </Wrapper>
   );
 });
 
@@ -421,6 +432,8 @@ interface OrgDashboardProps {
   canViewOrgStructure: boolean;
   canViewWorkflows: boolean;
   canViewUsers: boolean;
+  /** Navigates to the workflows tab's "my tasks" inner tab. */
+  onMyTasksClick?: () => void;
 }
 
 export function OrgDashboard({
@@ -432,6 +445,7 @@ export function OrgDashboard({
   canViewOrgStructure,
   canViewWorkflows,
   canViewUsers,
+  onMyTasksClick,
 }: OrgDashboardProps) {
   const { t } = useTranslation();
   const noData = t('dashboard.noData');
@@ -521,6 +535,7 @@ export function OrgDashboard({
               value={workflowStats?.myPendingTasks ?? '—'}
               loading={isLoading}
               colorIdx={4}
+              onClick={onMyTasksClick}
             />
           )}
           {canViewUsers && (

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import '@/i18n';
 import { OrgDashboard } from '../OrgDashboard';
 import type { TypologyStats } from '@/lib/api/typologies';
@@ -119,6 +119,24 @@ describe('OrgDashboard — permission-gated sections', () => {
     // The combined KPIs are also hidden when neither module backing them is visible
     expect(screen.queryByText('Uploaded documents')).not.toBeInTheDocument();
     expect(screen.queryByText('Storage used')).not.toBeInTheDocument();
+  });
+
+  // ── "My pending tasks" card click ─────────────────────────────────────────
+
+  it('calls onMyTasksClick when the "My pending tasks" card is clicked', () => {
+    const onMyTasksClick = vi.fn();
+    renderDashboard({ onMyTasksClick });
+
+    fireEvent.click(screen.getByRole('button', { name: /my pending tasks/i }));
+
+    expect(onMyTasksClick).toHaveBeenCalledOnce();
+  });
+
+  it('renders the "My pending tasks" card as plain, non-interactive content when no handler is passed', () => {
+    renderDashboard();
+
+    expect(screen.queryByRole('button', { name: /my pending tasks/i })).not.toBeInTheDocument();
+    expect(screen.getByText('My pending tasks')).toBeInTheDocument();
   });
 
   it('does not leak the restricted module count into the combined documents KPI', () => {

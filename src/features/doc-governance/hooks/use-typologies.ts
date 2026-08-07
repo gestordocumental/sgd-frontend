@@ -115,6 +115,7 @@ const typologySchema = z.object({
   nombre: z.string().max(255).optional(),
   codigo: z.string().max(100).optional(),
   version: z.string().max(50).optional(),
+  reviewCycleEnabled: z.boolean(),
 });
 
 export type TypologyForm = z.infer<typeof typologySchema>;
@@ -181,6 +182,7 @@ export function useTypologies(orgId: string, enabled = true) {
       nombre: '',
       codigo: '',
       version: '',
+      reviewCycleEnabled: false,
     },
   });
 
@@ -332,6 +334,7 @@ export function useTypologies(orgId: string, enabled = true) {
         ...(dto.nombre ? { nombre: dto.nombre } : {}),
         ...(dto.codigo ? { codigo: dto.codigo } : {}),
         ...(dto.version ? { version: dto.version } : {}),
+        reviewCycleEnabled: dto.reviewCycleEnabled,
       }),
     onSuccess: (created) => {
       invalidate();
@@ -359,6 +362,7 @@ export function useTypologies(orgId: string, enabled = true) {
         ...(dto.nombre ? { nombre: dto.nombre } : {}),
         ...(dto.codigo ? { codigo: dto.codigo } : {}),
         ...(dto.version ? { version: dto.version } : {}),
+        reviewCycleEnabled: dto.reviewCycleEnabled,
       }),
     onSuccess: () => {
       invalidate();
@@ -478,6 +482,7 @@ export function useTypologies(orgId: string, enabled = true) {
       nombre: '',
       codigo: '',
       version: '',
+      reviewCycleEnabled: false,
     });
     setFormDeptId('');
     setFormAreaId('');
@@ -503,6 +508,7 @@ export function useTypologies(orgId: string, enabled = true) {
       nombre: typo.datosDeclarados.nombre ?? '',
       codigo: typo.datosDeclarados.codigo ?? '',
       version: typo.datosDeclarados.version ?? '',
+      reviewCycleEnabled: typo.reviewCycleEnabled,
     });
     form.trigger();
   };

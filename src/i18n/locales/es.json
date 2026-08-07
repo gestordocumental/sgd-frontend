@@ -480,7 +480,6 @@
       "nitPlaceholder": "900.123.456-7",
       "addressPlaceholder": "Calle 123 #45-67, Ciudad",
       "phonePlaceholder": "+57 601 234 5678",
-      "reviewCycleEnabledLabel": "Habilitar ciclo de revisión en los flujos",
       "createButton": "Crear empresa",
       "deleteButton": "Eliminar"
     }
@@ -700,7 +699,8 @@
       "createNewVersion": "Crear nueva versión",
       "creatingNewVersion": "Creando nueva versión…",
       "saving": "Guardando…",
-      "extractingShort": "Extrayendo…"
+      "extractingShort": "Extrayendo…",
+      "reviewCycleEnabledLabel": "Habilitar ciclo de revisión en los flujos"
     },
     "upload": {
       "title": "Cargar documento",
@@ -824,7 +824,8 @@
       "completeStep": "Completar paso",
       "forwardStep": "Enviar a revisor opcional",
       "manage": "Gestionar",
-      "close": "Cerrar flujo",
+      "close": "Finalizar flujo",
+      "cancelWorkflow": "Cancelar flujo",
       "openMenu": "Abrir acciones del flujo"
     },
     "empty": "No hay flujos de trabajo registrados",
@@ -960,12 +961,19 @@
       "forwardStepDesc": "Selecciona un revisor opcional para que revise el workflow antes de que continúe al siguiente revisor obligatorio.",
       "selectOptionalReviewer": "Revisor opcional",
       "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional...",
-      "closeTitle": "Cerrar flujo",
-      "closeConfirmPre": "¿Estás seguro de que deseas cerrar definitivamente el flujo",
-      "closeConfirmPost": "? No se permitirán más cambios una vez cerrado.",
+      "closeTitle": "Finalizar flujo",
+      "closeConfirmPre": "¿Estás seguro de que deseas finalizar definitivamente el flujo",
+      "closeConfirmPost": "? No se permitirán más cambios una vez finalizado.",
       "closingNotesLabel": "Nota de cierre",
       "closingNotesPlaceholder": "Comentario final opcional...",
-      "closeButton": "Cerrar flujo",
+      "closeButton": "Finalizar flujo",
+      "cancelWorkflowTitle": "Cancelar flujo",
+      "cancelWorkflowConfirmPre": "¿Estás seguro de que deseas cancelar el flujo",
+      "cancelWorkflowConfirmPost": "? Esta acción no se puede deshacer.",
+      "cancelReasonLabel": "Motivo de cancelación",
+      "cancelReasonPlaceholder": "Explica por qué se cancela este flujo...",
+      "cancelReasonRequired": "El motivo de cancelación es obligatorio",
+      "cancelWorkflowButton": "Cancelar flujo",
       "manageTitle": "Gestionar flujo",
       "manageDescPre": "Agrega un comentario y/o adjuntos al flujo",
       "manageDescPost": ". Puedes hacerlo las veces que necesites.",

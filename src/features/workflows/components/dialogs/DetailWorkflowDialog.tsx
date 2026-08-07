@@ -347,11 +347,9 @@ function XlsxPreviewTable({ workbook }: { workbook: ExcelJS.Workbook }) {
 export function DetailWorkflowDialog({
   hook,
   canApprove,
-  reviewCycleEnabled = true,
 }: {
   hook: WorkflowsHook;
   canApprove: boolean;
-  reviewCycleEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const { user, accessToken } = useAuthStore();
@@ -367,6 +365,7 @@ export function DetailWorkflowDialog({
     openCompleteStep,
     openForwardStep,
     openClose,
+    openCancel,
     openManage,
     navigateFromDetail,
   } = hook.actions;
@@ -510,7 +509,8 @@ export function DetailWorkflowDialog({
     canForwardAdminStep,
     canManageWorkflow,
     canCloseWorkflow,
-  } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove, reviewCycleEnabled });
+    canCancelWorkflow,
+  } = getWorkflowActions(detailWorkflow, { userId: currentUserId, canApprove });
 
   const allAttachments = detailWorkflow.attachments ?? [];
   // "Adjuntos de soporte" shows only SUPPORTING/MAIN_DOCUMENT files — MANAGEMENT
@@ -1177,6 +1177,16 @@ export function DetailWorkflowDialog({
               onClick={() => navigateFromDetail(() => openClose(detailWorkflow))}
             >
               {t('workflows.actions.close')}
+            </Button>
+          )}
+          {canCancelWorkflow && (
+            <Button
+              size="sm"
+              variant="outline"
+              style={{ color: '#dc2626', borderColor: '#dc2626' }}
+              onClick={() => navigateFromDetail(() => openCancel(detailWorkflow))}
+            >
+              {t('workflows.actions.cancelWorkflow')}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => setDetailWorkflow(null)}>

@@ -41,7 +41,6 @@ function makeCompany(overrides: Partial<ApiCompany> = {}): ApiCompany {
     updatedAt: '2026-01-01T00:00:00.000Z',
     deletedAt: null,
     ...overrides,
-    reviewCycleEnabled: overrides.reviewCycleEnabled ?? true,
   };
 }
 
@@ -186,15 +185,6 @@ describe('useAdminCompanies — list query', () => {
 });
 
 describe('useAdminCompanies — create', () => {
-  it('opens the create dialog with reviewCycleEnabled defaulted to true', async () => {
-    const { result } = renderHook(() => useAdminCompanies(), { wrapper: makeWrapper() });
-
-    act(() => result.current.openCreate());
-
-    expect(result.current.createOpen).toBe(true);
-    expect(result.current.createForm.getValues('reviewCycleEnabled')).toBe(true);
-  });
-
   it('creates a company and closes the dialog on success', async () => {
     mockCreate.mockResolvedValue(makeCompany());
     const { result } = renderHook(() => useAdminCompanies(), { wrapper: makeWrapper() });
@@ -203,19 +193,18 @@ describe('useAdminCompanies — create', () => {
     await act(async () => {
       await result.current.onCreateSubmit({
         name: 'Acme',
-        reviewCycleEnabled: false,
       } as CompanyForm);
     });
 
-    expect(mockCreate).toHaveBeenCalledWith({ name: 'Acme', reviewCycleEnabled: false });
+    expect(mockCreate).toHaveBeenCalledWith({ name: 'Acme' });
     await waitFor(() => expect(result.current.createOpen).toBe(false));
   });
 });
 
 describe('useAdminCompanies — edit', () => {
-  it('populates the edit form from the company, including its reviewCycleEnabled value', () => {
+  it('populates the edit form from the company', () => {
     const { result } = renderHook(() => useAdminCompanies(), { wrapper: makeWrapper() });
-    const company = makeCompany({ reviewCycleEnabled: false });
+    const company = makeCompany();
 
     act(() => result.current.openEdit(company));
 
@@ -225,7 +214,6 @@ describe('useAdminCompanies — edit', () => {
       nit: '900123456',
       address: 'Main St',
       phone: '5551234',
-      reviewCycleEnabled: false,
     });
   });
 

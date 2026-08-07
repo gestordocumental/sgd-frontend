@@ -154,6 +154,10 @@ export interface ApiWorkflow {
   typologyCode: string;
   typologyVersion: string;
   typologyName: string;
+  // Snapshot of the typology's review-cycle flag at the moment this workflow
+  // was created — only for showing/hiding the "Start review cycle" action;
+  // the backend re-checks live against document-service on every transition.
+  reviewCycleEnabled: boolean;
   mainDocumentId: string | null;
   mainDocumentValidated: boolean;
   mainDocumentMetadata: Record<string, unknown> | null;
@@ -388,6 +392,12 @@ export const workflowsApi = {
   close: (id: string, dto: { closingNotes?: string }, idempotencyKey?: string) =>
     apiClient
       .post<ApiWorkflow>(`/workflows/${id}/close`, dto, withIdempotency(idempotencyKey))
+      .then((r) => r.data),
+
+  // Cancelación del workflow (usuario final, motivo obligatorio) — AVAILABLE_FOR_FINAL_USERS -> CANCELLED.
+  cancel: (id: string, dto: { reason: string }, idempotencyKey?: string) =>
+    apiClient
+      .post<ApiWorkflow>(`/workflows/${id}/cancel`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 
   // "Gestionar" — comentario y/o adjuntos repetibles mientras el workflow está

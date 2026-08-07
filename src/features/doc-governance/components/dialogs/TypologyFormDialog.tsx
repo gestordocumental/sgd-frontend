@@ -130,6 +130,18 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
             />
           </FormField>
 
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="typo-review-cycle-enabled"
+              {...form.register('reviewCycleEnabled')}
+              className="size-4 rounded border-input"
+            />
+            <label htmlFor="typo-review-cycle-enabled" className="text-sm">
+              {t('docGovernance.form.reviewCycleEnabledLabel')}
+            </label>
+          </div>
+
           {!isEditing ? (
             <FormField
               id="typo-file"

@@ -76,6 +76,10 @@ export function useWorkflowDialogs() {
   const [closeWorkflow, setCloseWorkflow] = useState<ApiWorkflow | null>(null);
   const [closingNotes, setClosingNotes] = useState('');
 
+  // ── Cancel workflow dialog ─────────────────────────────────────────────────
+  const [cancelWorkflow, setCancelWorkflow] = useState<ApiWorkflow | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
   // ── Manage workflow dialog ("Gestionar") ───────────────────────────────────
   const [manageWorkflow, setManageWorkflow] = useState<ApiWorkflow | null>(null);
   const [manageContent, setManageContent] = useState('');
@@ -187,6 +191,11 @@ export function useWorkflowDialogs() {
     setCloseWorkflow,
     closingNotes,
     setClosingNotes,
+    // Cancel workflow
+    cancelWorkflow,
+    setCancelWorkflow,
+    cancelReason,
+    setCancelReason,
     // Manage workflow
     manageWorkflow,
     setManageWorkflow,
