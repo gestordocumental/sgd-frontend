@@ -28,8 +28,6 @@ export interface WorkflowActionContext {
   canWrite?: boolean;
   /** El usuario tiene permiso de aprobación */
   canApprove?: boolean;
-  /** La empresa tiene habilitado el ciclo de revisión administrativo (default: true) */
-  reviewCycleEnabled?: boolean;
 }
 
 /**
@@ -38,7 +36,10 @@ export interface WorkflowActionContext {
  * usando VALID_TRANSITIONS como fuente de verdad para las guardas de estado.
  */
 export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionContext) {
-  const { userId, canWrite = false, canApprove = false, reviewCycleEnabled = true } = ctx;
+  const { userId, canWrite = false, canApprove = false } = ctx;
+  // Habilitado por tipología (ver ApiWorkflow.reviewCycleEnabled) — snapshot
+  // al crear el workflow, no un flag de empresa.
+  const reviewCycleEnabled = workflow.reviewCycleEnabled;
   const isCreator = workflow.createdBy === userId;
   const isFinalUser = workflow.finalUserIds?.includes(userId ?? '') ?? false;
   const isCurrentApprover = workflow.currentAssignedUserId === userId;
@@ -83,8 +84,12 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
      *  administrativo formal con revisores. */
     canManageWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
 
-    /** Un usuario final puede cerrar definitivamente el workflow solo desde
-     *  AVAILABLE_FOR_FINAL_USERS — una vez cerrado no se permiten más cambios. */
+    /** Un usuario final puede finalizar definitivamente el workflow solo desde
+     *  AVAILABLE_FOR_FINAL_USERS — una vez finalizado no se permiten más cambios. */
     canCloseWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
+
+    /** Un usuario final puede cancelar el workflow solo desde
+     *  AVAILABLE_FOR_FINAL_USERS, dejando un motivo obligatorio. */
+    canCancelWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
   };
 }

@@ -27,7 +27,6 @@ function makeCompany(overrides: Partial<ApiCompany> = {}): ApiCompany {
     updatedAt: '2026-01-01T00:00:00.000Z',
     deletedAt: null,
     ...overrides,
-    reviewCycleEnabled: overrides.reviewCycleEnabled ?? true,
   };
 }
 
@@ -60,28 +59,24 @@ describe('companiesApi', () => {
     await expect(companiesApi.getById('org-42')).resolves.toEqual(company);
   });
 
-  it('creates a company with the given dto, including reviewCycleEnabled', async () => {
-    const created = makeCompany({ reviewCycleEnabled: false });
+  it('creates a company with the given dto', async () => {
+    const created = makeCompany();
     mock.onPost('/org').reply((config) => {
-      expect(JSON.parse(config.data)).toEqual({ name: 'Acme', reviewCycleEnabled: false });
+      expect(JSON.parse(config.data)).toEqual({ name: 'Acme' });
       return [201, created];
     });
 
-    await expect(companiesApi.create({ name: 'Acme', reviewCycleEnabled: false })).resolves.toEqual(
-      created,
-    );
+    await expect(companiesApi.create({ name: 'Acme' })).resolves.toEqual(created);
   });
 
   it('updates a company by id with the given dto', async () => {
-    const updated = makeCompany({ reviewCycleEnabled: false });
+    const updated = makeCompany({ name: 'New Name' });
     mock.onPatch('/org/org-1').reply((config) => {
-      expect(JSON.parse(config.data)).toEqual({ reviewCycleEnabled: false });
+      expect(JSON.parse(config.data)).toEqual({ name: 'New Name' });
       return [200, updated];
     });
 
-    await expect(companiesApi.update('org-1', { reviewCycleEnabled: false })).resolves.toEqual(
-      updated,
-    );
+    await expect(companiesApi.update('org-1', { name: 'New Name' })).resolves.toEqual(updated);
   });
 
   it('removes (soft-deletes) a company by id', async () => {

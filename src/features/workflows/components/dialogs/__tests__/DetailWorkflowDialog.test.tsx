@@ -26,6 +26,7 @@ const { mockGetWorkflowActions } = vi.hoisted(() => ({
     canForwardAdminStep: false,
     canManageWorkflow: false,
     canCloseWorkflow: false,
+    canCancelWorkflow: false,
     canDelete: false,
   })),
 }));
@@ -117,6 +118,7 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
     typologyCode: 'CON-01',
     typologyVersion: '1',
     typologyName: 'Contract',
+    reviewCycleEnabled: true,
     mainDocumentId: 'doc-1',
     mainDocumentValidated: true,
     mainDocumentMetadata: null,
@@ -162,6 +164,7 @@ function makeHook(detailWorkflow: ApiWorkflow | null): WorkflowsHook {
       openCompleteStep: vi.fn(),
       openForwardStep: vi.fn(),
       openClose: vi.fn(),
+      openCancel: vi.fn(),
       openManage: vi.fn(),
       // Mirrors the real navigateFromDetail: closes detail and immediately
       // runs the action that opens the next dialog (see use-workflows.ts).
@@ -801,6 +804,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: false,
       canManageWorkflow: false,
       canCloseWorkflow: false,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -822,6 +826,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: false,
       canManageWorkflow: false,
       canCloseWorkflow: false,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -843,6 +848,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: false,
       canManageWorkflow: false,
       canCloseWorkflow: false,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -864,6 +870,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: false,
       canManageWorkflow: false,
       canCloseWorkflow: false,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -885,6 +892,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: true,
       canManageWorkflow: false,
       canCloseWorkflow: false,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -909,6 +917,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: false,
       canManageWorkflow: true,
       canCloseWorkflow: false,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
@@ -928,7 +937,7 @@ describe('DetailWorkflowDialog — footer actions', () => {
     expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument();
   });
 
-  it('"Close workflow" navigates to the close dialog when shown', () => {
+  it('"Finish workflow" navigates to the close dialog when shown', () => {
     mockGetWorkflowActions.mockReturnValueOnce({
       canStartApproval: false,
       canApproveStep: false,
@@ -937,23 +946,53 @@ describe('DetailWorkflowDialog — footer actions', () => {
       canForwardAdminStep: false,
       canManageWorkflow: false,
       canCloseWorkflow: true,
+      canCancelWorkflow: false,
       canDelete: false,
     });
     const wf = makeWorkflow();
     const hook = makeHook(wf);
     render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish workflow' }));
 
     expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
     expect(hook.actions.openClose).toHaveBeenCalledWith(wf);
   });
 
-  it('hides "Close workflow" when canCloseWorkflow is false', () => {
+  it('hides "Finish workflow" when canCloseWorkflow is false', () => {
     const wf = makeWorkflow();
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
 
-    expect(screen.queryByRole('button', { name: 'Close workflow' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Finish workflow' })).not.toBeInTheDocument();
+  });
+
+  it('"Cancel workflow" navigates to the cancel dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: true,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel workflow' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openCancel).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Cancel workflow" when canCancelWorkflow is false', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Cancel workflow' })).not.toBeInTheDocument();
   });
 
   it('plain "Close" clears the detail workflow directly, without navigateFromDetail', () => {
@@ -970,28 +1009,6 @@ describe('DetailWorkflowDialog — footer actions', () => {
 
     expect(hook.dialogs.setDetailWorkflow).toHaveBeenCalledWith(null);
     expect(hook.actions.navigateFromDetail).not.toHaveBeenCalled();
-  });
-
-  it('forwards reviewCycleEnabled to getWorkflowActions, defaulting to true when omitted', () => {
-    const wf = makeWorkflow();
-    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
-
-    expect(mockGetWorkflowActions).toHaveBeenLastCalledWith(
-      wf,
-      expect.objectContaining({ reviewCycleEnabled: true }),
-    );
-  });
-
-  it('forwards an explicit reviewCycleEnabled: false to getWorkflowActions', () => {
-    const wf = makeWorkflow();
-    render(
-      <DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} reviewCycleEnabled={false} />,
-    );
-
-    expect(mockGetWorkflowActions).toHaveBeenLastCalledWith(
-      wf,
-      expect.objectContaining({ reviewCycleEnabled: false }),
-    );
   });
 });
 

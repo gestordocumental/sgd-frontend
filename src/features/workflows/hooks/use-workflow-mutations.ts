@@ -19,6 +19,7 @@ export interface WorkflowMutationDeps {
   onCompleteStepSuccess: () => void;
   onForwardStepSuccess: () => void;
   onCloseSuccess: () => void;
+  onCancelSuccess: () => void;
   onAddNoteSuccess: () => void;
 }
 
@@ -357,6 +358,15 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      workflowsApi.cancel(id, { reason: reason.trim() }, crypto.randomUUID()),
+    onSuccess: () => {
+      depsRef.current.invalidateAll();
+      depsRef.current.onCancelSuccess();
+    },
+  });
+
   const addNoteMutation = useMutation({
     mutationFn: async ({
       workflow,
@@ -406,6 +416,7 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     completeStepMutation,
     forwardStepMutation,
     closeMutation,
+    cancelMutation,
     addNoteMutation,
   };
 }

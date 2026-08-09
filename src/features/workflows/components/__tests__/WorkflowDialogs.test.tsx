@@ -13,18 +13,8 @@ vi.mock('../dialogs/EditWorkflowDialog', () => ({
   EditWorkflowDialog: () => <div data-testid="edit-dialog" />,
 }));
 vi.mock('../dialogs/DetailWorkflowDialog', () => ({
-  DetailWorkflowDialog: ({
-    canApprove,
-    reviewCycleEnabled,
-  }: {
-    canApprove: boolean;
-    reviewCycleEnabled: boolean;
-  }) => (
-    <div
-      data-testid="detail-dialog"
-      data-can-approve={String(canApprove)}
-      data-review-cycle-enabled={String(reviewCycleEnabled)}
-    />
+  DetailWorkflowDialog: ({ canApprove }: { canApprove: boolean }) => (
+    <div data-testid="detail-dialog" data-can-approve={String(canApprove)} />
   ),
 }));
 vi.mock('../dialogs/ApproveDialog', () => ({
@@ -51,6 +41,9 @@ vi.mock('../dialogs/ForwardStepDialog', () => ({
 vi.mock('../dialogs/CloseWorkflowDialog', () => ({
   CloseWorkflowDialog: () => <div data-testid="close-dialog" />,
 }));
+vi.mock('../dialogs/CancelWorkflowDialog', () => ({
+  CancelWorkflowDialog: () => <div data-testid="cancel-dialog" />,
+}));
 vi.mock('../dialogs/ManageWorkflowDialog', () => ({
   ManageWorkflowDialog: () => <div data-testid="manage-dialog" />,
 }));
@@ -72,22 +65,21 @@ describe('WorkflowDialogs', () => {
     expect(screen.getByTestId('complete-step-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('forward-step-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('close-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('cancel-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('manage-dialog')).toBeInTheDocument();
   });
 
-  it('defaults canApprove to false and reviewCycleEnabled to true when omitted', () => {
+  it('defaults canApprove to false when omitted', () => {
     render(<WorkflowDialogs hook={hook} />);
 
     const detail = screen.getByTestId('detail-dialog');
     expect(detail).toHaveAttribute('data-can-approve', 'false');
-    expect(detail).toHaveAttribute('data-review-cycle-enabled', 'true');
   });
 
-  it('forwards explicit canApprove and reviewCycleEnabled to DetailWorkflowDialog', () => {
-    render(<WorkflowDialogs hook={hook} canApprove reviewCycleEnabled={false} />);
+  it('forwards explicit canApprove to DetailWorkflowDialog', () => {
+    render(<WorkflowDialogs hook={hook} canApprove />);
 
     const detail = screen.getByTestId('detail-dialog');
     expect(detail).toHaveAttribute('data-can-approve', 'true');
-    expect(detail).toHaveAttribute('data-review-cycle-enabled', 'false');
   });
 });

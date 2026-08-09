@@ -113,6 +113,7 @@ describe('useTypologies — createMutation invalidation', () => {
         nombre: 'Contrato',
         codigo: 'CT-001',
         version: 'v1',
+        reviewCycleEnabled: false,
       });
     });
 

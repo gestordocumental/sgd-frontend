@@ -34,7 +34,6 @@ function makeCompany(overrides: Partial<ApiCompany> = {}): ApiCompany {
     updatedAt: '2026-01-01T00:00:00.000Z',
     deletedAt: null,
     ...overrides,
-    reviewCycleEnabled: overrides.reviewCycleEnabled ?? true,
   };
 }
 
@@ -68,34 +67,6 @@ beforeEach(() => {
 });
 
 describe('CompanyDialogs — create', () => {
-  it('review cycle checkbox defaults to checked', () => {
-    renderHarness();
-    fireEvent.click(screen.getByText('open-create'));
-
-    const checkbox = screen.getByLabelText('Enable review cycle on workflows') as HTMLInputElement;
-    expect(checkbox.checked).toBe(true);
-  });
-
-  it('creates a company with reviewCycleEnabled unchecked when the box is toggled off', async () => {
-    mockCreate.mockResolvedValue(makeCompany());
-    renderHarness();
-    fireEvent.click(screen.getByText('open-create'));
-    const submitButton = screen.getByRole('button', { name: 'Create company' });
-
-    fireEvent.change(screen.getByLabelText('Company name'), { target: { value: 'New Co' } });
-    fireEvent.click(screen.getByLabelText('Enable review cycle on workflows'));
-    // zodResolver validates asynchronously — the submit button only flips
-    // enabled once formState.isValid catches up with the typed name.
-    await waitFor(() => expect(submitButton).not.toBeDisabled());
-    fireEvent.click(submitButton);
-
-    await waitFor(() =>
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'New Co', reviewCycleEnabled: false }),
-      ),
-    );
-  });
-
   it('closes the create dialog on successful submit', async () => {
     mockCreate.mockResolvedValue(makeCompany());
     renderHarness();
@@ -128,35 +99,6 @@ describe('CompanyDialogs — create', () => {
 });
 
 describe('CompanyDialogs — edit', () => {
-  it('pre-fills the review cycle checkbox from the company being edited', () => {
-    renderHarness({ editTarget: makeCompany({ reviewCycleEnabled: false }) });
-    fireEvent.click(screen.getByText('open-edit'));
-
-    const checkbox = screen.getAllByLabelText(
-      'Enable review cycle on workflows',
-    )[0] as HTMLInputElement;
-    expect(checkbox.checked).toBe(false);
-  });
-
-  it('updates the company, sending the toggled reviewCycleEnabled value', async () => {
-    const company = makeCompany({ reviewCycleEnabled: false });
-    mockUpdate.mockResolvedValue({ ...company, reviewCycleEnabled: true });
-    renderHarness({ editTarget: company });
-    fireEvent.click(screen.getByText('open-edit'));
-    const submitButton = screen.getByRole('button', { name: 'Save changes' });
-
-    fireEvent.click(screen.getByLabelText('Enable review cycle on workflows'));
-    await waitFor(() => expect(submitButton).not.toBeDisabled());
-    fireEvent.click(submitButton);
-
-    await waitFor(() =>
-      expect(mockUpdate).toHaveBeenCalledWith(
-        company.id,
-        expect.objectContaining({ reviewCycleEnabled: true, name: company.name }),
-      ),
-    );
-  });
-
   it('cancel closes the edit dialog without updating anything', () => {
     renderHarness({ editTarget: makeCompany() });
     fireEvent.click(screen.getByText('open-edit'));

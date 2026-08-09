@@ -11,7 +11,6 @@ export interface ApiCompany {
   address: string | null;
   phone: string | null;
   status: OrgStatus;
-  reviewCycleEnabled: boolean;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,7 +22,6 @@ export interface CreateCompanyDto {
   nit?: string;
   address?: string;
   phone?: string;
-  reviewCycleEnabled?: boolean;
 }
 
 export interface UpdateCompanyDto {
@@ -32,7 +30,6 @@ export interface UpdateCompanyDto {
   address?: string;
   phone?: string;
   status?: OrgStatus;
-  reviewCycleEnabled?: boolean;
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────

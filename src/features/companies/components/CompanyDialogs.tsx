@@ -88,20 +88,6 @@ export function CompanyDialogs({ hook }: CompanyDialogsProps) {
                 {...createForm.register('phone')}
               />
             </FormField>
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                id="company-review-cycle-enabled"
-                type="checkbox"
-                className="h-4 w-4 rounded border-input"
-                {...createForm.register('reviewCycleEnabled')}
-              />
-              <label
-                htmlFor="company-review-cycle-enabled"
-                className="text-sm cursor-pointer select-none"
-              >
-                {t('companies.dialogs.reviewCycleEnabledLabel')}
-              </label>
-            </div>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
                 {t('common.cancel')}
@@ -175,20 +161,6 @@ export function CompanyDialogs({ hook }: CompanyDialogsProps) {
                 {...editForm.register('phone')}
               />
             </FormField>
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                id="edit-company-review-cycle-enabled"
-                type="checkbox"
-                className="h-4 w-4 rounded border-input"
-                {...editForm.register('reviewCycleEnabled')}
-              />
-              <label
-                htmlFor="edit-company-review-cycle-enabled"
-                className="text-sm cursor-pointer select-none"
-              >
-                {t('companies.dialogs.reviewCycleEnabledLabel')}
-              </label>
-            </div>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setEditCompany(null)}>
                 {t('common.cancel')}

@@ -27,7 +27,7 @@ describe('CloseWorkflowDialog', () => {
   it('is closed when there is no workflow to close', () => {
     render(<CloseWorkflowDialog hook={makeHook(null)} />);
 
-    expect(screen.queryByText('Close workflow')).not.toBeInTheDocument();
+    expect(screen.queryByText('Finish workflow')).not.toBeInTheDocument();
   });
 
   it('shows the workflow title in the confirmation message', () => {
@@ -40,7 +40,7 @@ describe('CloseWorkflowDialog', () => {
     const hook = makeHook(makeWorkflow(), 'All good');
     render(<CloseWorkflowDialog hook={hook} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish workflow' }));
 
     expect(hook.mutations.closeMutation.mutate).toHaveBeenCalledWith({
       id: 'wf-1',

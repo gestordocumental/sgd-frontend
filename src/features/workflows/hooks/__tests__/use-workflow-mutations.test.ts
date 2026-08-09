@@ -17,6 +17,7 @@ const mockCompleteAdminStep = vi.fn();
 const mockForwardAdminStep = vi.fn();
 const mockNotifyNoFinalUsers = vi.fn();
 const mockClose = vi.fn();
+const mockCancel = vi.fn();
 const mockAddNote = vi.fn();
 
 vi.mock('@/lib/api/workflows', () => ({
@@ -33,6 +34,7 @@ vi.mock('@/lib/api/workflows', () => ({
     forwardAdminStep: (...args: unknown[]) => mockForwardAdminStep(...args),
     notifyNoFinalUsers: (...args: unknown[]) => mockNotifyNoFinalUsers(...args),
     close: (...args: unknown[]) => mockClose(...args),
+    cancel: (...args: unknown[]) => mockCancel(...args),
     addNote: (...args: unknown[]) => mockAddNote(...args),
   },
 }));
@@ -74,6 +76,7 @@ const NO_OP_DEPS = {
   onCompleteStepSuccess: vi.fn(),
   onForwardStepSuccess: vi.fn(),
   onCloseSuccess: vi.fn(),
+  onCancelSuccess: vi.fn(),
   onAddNoteSuccess: vi.fn(),
 };
 
@@ -87,6 +90,7 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
     typologyCode: 'CM-001',
     typologyVersion: 'v1',
     typologyName: 'Contrato',
+    reviewCycleEnabled: true,
     mainDocumentId: null,
     mainDocumentValidated: false,
     mainDocumentMetadata: null,
@@ -313,6 +317,21 @@ describe('useWorkflowMutations — idempotency keys', () => {
     });
 
     expect(mockClose).toHaveBeenCalledWith('wf-1', { closingNotes: undefined }, 'mock-uuid-1');
+  });
+
+  it('cancelMutation passes a generated idempotency key to the API and trims the reason', async () => {
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), {
+      wrapper: makeWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.cancelMutation.mutateAsync({
+        id: 'wf-1',
+        reason: '  No longer needed  ',
+      });
+    });
+
+    expect(mockCancel).toHaveBeenCalledWith('wf-1', { reason: 'No longer needed' }, 'mock-uuid-1');
   });
 
   it('addNoteMutation uploads files then passes a generated idempotency key to the API', async () => {

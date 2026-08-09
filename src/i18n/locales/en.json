@@ -480,7 +480,6 @@
       "nitPlaceholder": "900.123.456-7",
       "addressPlaceholder": "123 Main St, City",
       "phonePlaceholder": "+57 601 234 5678",
-      "reviewCycleEnabledLabel": "Enable review cycle on workflows",
       "createButton": "Create company",
       "deleteButton": "Delete"
     }
@@ -700,7 +699,8 @@
       "createNewVersion": "Create new version",
       "creatingNewVersion": "Creating new version…",
       "saving": "Saving…",
-      "extractingShort": "Extracting…"
+      "extractingShort": "Extracting…",
+      "reviewCycleEnabledLabel": "Enable review cycle on workflows"
     },
     "upload": {
       "title": "Upload document",
@@ -824,7 +824,8 @@
       "completeStep": "Complete step",
       "forwardStep": "Send to optional reviewer",
       "manage": "Manage",
-      "close": "Close workflow",
+      "close": "Finish workflow",
+      "cancelWorkflow": "Cancel workflow",
       "openMenu": "Open workflow actions"
     },
     "empty": "No workflows registered",
@@ -960,12 +961,19 @@
       "forwardStepDesc": "Select an optional reviewer to review the workflow before continuing to the next mandatory reviewer.",
       "selectOptionalReviewer": "Optional reviewer",
       "selectOptionalReviewerPlaceholder": "Select optional reviewer...",
-      "closeTitle": "Close workflow",
-      "closeConfirmPre": "Are you sure you want to permanently close workflow",
-      "closeConfirmPost": "? No further changes will be allowed once closed.",
+      "closeTitle": "Finish workflow",
+      "closeConfirmPre": "Are you sure you want to permanently finish workflow",
+      "closeConfirmPost": "? No further changes will be allowed once finished.",
       "closingNotesLabel": "Closing note",
       "closingNotesPlaceholder": "Optional final comment...",
-      "closeButton": "Close workflow",
+      "closeButton": "Finish workflow",
+      "cancelWorkflowTitle": "Cancel workflow",
+      "cancelWorkflowConfirmPre": "Are you sure you want to cancel workflow",
+      "cancelWorkflowConfirmPost": "? This action cannot be undone.",
+      "cancelReasonLabel": "Cancellation reason",
+      "cancelReasonPlaceholder": "Explain why this workflow is being cancelled...",
+      "cancelReasonRequired": "A cancellation reason is required",
+      "cancelWorkflowButton": "Cancel workflow",
       "manageTitle": "Manage workflow",
       "manageDescPre": "Add a comment and/or attachments to workflow",
       "manageDescPost": ". You can do this as many times as you need.",

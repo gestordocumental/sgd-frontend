@@ -122,6 +122,11 @@ export function useWorkflows(companyId: string) {
       dialogs.setClosingNotes('');
       returnToDetailIfPending();
     },
+    onCancelSuccess: () => {
+      dialogs.setCancelWorkflow(null);
+      dialogs.setCancelReason('');
+      returnToDetailIfPending();
+    },
     onAddNoteSuccess: () => {
       dialogs.setManageWorkflow(null);
       dialogs.setManageContent('');
@@ -203,6 +208,11 @@ export function useWorkflows(companyId: string) {
   const openClose = (workflow: ApiWorkflow) => {
     dialogs.setClosingNotes('');
     dialogs.setCloseWorkflow(workflow);
+  };
+
+  const openCancel = (workflow: ApiWorkflow) => {
+    dialogs.setCancelReason('');
+    dialogs.setCancelWorkflow(workflow);
   };
 
   const openManage = (workflow: ApiWorkflow) => {
@@ -443,6 +453,7 @@ export function useWorkflows(companyId: string) {
       openCompleteStep,
       openForwardStep,
       openClose,
+      openCancel,
       openManage,
       navigateFromDetail,
     },

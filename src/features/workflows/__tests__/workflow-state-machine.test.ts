@@ -14,6 +14,7 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
     typologyCode: 'CM-001',
     typologyVersion: 'v1',
     typologyName: 'Contrato Marco',
+    reviewCycleEnabled: true,
     mainDocumentId: null,
     mainDocumentValidated: false,
     mainDocumentMetadata: null,
@@ -252,23 +253,22 @@ describe('getWorkflowActions — canStartReviewCycle', () => {
     expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(false);
   });
 
-  it('defaults to true when reviewCycleEnabled is not passed (preserves existing behavior)', () => {
-    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
+  it('is false when the workflow snapshot has the review cycle disabled, even if otherwise eligible', () => {
+    const wf = makeWorkflow({
+      status: 'PENDING_REVIEW_CYCLE',
+      finalUserIds: ['user-1'],
+      reviewCycleEnabled: false,
+    });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(false);
+  });
+
+  it('is true when the workflow snapshot has the review cycle enabled', () => {
+    const wf = makeWorkflow({
+      status: 'PENDING_REVIEW_CYCLE',
+      finalUserIds: ['user-1'],
+      reviewCycleEnabled: true,
+    });
     expect(getWorkflowActions(wf, { userId: 'user-1' }).canStartReviewCycle).toBe(true);
-  });
-
-  it('is false when the org has the review cycle disabled, even if otherwise eligible', () => {
-    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
-    expect(
-      getWorkflowActions(wf, { userId: 'user-1', reviewCycleEnabled: false }).canStartReviewCycle,
-    ).toBe(false);
-  });
-
-  it('is true when the org explicitly has the review cycle enabled', () => {
-    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
-    expect(
-      getWorkflowActions(wf, { userId: 'user-1', reviewCycleEnabled: true }).canStartReviewCycle,
-    ).toBe(true);
   });
 });
 
@@ -405,5 +405,29 @@ describe('getWorkflowActions — canCloseWorkflow', () => {
   it('is false once the workflow is already CLOSED', () => {
     const wf = makeWorkflow({ status: 'CLOSED', finalUserIds: ['user-1'] });
     expect(getWorkflowActions(wf, { userId: 'user-1' }).canCloseWorkflow).toBe(false);
+  });
+});
+
+// ── getWorkflowActions — canCancelWorkflow ────────────────────────────────────
+
+describe('getWorkflowActions — canCancelWorkflow', () => {
+  it('is true for a final user when the workflow is AVAILABLE_FOR_FINAL_USERS', () => {
+    const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCancelWorkflow).toBe(true);
+  });
+
+  it('is false for a user not in finalUserIds', () => {
+    const wf = makeWorkflow({ status: 'AVAILABLE_FOR_FINAL_USERS', finalUserIds: ['other-user'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCancelWorkflow).toBe(false);
+  });
+
+  it('is false outside AVAILABLE_FOR_FINAL_USERS (e.g. PENDING_REVIEW_CYCLE)', () => {
+    const wf = makeWorkflow({ status: 'PENDING_REVIEW_CYCLE', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCancelWorkflow).toBe(false);
+  });
+
+  it('is false once the workflow is already CANCELLED', () => {
+    const wf = makeWorkflow({ status: 'CANCELLED', finalUserIds: ['user-1'] });
+    expect(getWorkflowActions(wf, { userId: 'user-1' }).canCancelWorkflow).toBe(false);
   });
 });
