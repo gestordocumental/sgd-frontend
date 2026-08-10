@@ -808,6 +808,7 @@
       "zipFolderCycles": "ciclos-revision",
       "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
       "auditLogDownloadError": "Los adjuntos se descargaron, pero no se pudo incluir el log de auditoría. Intenta de nuevo desde la página de auditoría si lo necesitas.",
+      "auditLogPdfTitle": "Log de flujo ({{name}})",
       "previewLoading": "Cargando previsualización...",
       "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
       "previewTruncated": "Mostrando solo las primeras {{rows}} filas y {{cols}} columnas — el archivo es más grande.",
