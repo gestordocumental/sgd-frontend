@@ -17,7 +17,7 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
     setResolveTypology,
     resolveExtractionForm,
     resolveExtractionMutation,
-    openEdit,
+    openUploadDoc,
   } = hook;
 
   const typo = resolveTypology;
@@ -48,7 +48,13 @@ export function ResolveExtractionDialog({ hook }: { hook: TypologiesHook }) {
   const handleUploadCorrected = () => {
     if (!typo) return;
     setResolveTypology(null);
-    openEdit(typo);
+    // openUploadDoc (not openEdit): this replaces the document under the
+    // *same* declared version — the point is to fix a wrong file, not to
+    // publish a new version. openEdit's flow requires the version to
+    // strictly increment (createNewVersion archives the typology and makes
+    // a new one), which would force the user to bump the version just to
+    // correct a mistaken upload.
+    openUploadDoc(typo);
   };
 
   return (

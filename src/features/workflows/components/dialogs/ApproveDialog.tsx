@@ -37,11 +37,11 @@ export function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
         if (!o) setApproveWorkflow(null);
       }}
     >
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{t('workflows.dialogs.approveTitle')}</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground shrink-0">
           {t('workflows.dialogs.approveConfirmPre')}{' '}
           <span className="font-medium text-foreground">"{approveWorkflow?.title}"</span>
           {t('workflows.dialogs.approveConfirmPost')}
@@ -51,68 +51,79 @@ export function ApproveDialog({ hook }: { hook: WorkflowsHook }) {
             if (!approveWorkflow) return;
             approveMutation.mutate({ id: approveWorkflow.id, dto: values });
           })}
-          className="space-y-4"
+          className="flex flex-col flex-1 min-h-0"
         >
-          <FormField
-            id="approve-obs"
-            label={`${t('workflows.dialogs.observationsLabel')} (${t('workflows.dialogs.optional')})`}
-            error={approveForm.formState.errors.observations?.message}
-          >
-            <Input
+          {/* Same overflow-safe pattern as the other multi-section dialogs
+              (CreateWorkflowDialog, TypologyFormDialog): the footer lives
+              OUTSIDE this scrollable area so the Approve/Cancel buttons stay
+              reachable no matter what happens above — an attached file's
+              name is min-w-0 + truncate'd at its own flex row, but without
+              min-w-0 here too (this <form> is itself a grid item inside
+              DialogContent) that row's un-truncated intrinsic width could
+              still bubble up and force the whole dialog to grow/scroll
+              horizontally, taking the footer along with it off-screen. */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 space-y-4 pr-1">
+            <FormField
               id="approve-obs"
-              placeholder={t('workflows.dialogs.observationsPlaceholder')}
-              {...approveForm.register('observations')}
-            />
-          </FormField>
-
-          {/* Adjuntos opcionales */}
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium leading-none">
-              {t('workflows.dialogs.attachedDocsLabel')}{' '}
-              <span className="text-muted-foreground font-normal">
-                ({t('workflows.dialogs.optional')})
-              </span>
-            </p>
-
-            {/* Lista de archivos seleccionados */}
-            {approveAttachmentFiles.length > 0 && (
-              <div className="rounded-md border divide-y divide-border">
-                {approveAttachmentFiles.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 text-sm">
-                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 min-w-0 truncate">{file.name}</span>
-                    <button
-                      type="button"
-                      aria-label={t('workflows.dialogs.removeFile')}
-                      className="shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeFile(i)}
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Botón para agregar más archivos */}
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-muted/40 transition-colors">
-              <Paperclip className="h-4 w-4 shrink-0" />
-              <span>
-                {approveAttachmentFiles.length === 0
-                  ? t('workflows.dialogs.attachFirst')
-                  : t('workflows.dialogs.attachMore')}
-              </span>
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.docx,.xlsx"
-                multiple
-                onChange={handleFileChange}
+              label={`${t('workflows.dialogs.observationsLabel')} (${t('workflows.dialogs.optional')})`}
+              error={approveForm.formState.errors.observations?.message}
+            >
+              <Input
+                id="approve-obs"
+                placeholder={t('workflows.dialogs.observationsPlaceholder')}
+                {...approveForm.register('observations')}
               />
-            </label>
+            </FormField>
+
+            {/* Adjuntos opcionales */}
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium leading-none">
+                {t('workflows.dialogs.attachedDocsLabel')}{' '}
+                <span className="text-muted-foreground font-normal">
+                  ({t('workflows.dialogs.optional')})
+                </span>
+              </p>
+
+              {/* Lista de archivos seleccionados */}
+              {approveAttachmentFiles.length > 0 && (
+                <div className="rounded-md border divide-y divide-border">
+                  {approveAttachmentFiles.map((file, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 text-sm min-w-0">
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 min-w-0 truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        aria-label={t('workflows.dialogs.removeFile')}
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeFile(i)}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Botón para agregar más archivos */}
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-muted/40 transition-colors">
+                <Paperclip className="h-4 w-4 shrink-0" />
+                <span>
+                  {approveAttachmentFiles.length === 0
+                    ? t('workflows.dialogs.attachFirst')
+                    : t('workflows.dialogs.attachMore')}
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx,.xlsx"
+                  multiple
+                  onChange={handleFileChange}
+                />
+              </label>
+            </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4 shrink-0">
             <Button type="button" variant="outline" onClick={() => setApproveWorkflow(null)}>
               {t('common.cancel')}
             </Button>

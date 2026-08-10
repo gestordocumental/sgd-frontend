@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
@@ -53,6 +53,7 @@ import { CompanyUsersTable } from '../CompanyUsersTable';
 import { useCompanyUsers } from '@/features/company-users/hooks/use-company-users';
 import { useAuthStore } from '@/store/authStore';
 import type { ApiUserWithRoles } from '@/lib/api/users';
+import { mockImageLoad } from '@/test/mock-image';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -163,5 +164,41 @@ describe('CompanyUsersTable — pending-credentials row actions', () => {
     // Resend invitation and Delete remain the only available actions.
     expect(await screen.findByRole('menuitem', { name: /Resend invitation/ })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeInTheDocument();
+  });
+});
+
+describe('CompanyUsersTable — avatar', () => {
+  beforeEach(() => mockImageLoad());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the profile picture instead of the generic initial when the user has one configured', async () => {
+    mockFetchAllUsersByOrg.mockResolvedValue({
+      data: [makeUser({ avatarUrl: 'https://cdn.example.com/alice.png' })],
+      nextCursor: null,
+      hasMore: false,
+    });
+
+    render(<CompanyUsersTableHarness />, { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Alice Smith')).toHaveAttribute(
+        'src',
+        'https://cdn.example.com/alice.png',
+      );
+    });
+  });
+
+  it('falls back to the generic initial avatar when the user has no profile picture', async () => {
+    mockFetchAllUsersByOrg.mockResolvedValue({
+      data: [makeUser({ avatarUrl: null })],
+      nextCursor: null,
+      hasMore: false,
+    });
+
+    render(<CompanyUsersTableHarness />, { wrapper: makeWrapper() });
+    await screen.findByText('Alice Smith');
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('A')).toBeInTheDocument();
   });
 });

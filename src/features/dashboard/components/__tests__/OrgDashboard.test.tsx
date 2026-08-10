@@ -169,6 +169,45 @@ describe('OrgDashboard — permission-gated sections', () => {
     expect(screen.getByText('Week of 06/28: 1 workflow created')).toBeInTheDocument();
   });
 
+  it('renders the count label for the tallest bar in the weekly workflow chart, not just the shorter ones', () => {
+    // QA regression: the week with the highest count had its bar reach y=0,
+    // placing the count label (drawn at y - 5) outside the SVG viewBox —
+    // clipped/invisible in the browser even though the bar itself rendered
+    // fine ("no se visualizarán los valores sobre las columnas cuando estos
+    // sean elevados"). Same root cause and fix as OrgGrowthChart's chart.
+    const { container } = renderDashboard({
+      workflowStats: {
+        ...WORKFLOW_STATS,
+        weeklyTrend: [
+          { week: '06/14', count: 3 },
+          { week: '06/21', count: 50 }, // the max — previously invisible label
+          { week: '06/28', count: 0 },
+        ],
+      },
+    });
+
+    // Scoped to the weekly chart's own <svg> — a bare '3' or '0' also
+    // legitimately appears elsewhere on the dashboard (other KPIs/donuts).
+    const svgs = Array.from(container.querySelectorAll('svg'));
+    const weeklyChartSvg = svgs.find((svg) => svg.querySelector('text')?.textContent === '06/14');
+    expect(weeklyChartSvg).toBeDefined();
+    expect(within(weeklyChartSvg!).getByText('3')).toBeInTheDocument();
+    expect(within(weeklyChartSvg!).getByText('50')).toBeInTheDocument();
+    expect(within(weeklyChartSvg!).getByText('0')).toBeInTheDocument();
+
+    // Every <text> element of the weekly bar chart must stay within the
+    // declared viewBox (y >= 0), otherwise browsers clip it and it never
+    // becomes visible no matter what the fixture's screen.getByText finds
+    // (jsdom doesn't clip, so this assertion is the only thing that would
+    // have caught the regression).
+    const texts = Array.from(weeklyChartSvg!.querySelectorAll('text'));
+    expect(texts.length).toBeGreaterThan(0);
+    for (const text of texts) {
+      const y = Number(text.getAttribute('y'));
+      expect(y).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('lists every workflow status in "Workflow status", including ones with zero workflows', () => {
     // Regression: only statuses present in workflowStats.statusCounts were
     // shown (PENDING_APPROVAL: 4, CLOSED: 8 in this fixture) — the other 7

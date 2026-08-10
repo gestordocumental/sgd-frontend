@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Pager } from '@/components/ui/pager';
 import { RefreshCountdown } from '@/components/ui/refresh-countdown';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -285,6 +285,7 @@ function UserRow({
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="size-8">
+            {u.avatarUrl && <AvatarImage src={u.avatarUrl} alt={`${u.firstName} ${u.lastName}`} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
               {initials(u.firstName)}
             </AvatarFallback>
