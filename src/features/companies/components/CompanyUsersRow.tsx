@@ -215,6 +215,11 @@ export function CompanyUsersRow({
                       const isSelf = u.id === currentUserId;
                       const isPending = isPendingRegistration(u);
                       const isRemoved = isDeleted(u) || !!u.orgRemovedAt;
+                      // Falls back to the same translated label used for the
+                      // visible name — without it, a user with no name set
+                      // gets alt="undefined undefined" (both fields missing)
+                      // instead of a valid accessible name.
+                      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
                       return (
                         <TableRow key={u.id} className={isRemoved ? 'opacity-50' : ''}>
                           <TableCell>
@@ -223,7 +228,7 @@ export function CompanyUsersRow({
                                 {u.avatarUrl && (
                                   <AvatarImage
                                     src={u.avatarUrl}
-                                    alt={`${u.firstName} ${u.lastName}`}
+                                    alt={fullName || t('common.unnamed')}
                                   />
                                 )}
                                 <AvatarFallback className="text-xs bg-primary/10 text-primary">
@@ -232,7 +237,7 @@ export function CompanyUsersRow({
                               </Avatar>
                               <div>
                                 <p className="text-sm font-medium">
-                                  {u.firstName} {u.lastName}
+                                  {fullName || t('common.unnamed')}
                                 </p>
                                 <p className="text-xs text-muted-foreground">{u.email}</p>
                               </div>
@@ -301,7 +306,7 @@ export function CompanyUsersRow({
                               <DropdownMenu>
                                 <DropdownMenuTrigger
                                   aria-label={t('companies.actions.openUserMenu', {
-                                    name: `${u.firstName} ${u.lastName}`,
+                                    name: fullName || t('common.unnamed'),
                                   })}
                                   className="inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                                 >

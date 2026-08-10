@@ -76,64 +76,66 @@ export function UploadDocumentDialog({ hook }: { hook: TypologiesHook }) {
             scroll built in, so without this the modal could grow taller than the
             viewport — no document + a version-mismatch/root error pushing the
             content past the fold — with no way to scroll to the rest of it or
-            to the footer buttons. */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 pt-2 overflow-y-auto min-h-0 pr-1"
-        >
-          <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">{t('docGovernance.upload.codeLabel')}: </span>
-            <span className="font-mono font-medium">{typo?.datosDeclarados.codigo ?? '—'}</span>
-          </div>
+            to the footer buttons. The scroll area is an inner div, not the
+            <form> itself, so DialogFooter — still a descendant of <form> so its
+            submit button keeps working — stays pinned below it instead of
+            scrolling out of view with the fields. */}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-2 pr-1">
+            <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
+              <span className="text-muted-foreground">{t('docGovernance.upload.codeLabel')}: </span>
+              <span className="font-mono font-medium">{typo?.datosDeclarados.codigo ?? '—'}</span>
+            </div>
 
-          <FormField
-            id="upload-nombre"
-            label={t('docGovernance.upload.nameLabel')}
-            error={uploadDocForm.formState.errors.nombre?.message}
-          >
-            <Input
+            <FormField
               id="upload-nombre"
-              placeholder={t('docGovernance.upload.namePlaceholder')}
-              {...uploadDocForm.register('nombre')}
-            />
-          </FormField>
+              label={t('docGovernance.upload.nameLabel')}
+              error={uploadDocForm.formState.errors.nombre?.message}
+            >
+              <Input
+                id="upload-nombre"
+                placeholder={t('docGovernance.upload.namePlaceholder')}
+                {...uploadDocForm.register('nombre')}
+              />
+            </FormField>
 
-          <FormField
-            id="upload-version"
-            label={t('docGovernance.upload.versionLabel')}
-            error={uploadDocForm.formState.errors.version?.message}
-            description={
-              existingVersion
-                ? t('docGovernance.upload.versionHint', { version: existingVersion })
-                : undefined
-            }
-          >
-            <Input
+            <FormField
               id="upload-version"
-              placeholder={t('docGovernance.form.versionPlaceholder')}
-              {...uploadDocForm.register('version')}
-            />
-          </FormField>
+              label={t('docGovernance.upload.versionLabel')}
+              error={uploadDocForm.formState.errors.version?.message}
+              description={
+                existingVersion
+                  ? t('docGovernance.upload.versionHint', { version: existingVersion })
+                  : undefined
+              }
+            >
+              <Input
+                id="upload-version"
+                placeholder={t('docGovernance.form.versionPlaceholder')}
+                {...uploadDocForm.register('version')}
+              />
+            </FormField>
 
-          <FormField id="upload-file" label={t('docGovernance.upload.fileLabel')}>
-            <FilePicker
-              file={uploadDocFile}
-              onChange={(file) => {
-                setUploadDocFile(file);
-                uploadDocForm.clearErrors('root');
-              }}
-              onClear={() => {
-                setUploadDocFile(null);
-                uploadDocForm.clearErrors('root');
-              }}
-            />
-          </FormField>
+            <FormField id="upload-file" label={t('docGovernance.upload.fileLabel')}>
+              <FilePicker
+                file={uploadDocFile}
+                onChange={(file) => {
+                  setUploadDocFile(file);
+                  uploadDocForm.clearErrors('root');
+                }}
+                onClear={() => {
+                  setUploadDocFile(null);
+                  uploadDocForm.clearErrors('root');
+                }}
+              />
+            </FormField>
 
-          {uploadDocForm.formState.errors.root && (
-            <p className="text-sm text-destructive">
-              {uploadDocForm.formState.errors.root.message}
-            </p>
-          )}
+            {uploadDocForm.formState.errors.root && (
+              <p className="text-sm text-destructive">
+                {uploadDocForm.formState.errors.root.message}
+              </p>
+            )}
+          </div>
 
           <DialogFooter className="pt-2 shrink-0">
             <Button type="button" variant="outline" onClick={close}>

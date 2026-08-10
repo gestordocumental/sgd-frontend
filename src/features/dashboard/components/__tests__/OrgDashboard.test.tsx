@@ -191,16 +191,19 @@ describe('OrgDashboard — permission-gated sections', () => {
     const svgs = Array.from(container.querySelectorAll('svg'));
     const weeklyChartSvg = svgs.find((svg) => svg.querySelector('text')?.textContent === '06/14');
     expect(weeklyChartSvg).toBeDefined();
-    expect(within(weeklyChartSvg!).getByText('3')).toBeInTheDocument();
-    expect(within(weeklyChartSvg!).getByText('50')).toBeInTheDocument();
-    expect(within(weeklyChartSvg!).getByText('0')).toBeInTheDocument();
+    // within() expects an HTMLElement — weeklyChartSvg is an SVGSVGElement,
+    // so query its <text> nodes directly instead.
+    const texts = Array.from(weeklyChartSvg!.querySelectorAll('text'));
+    const textContents = texts.map((text) => text.textContent);
+    expect(textContents).toContain('3');
+    expect(textContents).toContain('50');
+    expect(textContents).toContain('0');
 
     // Every <text> element of the weekly bar chart must stay within the
     // declared viewBox (y >= 0), otherwise browsers clip it and it never
     // becomes visible no matter what the fixture's screen.getByText finds
     // (jsdom doesn't clip, so this assertion is the only thing that would
     // have caught the regression).
-    const texts = Array.from(weeklyChartSvg!.querySelectorAll('text'));
     expect(texts.length).toBeGreaterThan(0);
     for (const text of texts) {
       const y = Number(text.getAttribute('y'));

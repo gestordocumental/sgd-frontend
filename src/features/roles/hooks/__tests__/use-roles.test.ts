@@ -126,4 +126,17 @@ describe('useRoles — togglePerm proactively enforces the READ-required-for-act
     );
     expect(result.current.selectedPermIds).not.toContain('wf-write');
   });
+
+  it('falls back to a plain toggle for an id not present in the permissions catalog', async () => {
+    // E.g. the catalog hasn't loaded yet, or the id is stale — the READ
+    // cascade above needs a real permission to look up module/action, so
+    // an unknown id just gets toggled in/out of the selection as-is.
+    const result = await renderRolesHook();
+
+    act(() => result.current.togglePerm('unknown-id'));
+    expect(result.current.selectedPermIds).toEqual(['unknown-id']);
+
+    act(() => result.current.togglePerm('unknown-id'));
+    expect(result.current.selectedPermIds).not.toContain('unknown-id');
+  });
 });

@@ -274,7 +274,7 @@ function UserRow({
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="size-8">
-            {u.avatarUrl && <AvatarImage src={u.avatarUrl} alt={fullName} />}
+            {u.avatarUrl && <AvatarImage src={u.avatarUrl} alt={fullName || t('common.unnamed')} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
               {initials(u.firstName)}
             </AvatarFallback>

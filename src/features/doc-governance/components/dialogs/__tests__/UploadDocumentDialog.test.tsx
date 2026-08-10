@@ -132,8 +132,32 @@ describe('UploadDocumentDialog — modal layout', () => {
     expect(dialogContent).not.toBeNull();
     expect(dialogContent).toHaveClass('max-h-[90vh]');
 
-    const scrollArea = dialogContent!.querySelector('form');
+    const form = dialogContent!.querySelector('form');
+    expect(form).not.toBeNull();
+
+    // The scroll area is an inner div, not the <form> itself — the <form>
+    // stays unscrolled so DialogFooter, its sibling, never scrolls out of
+    // view (see the regression test below for that half of the fix).
+    const scrollArea = form!.querySelector(':scope > div');
     expect(scrollArea).not.toBeNull();
     expect(scrollArea).toHaveClass('overflow-y-auto');
+  });
+
+  it('keeps DialogFooter outside the scrollable area so its buttons stay visible', () => {
+    // Regression: DialogFooter used to be a descendant of the same element
+    // that had overflow-y-auto, so on a tall form (e.g. a version-mismatch
+    // or "select a file" root error pushing content past the fold) the
+    // upload/cancel buttons scrolled out of view along with the fields.
+    render(<UploadDialogHarness typo={makeIncompleteTypology()} />, { wrapper: makeWrapper() });
+
+    const heading = screen.getByRole('heading', { name: 'Upload document' });
+    const dialogContent = heading.closest('[data-slot="dialog-content"]');
+    const form = dialogContent!.querySelector('form');
+    const scrollArea = form!.querySelector(':scope > div');
+    const footer = dialogContent!.querySelector('[data-slot="dialog-footer"]');
+
+    expect(footer).not.toBeNull();
+    expect(scrollArea!.contains(footer)).toBe(false);
+    expect(form!.contains(footer)).toBe(true); // still inside <form> so type="submit" works
   });
 });
