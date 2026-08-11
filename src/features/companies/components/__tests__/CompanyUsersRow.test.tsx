@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
@@ -20,6 +20,7 @@ vi.mock('@/lib/api/users', () => ({
 import { CompanyUsersRow } from '../CompanyUsersRow';
 import { useAuthStore } from '@/store/authStore';
 import type { ApiUserWithRoles } from '@/lib/api/users';
+import { mockImageLoad } from '@/test/mock-image';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -265,5 +266,29 @@ describe('CompanyUsersRow — status action menu', () => {
       expect.objectContaining({ id: 'u-1' }),
       'org-1',
     );
+  });
+});
+
+describe('CompanyUsersRow — avatar', () => {
+  beforeEach(() => mockImageLoad());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the profile picture instead of the generic initial when the user has one configured', async () => {
+    renderRow([makeUser({ avatarUrl: 'https://cdn.example.com/alice.png' })]);
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Alice Smith')).toHaveAttribute(
+        'src',
+        'https://cdn.example.com/alice.png',
+      );
+    });
+  });
+
+  it('falls back to the generic initial avatar when the user has no profile picture', async () => {
+    renderRow([makeUser({ avatarUrl: null })]);
+
+    await screen.findByText('Alice Smith');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('A')).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import {
   companiesApi,
   type ApiCompany,
@@ -10,6 +11,7 @@ import {
   type UpdateCompanyDto,
 } from '@/lib/api/companies';
 import { requiredString } from '@/lib/validations/schemas';
+import { resolveApiError } from '@/lib/utils/api-error';
 
 const companySchema = z.object({
   name: requiredString(),
@@ -22,6 +24,7 @@ export type CompanyForm = z.infer<typeof companySchema>;
 
 export function useAdminCompanies() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<ApiCompany | null>(null);
@@ -121,6 +124,13 @@ export function useAdminCompanies() {
       refreshCompanies();
       setCreateOpen(false);
     },
+    // Regression: no onError at all — creating a company with an
+    // already-registered name (the backend does reject it, 409) failed
+    // completely silently. The dialog just sat there with no explanation.
+    onError: (error: unknown) => {
+      const msg = resolveApiError(error, t);
+      if (msg) createForm.setError('name', { message: msg });
+    },
   });
 
   const editMutation = useMutation({
@@ -130,6 +140,12 @@ export function useAdminCompanies() {
       refreshCompanies();
       setEditCompany(null);
       setSelectedCompany((prev) => (prev?.id === updated.id ? updated : prev));
+    },
+    // Same gap on rename — the backend rejects renaming a company to a name
+    // that's already taken by another org (also a 409), same silent failure.
+    onError: (error: unknown) => {
+      const msg = resolveApiError(error, t);
+      if (msg) editForm.setError('name', { message: msg });
     },
   });
 

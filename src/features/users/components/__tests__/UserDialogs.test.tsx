@@ -55,6 +55,14 @@ vi.mock('@/lib/api/org-structure', () => ({
   },
 }));
 
+const mockToastSuccess = vi.fn();
+vi.mock('sonner', () => ({
+  toast: {
+    success: (...args: unknown[]) => mockToastSuccess(...args),
+    error: vi.fn(),
+  },
+}));
+
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
 import { UserDialogs } from '../UserDialogs';
@@ -74,11 +82,14 @@ function makeWrapper() {
  * Renders the create-user dialog by composing the real hook with
  * the UserDialogs component inside a test harness.
  */
-function CreateDialogHarness({ context = 'super-admin' as const } = {}) {
+function CreateDialogHarness({
+  context = 'super-admin' as const,
+  companyId,
+}: { context?: 'super-admin' | 'company'; companyId?: string } = {}) {
   const hook = useAdminUsers();
 
   useEffect(() => {
-    hook.openCreate(context);
+    hook.openCreate(context, companyId);
     // openCreate is stable across renders — safe to run once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -186,7 +197,11 @@ describe('CreateUserDialog — submit', () => {
     });
   });
 
-  it('handles 409 conflict by promoting the existing user to super-admin', async () => {
+  it('handles 409 conflict by promoting the existing user to super-admin, and tells the admin so', async () => {
+    // Regression: this used to silently promote the existing user and close
+    // the dialog with zero feedback — indistinguishable from a brand-new
+    // invitation having been sent. The whole point of the reported bug is
+    // that nothing told the admin "this email was already registered".
     mockCreate.mockRejectedValue({
       response: { status: 409, data: { params: { userId: 'existing-u' } } },
     });
@@ -202,5 +217,57 @@ describe('CreateUserDialog — submit', () => {
     await waitFor(() => {
       expect(mockToggleSuperAdmin).toHaveBeenCalledWith('existing-u', true);
     });
+    expect(mockToastSuccess).toHaveBeenCalledWith(
+      'The user already existed and has been granted super admin access.',
+    );
+    // Must not also show the "invitation sent" success state — nothing was invited.
+    expect(screen.queryByText('Invitation sent')).not.toBeInTheDocument();
+  });
+
+  it('handles 409 conflict by linking the existing user to the company, and tells the admin so', async () => {
+    mockCreate.mockRejectedValue({
+      response: { status: 409, data: { params: { userId: 'existing-u' } } },
+    });
+    mockAssignUserToOrg.mockResolvedValue({});
+
+    const user = userEvent.setup();
+    render(<CreateDialogHarness context="company" companyId="company-1" />, {
+      wrapper: makeWrapper(),
+    });
+    await screen.findByText('New user');
+
+    await user.type(screen.getByPlaceholderText('user@company.com'), 'existing@company.com');
+    await user.click(screen.getByRole('button', { name: 'Create user' }));
+
+    await waitFor(() => {
+      expect(mockAssignUserToOrg).toHaveBeenCalledWith('existing-u', 'company-1', undefined);
+    });
+    expect(mockToastSuccess).toHaveBeenCalledWith(
+      'The user already existed and has been added to the organization.',
+    );
+    expect(screen.queryByText('Invitation sent')).not.toBeInTheDocument();
+  });
+
+  it('shows the error on the email field instead of failing silently when creation fails for a reason that cannot be auto-resolved', async () => {
+    // Regression: createMutation had no onError at all — any failure that
+    // getExistingUserIdFrom409 could not resolve (e.g. a plain validation
+    // error, or a 409 without a resolvable userId) was swallowed completely.
+    mockCreate.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { errorCode: 'USER_ALREADY_EXISTS', message: 'fallback' },
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<CreateDialogHarness context="super-admin" />, { wrapper: makeWrapper() });
+    await screen.findByText('New user');
+
+    await user.type(screen.getByPlaceholderText('user@company.com'), 'existing@company.com');
+    await user.click(screen.getByRole('button', { name: 'Create user' }));
+
+    expect(await screen.findByText('A user with this email already exists.')).toBeInTheDocument();
+    expect(mockAssignUserToOrg).not.toHaveBeenCalled();
+    expect(mockToggleSuperAdmin).not.toHaveBeenCalled();
   });
 });

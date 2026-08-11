@@ -14,6 +14,8 @@ import { useState, useMemo, useEffect, useRef, type CSSProperties } from 'react'
 import { renderAsync as renderDocxAsync } from 'docx-preview';
 import ExcelJS from 'exceljs';
 import SSF from 'ssf';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -607,27 +609,24 @@ export function DetailWorkflowDialog({
       if (logs.length === 0) return;
 
       const rows = buildAuditExportRows(logs, [], t);
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet(t('audit.title'));
       const headers = Object.keys(rows[0]);
-      ws.addRow(headers);
-      for (const row of rows) ws.addRow(headers.map((h) => row[h]));
-      headers.forEach((key, i) => {
-        const maxLen = rows.reduce(
-          (acc, r) => Math.max(acc, String(r[key] ?? '').length),
-          key.length,
-        );
-        ws.getColumn(i + 1).width = Math.max(maxLen, 10);
+
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(14);
+      doc.text(t('workflows.detail.auditLogPdfTitle', { name: detailWorkflow.title }), 14, 15);
+      autoTable(doc, {
+        head: [headers],
+        body: rows.map((row) => headers.map((h) => row[h] ?? '')),
+        startY: 20,
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [51, 65, 85] },
       });
 
-      const buffer = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+      const blob = doc.output('blob');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${safeTitle}_audit-log.xlsx`;
+      a.download = `${safeTitle}_audit-log.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {

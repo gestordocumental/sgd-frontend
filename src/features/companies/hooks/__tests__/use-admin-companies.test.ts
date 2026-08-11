@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
+import '@/i18n';
 
 // ── Module mocks — declared before any import that triggers them ───────────────
 
@@ -199,6 +200,36 @@ describe('useAdminCompanies — create', () => {
     expect(mockCreate).toHaveBeenCalledWith({ name: 'Acme' });
     await waitFor(() => expect(result.current.createOpen).toBe(false));
   });
+
+  it('shows the translated warning on the name field when the company name is already registered, instead of failing silently', async () => {
+    // Regression: createMutation had no onError at all — creating a company
+    // with a name the backend already rejects (409 COMPANY_ALREADY_EXISTS)
+    // used to give the admin no feedback whatsoever; the dialog just sat
+    // there as if nothing happened.
+    mockCreate.mockRejectedValue({
+      response: {
+        data: {
+          errorCode: 'COMPANY_ALREADY_EXISTS',
+          message: 'fallback',
+          params: { name: 'Acme' },
+        },
+      },
+    });
+    const { result } = renderHook(() => useAdminCompanies(), { wrapper: makeWrapper() });
+    act(() => result.current.openCreate());
+
+    await act(async () => {
+      await result.current.onCreateSubmit({ name: 'Acme' } as CompanyForm);
+    });
+
+    // Dialog must stay open — the admin needs to see and fix the error.
+    expect(result.current.createOpen).toBe(true);
+    await waitFor(() =>
+      expect(result.current.createForm.formState.errors.name?.message).toBe(
+        'A company named "Acme" is already registered.',
+      ),
+    );
+  });
 });
 
 describe('useAdminCompanies — edit', () => {
@@ -245,6 +276,33 @@ describe('useAdminCompanies — edit', () => {
     expect(mockUpdate).toHaveBeenCalledWith(company.id, { name: 'New Name' });
     await waitFor(() => expect(result.current.editCompany).toBeNull());
     expect(result.current.selectedCompany).toEqual(updated);
+  });
+
+  it('shows the translated warning on the name field when renaming to an already-registered name', async () => {
+    const company = makeCompany();
+    mockUpdate.mockRejectedValue({
+      response: {
+        data: {
+          errorCode: 'COMPANY_ALREADY_EXISTS',
+          message: 'fallback',
+          params: { name: 'Taken' },
+        },
+      },
+    });
+    const { result } = renderHook(() => useAdminCompanies(), { wrapper: makeWrapper() });
+    act(() => result.current.openEdit(company));
+
+    await act(async () => {
+      await result.current.onEditSubmit({ name: 'Taken' } as CompanyForm);
+    });
+
+    // Dialog must stay open — the admin needs to see and fix the error.
+    expect(result.current.editCompany).toBe(company);
+    await waitFor(() =>
+      expect(result.current.editForm.formState.errors.name?.message).toBe(
+        'A company named "Taken" is already registered.',
+      ),
+    );
   });
 
   it('onEditSubmit is a no-op when no company is being edited', async () => {

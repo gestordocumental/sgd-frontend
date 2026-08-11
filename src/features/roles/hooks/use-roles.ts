@@ -142,10 +142,47 @@ export function useRoles(companyId: string) {
     editForm.trigger();
   };
 
-  const togglePerm = (permId: string) =>
-    setSelectedPermIds((prev) =>
-      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
-    );
+  // Mirrors RolePolicy.validatePermissionSet on the backend (the actual
+  // enforcement — this is just proactive UX so an admin doesn't have to
+  // discover the rule by hitting a save error): an action permission
+  // (WRITE, DELETE, APPROVE, ...) is useless without READ ("Ver") on the
+  // same module, since the user could never reach the screen that exposes
+  // the action. So checking an action auto-checks READ for its module, and
+  // unchecking READ cascades to unchecking every other permission on that
+  // module — otherwise unchecking READ alone would silently recreate the
+  // exact inconsistent state this whole mechanism exists to prevent.
+  const togglePerm = (permId: string) => {
+    const perm = permissions.find((p) => p.id === permId);
+    if (!perm) {
+      // Catalog not loaded yet or a stale id — fall back to a plain toggle
+      // rather than dropping the interaction.
+      setSelectedPermIds((prev) =>
+        prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
+      );
+      return;
+    }
+
+    setSelectedPermIds((prev) => {
+      const isSelected = prev.includes(permId);
+
+      if (isSelected) {
+        if (perm.action === 'READ') {
+          const sameModuleIds = new Set(
+            permissions.filter((p) => p.module === perm.module).map((p) => p.id),
+          );
+          return prev.filter((id) => !sameModuleIds.has(id));
+        }
+        return prev.filter((id) => id !== permId);
+      }
+
+      const next = [...prev, permId];
+      if (perm.action !== 'READ') {
+        const readPerm = permissions.find((p) => p.module === perm.module && p.action === 'READ');
+        if (readPerm && !next.includes(readPerm.id)) next.push(readPerm.id);
+      }
+      return next;
+    });
+  };
 
   return {
     roles,

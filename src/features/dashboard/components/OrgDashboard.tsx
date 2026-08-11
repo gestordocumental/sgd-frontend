@@ -362,6 +362,18 @@ function WeeklyBarChart({
   const chartW = 320;
   const cols = data.length || 1;
   const barW = Math.floor(chartW / cols) - 5;
+  // Headroom above the tallest bar for its count label — without this, the
+  // week with the highest count has its bar reach y=0 and the label (drawn
+  // at y - countLabelGap) lands outside the viewBox and gets clipped, i.e.
+  // invisible (QA: "no se visualizarán los valores sobre las columnas cuando
+  // estos sean elevados"). Same fix as OrgGrowthChart's identical bug.
+  const topPad = 16;
+  // Vertical space reserved below the bars for the week-of axis labels.
+  const axisLabelAreaH = 24;
+  // Baseline offset (from the bottom of the bars) for the week-of labels.
+  const axisLabelOffsetY = 17;
+  // Gap between the top of a bar and the baseline of its count label.
+  const countLabelGap = 5;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -369,7 +381,7 @@ function WeeklyBarChart({
       {!hasData ? (
         <p className="text-sm text-muted-foreground">{noDataLabel}</p>
       ) : (
-        <svg viewBox={`0 0 ${chartW} ${chartH + 24}`} className="w-full">
+        <svg viewBox={`0 0 ${chartW} ${topPad + chartH + axisLabelAreaH}`} className="w-full">
           <defs>
             <linearGradient id="orgBarGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366f1" />
@@ -379,7 +391,7 @@ function WeeklyBarChart({
           {data.map((d, i) => {
             const barH = Math.max((d.count / maxCount) * chartH, d.count > 0 ? 6 : 0);
             const x = i * (chartW / cols) + 2;
-            const y = chartH - barH;
+            const y = topPad + (chartH - barH);
             const barLabel = t('dashboard.charts.weeklyTrendBarLabel', {
               week: d.week,
               count: d.count,
@@ -390,7 +402,7 @@ function WeeklyBarChart({
                 <rect x={x} y={y} width={barW} height={barH} rx={4} fill="url(#orgBarGrad)" />
                 <text
                   x={x + barW / 2}
-                  y={chartH + 17}
+                  y={topPad + chartH + axisLabelOffsetY}
                   textAnchor="middle"
                   fontSize={9}
                   fill="currentColor"
@@ -400,7 +412,7 @@ function WeeklyBarChart({
                 </text>
                 <text
                   x={x + barW / 2}
-                  y={d.count > 0 ? y - 5 : chartH - 5}
+                  y={d.count > 0 ? y - countLabelGap : topPad + chartH - countLabelGap}
                   textAnchor="middle"
                   fontSize={10}
                   fill={d.count > 0 ? '#6366f1' : 'currentColor'}

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent, within } from '@testing-library/react';
 import ExcelJS from 'exceljs';
-import i18n from '@/i18n';
+import '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
 import type { ApiWorkflow } from '@/lib/api/workflows';
@@ -676,7 +676,7 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
   }
 
-  it('downloads both the attachments ZIP and a second .xlsx with the audit trail, keyed by workflow.id as the Correlation ID', async () => {
+  it('downloads both the attachments ZIP and a second .pdf with the audit trail, titled with the workflow name and keyed by workflow.id as the Correlation ID', async () => {
     mockDownloadZip.mockResolvedValue(new Blob(['zip-bytes']));
     mockGetAuditLog.mockResolvedValue([
       {
@@ -702,24 +702,23 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     await vi.waitFor(() => expect(createdBlobs).toHaveLength(2));
     expect(toastError).not.toHaveBeenCalled();
 
-    // Order and filenames: the ZIP downloads first, the audit-log workbook
+    // Order and filenames: the ZIP downloads first, the audit-log PDF
     // second — a swap or a wrong extension would slip past a test that only
     // counts blobs.
     expect(createdAnchors).toHaveLength(2);
     expect(createdAnchors[0].download).toMatch(/\.zip$/);
-    expect(createdAnchors[1].download).toMatch(/_audit-log\.xlsx$/);
+    expect(createdAnchors[1].download).toMatch(/_audit-log\.pdf$/);
 
-    // The second blob must actually be a readable XLSX whose Correlation ID
-    // column carries the workflow's own id — not just "some blob".
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(await createdBlobs[1].arrayBuffer());
-    const sheet = wb.worksheets[0];
-    const headerRow = sheet.getRow(1);
-    const correlationColIndex = Array.from({ length: headerRow.cellCount }, (_, i) => i + 1).find(
-      (i) => headerRow.getCell(i).text === i18n.t('audit.columns.correlationId'),
-    );
-    expect(correlationColIndex).toBeDefined();
-    expect(sheet.getRow(2).getCell(correlationColIndex!).text).toBe('wf-download-all');
+    // The second blob must actually be a PDF containing the "Flow Log
+    // (<workflow title>)" heading and a table whose Correlation ID column
+    // carries the workflow's own id — not just "some blob". PDF content
+    // streams escape literal parentheses as \( \), so the title and the
+    // workflow name are asserted separately rather than as one substring.
+    expect(createdBlobs[1].type).toBe('application/pdf');
+    const text = await createdBlobs[1].text();
+    expect(text).toContain('Flow Log');
+    expect(text).toContain('Contract Review');
+    expect(text).toContain('wf-download-all');
   });
 
   it('skips the second download silently when the workflow has no audit events yet', async () => {
