@@ -60,6 +60,31 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
+          // react/react-dom/scheduler must be their own chunk, checked before
+          // every other bucket below. Every other bucket (tanstack, ui,
+          // spreadsheet, vendor, ...) imports React, and the old catch-all
+          // dropped react into 'vendor' alongside code that 'vendor' itself
+          // pulled in from those buckets — a real circular chunk dependency
+          // (Rollup warned "Circular chunk: vendor -> tanstack -> vendor" /
+          // "spreadsheet -> vendor -> spreadsheet"). With circular ESM
+          // chunks, load order isn't guaranteed, so a chunk could run
+          // React.useLayoutEffect() before the 'vendor' chunk had finished
+          // initializing its React export — crashing the entire app with
+          // "Cannot read properties of undefined (reading 'useLayoutEffect')"
+          // on first paint. Giving React its own chunk with no back-edge to
+          // any of the others breaks the cycle.
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/') ||
+            // @tanstack/react-store's dependency — without this it fell into
+            // the 'vendor' catch-all, and since 'tanstack' imports it from
+            // there, that was the other half of the vendor<->tanstack cycle
+            // (the "Circular chunk: tanstack -> vendor -> tanstack" warning
+            // that survived the react/react-dom/scheduler split above).
+            id.includes('node_modules/use-sync-external-store/')
+          )
+            return 'react-vendor';
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
           if (id.includes('@sentry')) return 'monitoring';
