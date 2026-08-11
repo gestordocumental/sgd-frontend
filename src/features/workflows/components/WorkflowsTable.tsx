@@ -95,6 +95,29 @@ export function WorkflowsTable({
   // Search and pagination are server-side; workflows already contains the current page slice.
   const totalPages = workflowsTotalPages;
 
+  // "Mis tareas" y "Mis flujos" no están paginados en el servidor (listas
+  // acotadas al usuario), así que el mismo filtro de texto/estado de "Todos"
+  // se aplica en cliente sobre el array ya cargado.
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredMyTasks = useMemo(
+    () =>
+      myTasks.filter(
+        (w) =>
+          (!normalizedSearch || w.title.toLowerCase().includes(normalizedSearch)) &&
+          (!statusFilter || w.status === statusFilter),
+      ),
+    [myTasks, normalizedSearch, statusFilter],
+  );
+  const filteredMyAvailable = useMemo(
+    () =>
+      myAvailable.filter(
+        (w) =>
+          (!normalizedSearch || w.title.toLowerCase().includes(normalizedSearch)) &&
+          (!statusFilter || w.status === statusFilter),
+      ),
+    [myAvailable, normalizedSearch, statusFilter],
+  );
+
   return (
     <main className="p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -163,33 +186,13 @@ export function WorkflowsTable({
 
         {canManage && (
           <TabsContent value="all" className="mt-4 space-y-3">
-            {/* Filters bar */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t('common.search')}
-                  className="h-8 pl-8 w-52 text-sm"
-                />
-              </div>
-              <select
-                value={statusFilter ?? 'all'}
-                onChange={(e) =>
-                  setStatusFilter(
-                    e.target.value === 'all' ? undefined : (e.target.value as WorkflowStatus),
-                  )
-                }
-                className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <WorkflowFiltersBar
+              search={search}
+              setSearch={setSearch}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              statusOptions={STATUS_OPTIONS}
+            />
 
             <WorkflowList
               workflows={workflows ?? []}
@@ -211,29 +214,89 @@ export function WorkflowsTable({
           </TabsContent>
         )}
 
-        <TabsContent value="my-tasks" className="mt-4">
+        <TabsContent value="my-tasks" className="mt-4 space-y-3">
+          <WorkflowFiltersBar
+            search={search}
+            setSearch={setSearch}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            statusOptions={STATUS_OPTIONS}
+          />
           <WorkflowList
-            workflows={myTasks}
+            workflows={filteredMyTasks}
             isLoading={myTasksLoading}
             hook={hook}
             canWrite={false}
             canApprove={canApprove}
-            emptyKey="workflows.emptyMyTasks"
+            emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.emptyMyTasks'}
           />
         </TabsContent>
 
-        <TabsContent value="my-available" className="mt-4">
+        <TabsContent value="my-available" className="mt-4 space-y-3">
+          <WorkflowFiltersBar
+            search={search}
+            setSearch={setSearch}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            statusOptions={STATUS_OPTIONS}
+          />
           <WorkflowList
-            workflows={myAvailable}
+            workflows={filteredMyAvailable}
             isLoading={myAvailableLoading}
             hook={hook}
             canWrite={false}
             canApprove={false}
-            emptyKey="workflows.emptyMyAvailable"
+            emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.emptyMyAvailable'}
           />
         </TabsContent>
       </Tabs>
     </main>
+  );
+}
+
+// ── WorkflowFiltersBar ────────────────────────────────────────────────────────
+
+interface WorkflowFiltersBarProps {
+  search: string;
+  setSearch: (v: string) => void;
+  statusFilter: WorkflowStatus | undefined;
+  setStatusFilter: (v: WorkflowStatus | undefined) => void;
+  statusOptions: { value: string; label: string }[];
+}
+
+function WorkflowFiltersBar({
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  statusOptions,
+}: WorkflowFiltersBarProps) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('common.search')}
+          className="h-8 pl-8 w-52 text-sm"
+        />
+      </div>
+      <select
+        value={statusFilter ?? 'all'}
+        onChange={(e) =>
+          setStatusFilter(e.target.value === 'all' ? undefined : (e.target.value as WorkflowStatus))
+        }
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+      >
+        {statusOptions.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 

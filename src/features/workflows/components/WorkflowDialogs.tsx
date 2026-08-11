@@ -9,6 +9,9 @@ import { DeleteWorkflowDialog } from './dialogs/DeleteWorkflowDialog';
 import { StartReviewCycleDialog } from './dialogs/StartReviewCycleDialog';
 import { CompleteReviewStepDialog } from './dialogs/CompleteReviewStepDialog';
 import { ForwardStepDialog } from './dialogs/ForwardStepDialog';
+import { CloseWorkflowDialog } from './dialogs/CloseWorkflowDialog';
+import { CancelWorkflowDialog } from './dialogs/CancelWorkflowDialog';
+import { ManageWorkflowDialog } from './dialogs/ManageWorkflowDialog';
 
 type WorkflowsHook = ReturnType<typeof useWorkflows>;
 
@@ -30,6 +33,9 @@ export function WorkflowDialogs({ hook, canApprove = false }: WorkflowDialogsPro
       <StartReviewCycleDialog hook={hook} />
       <CompleteReviewStepDialog hook={hook} />
       <ForwardStepDialog hook={hook} />
+      <CloseWorkflowDialog hook={hook} />
+      <CancelWorkflowDialog hook={hook} />
+      <ManageWorkflowDialog hook={hook} />
     </>
   );
 }

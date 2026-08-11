@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Pager } from '@/components/ui/pager';
 import { RefreshCountdown } from '@/components/ui/refresh-countdown';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -280,20 +280,23 @@ function UserRow({
 }: UserRowProps) {
   const { t } = useTranslation();
   const isPending = isPendingRegistration(u);
+  // Falls back to the same translated label used for the visible name —
+  // without it, a user with no name set gets alt="undefined undefined"
+  // (both fields missing) instead of a valid accessible name.
+  const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
   return (
     <TableRow className={isDeleted(u) || !!u.orgRemovedAt ? 'opacity-50' : ''}>
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="size-8">
+            {u.avatarUrl && <AvatarImage src={u.avatarUrl} alt={fullName || t('common.unnamed')} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
               {initials(u.firstName)}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-sm font-medium">
-                {u.firstName} {u.lastName}
-              </p>
+              <p className="text-sm font-medium">{fullName || t('common.unnamed')}</p>
               {u.isOptionalReviewer && (
                 <Badge
                   variant="outline"

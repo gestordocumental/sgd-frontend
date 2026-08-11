@@ -1,0 +1,20 @@
+{
+  "url": "http://localhost:4173/dashboard",
+  "colorScheme": "light",
+  "mediaType": "screen",
+  "test": {
+    "id": "c5cf88f0440b5bbc40bb-60811169bd1fe401de6d",
+    "title": "overview tab",
+    "titlePath": ["visual\\snapshots.spec.ts", "Visual — company dashboard", "overview tab"],
+    "retry": 0,
+    "retries": 0,
+    "repeat": 0,
+    "location": { "file": "tests\\e2e\\visual\\snapshots.spec.ts", "line": 35, "column": 3 },
+    "annotations": []
+  },
+  "browser": { "name": "chromium", "version": "148.0.7778.96" },
+  "automationLibrary": { "version": "1.60.0", "name": "@playwright/test" },
+  "sdk": { "name": "@argos-ci/playwright", "version": "7.0.6" },
+  "viewport": { "width": 1280, "height": 720 },
+  "transient": {}
+}

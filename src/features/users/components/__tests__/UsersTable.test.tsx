@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@/i18n';
 import { UsersTable } from '../UsersTable';
 import type { AdminUsersHook } from '@/features/users/hooks/use-admin-users';
 import type { ApiUser } from '@/lib/api/users';
 import { useAuthStore } from '@/store/authStore';
+import { mockImageLoad } from '@/test/mock-image';
 
 // jsdom has zero-height elements — the virtualizer renders 0 items unless we
 // make it believe all items are visible regardless of scroll position.
@@ -190,6 +191,29 @@ describe('UsersTable — data rows', () => {
     // The row should have opacity-50 class
     const rows = document.querySelectorAll('tr.opacity-50');
     expect(rows.length).toBeGreaterThan(0);
+  });
+
+  describe('avatar', () => {
+    beforeEach(() => mockImageLoad());
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('shows the profile picture instead of the generic initial when the user has one configured', async () => {
+      const user = makeUser({ avatarUrl: 'https://cdn.example.com/alice.png' });
+      render(<UsersTable hook={makeHook({ superAdmins: [user] })} />);
+      await waitFor(() => {
+        expect(screen.getByAltText('Alice Smith')).toHaveAttribute(
+          'src',
+          'https://cdn.example.com/alice.png',
+        );
+      });
+    });
+
+    it('falls back to the generic initial avatar when the user has no profile picture', () => {
+      const user = makeUser({ avatarUrl: null });
+      render(<UsersTable hook={makeHook({ superAdmins: [user] })} />);
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      expect(screen.getByText('A')).toBeInTheDocument();
+    });
   });
 });
 

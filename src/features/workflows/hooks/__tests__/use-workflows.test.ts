@@ -508,6 +508,121 @@ describe('useWorkflows — openDetailById', () => {
   });
 });
 
+// ── 6b. navigateFromDetail / returnToDetailWorkflow ──────────────────────────
+// Regression guards for the "close a dialog opened from the detail footer and
+// land back on detail" behavior — see use-workflows.ts's returnToDetailIfPending.
+
+describe('useWorkflows — navigateFromDetail / returnToDetailWorkflow', () => {
+  it('reopens detail when a dialog opened via navigateFromDetail is cancelled (closed with null)', async () => {
+    const wf = { id: 'wf-1', title: 'Test WF' } as ApiWorkflow;
+    mockGetById.mockResolvedValue(wf);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.dialogs.setDetailWorkflow(wf);
+    });
+    await waitFor(() => expect(result.current.dialogs.detailWorkflow).toEqual(wf));
+
+    act(() => {
+      result.current.actions.navigateFromDetail(() => result.current.actions.openTimeline(wf.id));
+    });
+    expect(result.current.dialogs.detailWorkflow).toBeNull();
+    expect(result.current.dialogs.timelineWorkflowId).toBe('wf-1');
+
+    // Cancel button and backdrop click both call this same setter with null
+    // (see TimelineDialog's onOpenChange/Cancel handler) — this exercises the
+    // one code path both of them funnel through.
+    act(() => {
+      result.current.dialogs.setTimelineWorkflowId(null);
+    });
+
+    expect(result.current.dialogs.timelineWorkflowId).toBeNull();
+    expect(result.current.dialogs.detailWorkflow).toEqual(wf);
+  });
+
+  it('reopens detail when a different dialog (Start review cycle) opened via navigateFromDetail is cancelled', async () => {
+    const wf = { id: 'wf-1', title: 'Test WF' } as ApiWorkflow;
+    mockGetById.mockResolvedValue(wf);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.dialogs.setDetailWorkflow(wf);
+    });
+    await waitFor(() => expect(result.current.dialogs.detailWorkflow).toEqual(wf));
+
+    act(() => {
+      result.current.actions.navigateFromDetail(() => result.current.actions.openReviewCycle(wf));
+    });
+    expect(result.current.dialogs.detailWorkflow).toBeNull();
+    expect(result.current.dialogs.reviewCycleWorkflow).toEqual(wf);
+
+    act(() => {
+      result.current.dialogs.setReviewCycleWorkflow(null);
+    });
+
+    expect(result.current.dialogs.reviewCycleWorkflow).toBeNull();
+    expect(result.current.dialogs.detailWorkflow).toEqual(wf);
+  });
+
+  it('reopens detail with the stored workflow after a dialog opened via navigateFromDetail succeeds', async () => {
+    const wf = { id: 'wf-1', title: 'Test WF' } as ApiWorkflow;
+    mockGetById.mockResolvedValue(wf);
+    mockApprove.mockResolvedValue({ ...wf, status: 'PENDING_REVIEW_CYCLE' });
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.dialogs.setDetailWorkflow(wf);
+    });
+    await waitFor(() => expect(result.current.dialogs.detailWorkflow).toEqual(wf));
+
+    act(() => {
+      result.current.actions.navigateFromDetail(() => result.current.actions.openApprove(wf));
+    });
+    expect(result.current.dialogs.detailWorkflow).toBeNull();
+    expect(result.current.dialogs.approveWorkflow).toEqual(wf);
+
+    act(() => {
+      result.current.mutations.approveMutation.mutate({ id: wf.id, dto: {} });
+    });
+
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.dialogs.approveWorkflow).toBeNull());
+    expect(result.current.dialogs.detailWorkflow).toEqual(wf);
+  });
+
+  it('does not restore a previous detail when a dialog is later opened directly (e.g. from the table row), bypassing navigateFromDetail', async () => {
+    const wf = { id: 'wf-1', title: 'Test WF' } as ApiWorkflow;
+    mockGetById.mockResolvedValue(wf);
+
+    const { result } = renderHook(() => useWorkflows('org-1'), { wrapper: makeWrapper() });
+
+    // Detail was open, then closed with the plain "Close" button — not
+    // navigateFromDetail — so returnToDetailWorkflow is never set here.
+    act(() => {
+      result.current.dialogs.setDetailWorkflow(wf);
+    });
+    await waitFor(() => expect(result.current.dialogs.detailWorkflow).toEqual(wf));
+    act(() => {
+      result.current.dialogs.setDetailWorkflow(null);
+    });
+    expect(result.current.dialogs.detailWorkflow).toBeNull();
+
+    // Timeline for a different workflow is opened straight from the table
+    // row's menu — never routed through navigateFromDetail.
+    act(() => {
+      result.current.actions.openTimeline('wf-2');
+    });
+    act(() => {
+      result.current.dialogs.setTimelineWorkflowId(null);
+    });
+
+    expect(result.current.dialogs.detailWorkflow).toBeNull();
+  });
+});
+
 // ── 7. orgUsersMap ────────────────────────────────────────────────────────────
 
 describe('useWorkflows — orgUsersMap', () => {

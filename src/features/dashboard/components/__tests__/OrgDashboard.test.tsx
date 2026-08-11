@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import '@/i18n';
 import { OrgDashboard } from '../OrgDashboard';
 import type { TypologyStats } from '@/lib/api/typologies';
@@ -121,6 +121,24 @@ describe('OrgDashboard — permission-gated sections', () => {
     expect(screen.queryByText('Storage used')).not.toBeInTheDocument();
   });
 
+  // ── "My pending tasks" card click ─────────────────────────────────────────
+
+  it('calls onMyTasksClick when the "My pending tasks" card is clicked', () => {
+    const onMyTasksClick = vi.fn();
+    renderDashboard({ onMyTasksClick });
+
+    fireEvent.click(screen.getByRole('button', { name: /my pending tasks/i }));
+
+    expect(onMyTasksClick).toHaveBeenCalledOnce();
+  });
+
+  it('renders the "My pending tasks" card as plain, non-interactive content when no handler is passed', () => {
+    renderDashboard();
+
+    expect(screen.queryByRole('button', { name: /my pending tasks/i })).not.toBeInTheDocument();
+    expect(screen.getByText('My pending tasks')).toBeInTheDocument();
+  });
+
   it('does not leak the restricted module count into the combined documents KPI', () => {
     renderDashboard({ canViewWorkflows: false });
 
@@ -149,6 +167,48 @@ describe('OrgDashboard — permission-gated sections', () => {
     // active/inactive donut in this fixture also legitimately shows a 0.
     expect(screen.getByText('Week of 06/21: 0 workflows created')).toBeInTheDocument();
     expect(screen.getByText('Week of 06/28: 1 workflow created')).toBeInTheDocument();
+  });
+
+  it('renders the count label for the tallest bar in the weekly workflow chart, not just the shorter ones', () => {
+    // QA regression: the week with the highest count had its bar reach y=0,
+    // placing the count label (drawn at y - 5) outside the SVG viewBox —
+    // clipped/invisible in the browser even though the bar itself rendered
+    // fine ("no se visualizarán los valores sobre las columnas cuando estos
+    // sean elevados"). Same root cause and fix as OrgGrowthChart's chart.
+    const { container } = renderDashboard({
+      workflowStats: {
+        ...WORKFLOW_STATS,
+        weeklyTrend: [
+          { week: '06/14', count: 3 },
+          { week: '06/21', count: 50 }, // the max — previously invisible label
+          { week: '06/28', count: 0 },
+        ],
+      },
+    });
+
+    // Scoped to the weekly chart's own <svg> — a bare '3' or '0' also
+    // legitimately appears elsewhere on the dashboard (other KPIs/donuts).
+    const svgs = Array.from(container.querySelectorAll('svg'));
+    const weeklyChartSvg = svgs.find((svg) => svg.querySelector('text')?.textContent === '06/14');
+    expect(weeklyChartSvg).toBeDefined();
+    // within() expects an HTMLElement — weeklyChartSvg is an SVGSVGElement,
+    // so query its <text> nodes directly instead.
+    const texts = Array.from(weeklyChartSvg!.querySelectorAll('text'));
+    const textContents = texts.map((text) => text.textContent);
+    expect(textContents).toContain('3');
+    expect(textContents).toContain('50');
+    expect(textContents).toContain('0');
+
+    // Every <text> element of the weekly bar chart must stay within the
+    // declared viewBox (y >= 0), otherwise browsers clip it and it never
+    // becomes visible no matter what the fixture's screen.getByText finds
+    // (jsdom doesn't clip, so this assertion is the only thing that would
+    // have caught the regression).
+    expect(texts.length).toBeGreaterThan(0);
+    for (const text of texts) {
+      const y = Number(text.getAttribute('y'));
+      expect(y).toBeGreaterThanOrEqual(0);
+    }
   });
 
   it('lists every workflow status in "Workflow status", including ones with zero workflows', () => {

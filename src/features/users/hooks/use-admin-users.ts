@@ -3,6 +3,8 @@ import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tansta
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import {
   usersApi,
   type ApiUser,
@@ -16,7 +18,7 @@ import { rolesApi } from '@/lib/api/roles';
 import { ROLE_NAMES } from '@/lib/constants/roles';
 import { orgStructureApi } from '@/lib/api/org-structure';
 import { emailField, requiredString, optionalString } from '@/lib/validations/schemas';
-import { getExistingUserIdFrom409 } from '@/lib/utils/api-error';
+import { resolveApiError, getExistingUserIdFrom409 } from '@/lib/utils/api-error';
 
 // HTML selects always produce "" when nothing is selected — convert to undefined
 // before UUID validation so the form stays valid when fields are left blank.
@@ -42,6 +44,7 @@ export type AdminUsersHook = ReturnType<typeof useAdminUsers>;
 
 export function useAdminUsers() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [invitedUser, setInvitedUser] = useState<InvitedUserInfo | null>(null);
@@ -237,6 +240,17 @@ export function useAdminUsers() {
     }
   }, [companyRoles, createForm, createUserContext]);
 
+  // Discriminates what actually happened on success — a genuinely new user,
+  // or an existing one (same email) silently linked to the org / promoted
+  // to super-admin instead. Regression: previously both of those collapsed
+  // into the same `null` result, and with no onError either, creating a
+  // user with an already-registered email gave the admin no warning at all
+  // — the dialog just closed as if a brand-new invitation had been sent.
+  type CreateUserResult =
+    | { kind: 'created'; user: ApiUserCreated }
+    | { kind: 'linked' }
+    | { kind: 'promoted' };
+
   const createMutation = useMutation({
     mutationFn: async ({
       dto,
@@ -246,43 +260,50 @@ export function useAdminUsers() {
       dto: CreateUserDto;
       roleId?: string;
       orgId?: string;
-    }): Promise<ApiUserCreated | null> => {
-      let created: ApiUserCreated | null = null;
-      let userId: string;
+    }): Promise<CreateUserResult> => {
       try {
-        created = await usersApi.create(dto);
-        userId = created.id;
+        // create() already assigns the user to the org via dto.orgId/dto.roleId — no duplicate call needed.
+        const user = await usersApi.create(dto);
+        return { kind: 'created', user };
       } catch (err: unknown) {
         const existingUserId = getExistingUserIdFrom409(err);
         if (existingUserId) {
-          userId = existingUserId;
           // If assigning to a company, link the existing user to the org
           if (orgId) {
-            await usersApi.assignUserToOrg(userId, orgId, roleId);
-            return null;
+            await usersApi.assignUserToOrg(existingUserId, orgId, roleId);
+            return { kind: 'linked' };
           }
           // If creating a super-admin, promote the existing user
           if (dto.isSuperAdmin) {
-            await usersApi.toggleSuperAdmin(userId, true);
-            return null;
+            await usersApi.toggleSuperAdmin(existingUserId, true);
+            return { kind: 'promoted' };
           }
         }
         throw err;
       }
-      // create() already assigns the user to the org via dto.orgId/dto.roleId — no duplicate call needed.
-      return created;
     },
-    onSuccess: (created) => {
+    onSuccess: (result) => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['roles'] });
       queryClient.invalidateQueries({ queryKey: ['company-users'] });
       setCreateOpen(false);
-      if (created)
-        setInvitedUser({
-          email: created.email,
-          invitationUrl: `${window.location.origin}/complete-registration?token=${created.invitationToken}`,
-          invitationResent: created.invitationResent,
-        });
+      if (result.kind === 'linked') {
+        toast.success(t('users.dialogs.userLinkedToOrg'));
+        return;
+      }
+      if (result.kind === 'promoted') {
+        toast.success(t('users.dialogs.userPromotedToSuperAdmin'));
+        return;
+      }
+      setInvitedUser({
+        email: result.user.email,
+        invitationUrl: `${window.location.origin}/complete-registration?token=${result.user.invitationToken}`,
+        invitationResent: result.user.invitationResent,
+      });
+    },
+    onError: (error: unknown) => {
+      const msg = resolveApiError(error, t);
+      if (msg) createForm.setError('email', { message: msg });
     },
   });
 

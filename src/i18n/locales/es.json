@@ -410,6 +410,7 @@
     "descriptionPlaceholder": "Descripción (opcional)",
     "deleteConfirmPre": "¿Estás seguro de que deseas eliminar",
     "deleteConfirmPost": "? Esta acción no se puede deshacer.",
+    "deleteError": "No se pudo eliminar. Intenta nuevamente.",
     "excel": {
       "buttonLabel": "Excel",
       "importing": "Importando...",
@@ -569,6 +570,7 @@
         "description": "Se generó un nuevo enlace de invitación para {{email}}. El enlace anterior ha sido invalidado."
       },
       "userLinkedToOrg": "El usuario ya existía y ha sido añadido a la organización.",
+      "userPromotedToSuperAdmin": "El usuario ya existía y se le ha otorgado acceso de super administrador.",
       "noRoleWarning": "Este usuario no tiene un rol asignado. Asigna uno para que pueda acceder al sistema.",
       "selectRole": "Seleccionar rol"
     }
@@ -699,7 +701,8 @@
       "createNewVersion": "Crear nueva versión",
       "creatingNewVersion": "Creando nueva versión…",
       "saving": "Guardando…",
-      "extractingShort": "Extrayendo…"
+      "extractingShort": "Extrayendo…",
+      "reviewCycleEnabledLabel": "Habilitar ciclo de revisión en los flujos"
     },
     "upload": {
       "title": "Cargar documento",
@@ -707,12 +710,12 @@
       "nameLabel": "Nombre",
       "namePlaceholder": "Nombre del documento",
       "versionLabel": "Versión",
-      "versionHint": "Versión actual: {{version}} — ingrese exactamente un incremento mayor",
+      "versionHint": "Versión actual: {{version}} — déjala igual para reemplazar el documento sin crear una nueva versión, o ingresa exactamente un incremento mayor para crear una nueva versión",
       "fileLabel": "Archivo",
       "uploading": "Subiendo…",
       "uploadButton": "Subir documento",
       "selectFileError": "Seleccione un archivo para subir",
-      "versionIncrementError": "La versión debe incrementarse en exactamente una unidad respecto a la versión actual ({{version}})",
+      "versionIncrementError": "La versión debe ser igual a la actual ({{version}}) o incrementarse en exactamente una unidad",
       "uploadError": "No se pudo cargar el documento. Verifique el archivo e intente de nuevo."
     },
     "delete": {
@@ -754,7 +757,7 @@
     "tabs": {
       "all": "Todos",
       "myTasks": "Mis tareas",
-      "myAvailable": "Disponibles para mí"
+      "myAvailable": "Mis flujos"
     },
     "status": {
       "DRAFT": "Borrador",
@@ -792,6 +795,7 @@
       "cycleInProgress": "En progreso",
       "stepCompleted": "Completado",
       "noCommentsOrAttachments": "Sin comentarios ni adjuntos.",
+      "management": "Comentarios y adjuntos del usuario final",
       "finalUser": "Usuario final",
       "downloadDoc": "Descargar documento",
       "previewDoc": "Ver documento",
@@ -804,6 +808,7 @@
       "zipFolderCycles": "ciclos-revision",
       "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
       "auditLogDownloadError": "Los adjuntos se descargaron, pero no se pudo incluir el log de auditoría. Intenta de nuevo desde la página de auditoría si lo necesitas.",
+      "auditLogPdfTitle": "Log de flujo ({{name}})",
       "previewLoading": "Cargando previsualización...",
       "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
       "previewTruncated": "Mostrando solo las primeras {{rows}} filas y {{cols}} columnas — el archivo es más grande.",
@@ -821,6 +826,9 @@
       "completeReviewStep": "Completar paso de revisión",
       "completeStep": "Completar paso",
       "forwardStep": "Enviar a revisor opcional",
+      "manage": "Gestionar",
+      "close": "Finalizar flujo",
+      "cancelWorkflow": "Cancelar flujo",
       "openMenu": "Abrir acciones del flujo"
     },
     "empty": "No hay flujos de trabajo registrados",
@@ -955,7 +963,26 @@
       "forwardStepTitle": "Enviar a revisor opcional",
       "forwardStepDesc": "Selecciona un revisor opcional para que revise el workflow antes de que continúe al siguiente revisor obligatorio.",
       "selectOptionalReviewer": "Revisor opcional",
-      "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional..."
+      "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional...",
+      "closeTitle": "Finalizar flujo",
+      "closeConfirmPre": "¿Estás seguro de que deseas finalizar definitivamente el flujo",
+      "closeConfirmPost": "? No se permitirán más cambios una vez finalizado.",
+      "closingNotesLabel": "Nota de cierre",
+      "closingNotesPlaceholder": "Comentario final opcional...",
+      "closeButton": "Finalizar flujo",
+      "cancelWorkflowTitle": "Cancelar flujo",
+      "cancelWorkflowConfirmPre": "¿Estás seguro de que deseas cancelar el flujo",
+      "cancelWorkflowConfirmPost": "? Esta acción no se puede deshacer.",
+      "cancelReasonLabel": "Motivo de cancelación",
+      "cancelReasonPlaceholder": "Explica por qué se cancela este flujo...",
+      "cancelReasonRequired": "El motivo de cancelación es obligatorio",
+      "cancelWorkflowButton": "Cancelar flujo",
+      "manageTitle": "Gestionar flujo",
+      "manageDescPre": "Agrega un comentario y/o adjuntos al flujo",
+      "manageDescPost": ". Puedes hacerlo las veces que necesites.",
+      "manageContentLabel": "Comentario",
+      "manageContentPlaceholder": "Escribe un comentario...",
+      "manageButton": "Agregar"
     }
   },
   "session": {
@@ -1039,10 +1066,13 @@
     "REGISTRATION_FAILED": "No se pudo completar el registro. Intente nuevamente.",
     "EMAIL_ALREADY_REGISTERED": "Este correo electrónico ya está registrado para otra cuenta.",
     "CREDENTIALS_DISABLED": "Las credenciales de esta cuenta están deshabilitadas.",
+    "COMPANY_ALREADY_EXISTS": "Ya existe una empresa registrada con el nombre \"{{name}}\".",
     "DEPARTMENT_ALREADY_EXISTS": "El departamento \"{{name}}\" ya existe en esta organización.",
     "DEPARTMENT_NOT_FOUND": "El departamento no fue encontrado.",
+    "DEPARTMENT_HAS_DEPENDENCIES": "No se puede eliminar el departamento: tiene {{areasCount}} área(s) y {{cargosCount}} cargo(s) asociados. Elimínelos primero.",
     "AREA_ALREADY_EXISTS": "El área \"{{name}}\" ya existe en este departamento.",
     "AREA_NOT_FOUND": "El área no fue encontrada.",
+    "AREA_HAS_DEPENDENCIES": "No se puede eliminar el área: tiene {{cargosCount}} cargo(s) asociados. Elimínelos primero.",
     "CARGO_ALREADY_EXISTS_IN_AREA": "El cargo \"{{name}}\" ya existe en esta área.",
     "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "El cargo \"{{name}}\" ya existe en este departamento.",
     "CARGO_NOT_FOUND": "El cargo no fue encontrado.",
@@ -1063,6 +1093,7 @@
     "SYSTEM_ROLE_NOT_MODIFIABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden editar. Crea un rol personalizado en su lugar.",
     "SYSTEM_ROLE_NOT_DELETABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden eliminar.",
     "ROLE_HAS_ASSIGNED_USERS_one": "El rol \"{{name}}\" todavía tiene {{count}} usuario asignado y no se puede eliminar.",
-    "ROLE_HAS_ASSIGNED_USERS_other": "El rol \"{{name}}\" todavía tiene {{count}} usuarios asignados y no se puede eliminar."
+    "ROLE_HAS_ASSIGNED_USERS_other": "El rol \"{{name}}\" todavía tiene {{count}} usuarios asignados y no se puede eliminar.",
+    "MODULE_ACTION_PERMISSION_REQUIRES_READ": "No se pueden otorgar permisos de acción para {{modules}} sin también otorgar el permiso Ver de esos mismos módulos."
   }
 }

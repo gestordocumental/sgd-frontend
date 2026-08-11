@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act, fireEvent, within } from '@testing-library/react';
 import ExcelJS from 'exceljs';
-import i18n from '@/i18n';
+import '@/i18n';
 import { DetailWorkflowDialog } from '../DetailWorkflowDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
 import type { ApiWorkflow } from '@/lib/api/workflows';
@@ -14,15 +14,24 @@ vi.mock('@/store/authStore', () => ({
   useAuthStore: vi.fn(() => ({ user: { id: 'user-1' }, accessToken: null })),
 }));
 
-vi.mock('@/features/workflows/workflow-state-machine', () => ({
-  getWorkflowActions: () => ({
+// A vi.fn() (not a plain arrow function) so individual tests can override the
+// returned actions via mockReturnValueOnce to exercise the footer buttons
+// that depend on them — most tests rely on the default all-false return.
+const { mockGetWorkflowActions } = vi.hoisted(() => ({
+  mockGetWorkflowActions: vi.fn(() => ({
     canStartApproval: false,
     canApproveStep: false,
     canStartReviewCycle: false,
     canCompleteAdminStep: false,
     canForwardAdminStep: false,
+    canManageWorkflow: false,
+    canCloseWorkflow: false,
+    canCancelWorkflow: false,
     canDelete: false,
-  }),
+  })),
+}));
+vi.mock('@/features/workflows/workflow-state-machine', () => ({
+  getWorkflowActions: mockGetWorkflowActions,
 }));
 
 const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
@@ -109,6 +118,7 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
     typologyCode: 'CON-01',
     typologyVersion: '1',
     typologyName: 'Contract',
+    reviewCycleEnabled: true,
     mainDocumentId: 'doc-1',
     mainDocumentValidated: true,
     mainDocumentMetadata: null,
@@ -153,6 +163,12 @@ function makeHook(detailWorkflow: ApiWorkflow | null): WorkflowsHook {
       openReviewCycle: vi.fn(),
       openCompleteStep: vi.fn(),
       openForwardStep: vi.fn(),
+      openClose: vi.fn(),
+      openCancel: vi.fn(),
+      openManage: vi.fn(),
+      // Mirrors the real navigateFromDetail: closes detail and immediately
+      // runs the action that opens the next dialog (see use-workflows.ts).
+      navigateFromDetail: vi.fn((action: () => void) => action()),
     },
   } as unknown as WorkflowsHook;
 }
@@ -660,7 +676,7 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
   }
 
-  it('downloads both the attachments ZIP and a second .xlsx with the audit trail, keyed by workflow.id as the Correlation ID', async () => {
+  it('downloads both the attachments ZIP and a second .pdf with the audit trail, titled with the workflow name and keyed by workflow.id as the Correlation ID', async () => {
     mockDownloadZip.mockResolvedValue(new Blob(['zip-bytes']));
     mockGetAuditLog.mockResolvedValue([
       {
@@ -686,24 +702,23 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     await vi.waitFor(() => expect(createdBlobs).toHaveLength(2));
     expect(toastError).not.toHaveBeenCalled();
 
-    // Order and filenames: the ZIP downloads first, the audit-log workbook
+    // Order and filenames: the ZIP downloads first, the audit-log PDF
     // second — a swap or a wrong extension would slip past a test that only
     // counts blobs.
     expect(createdAnchors).toHaveLength(2);
     expect(createdAnchors[0].download).toMatch(/\.zip$/);
-    expect(createdAnchors[1].download).toMatch(/_audit-log\.xlsx$/);
+    expect(createdAnchors[1].download).toMatch(/_audit-log\.pdf$/);
 
-    // The second blob must actually be a readable XLSX whose Correlation ID
-    // column carries the workflow's own id — not just "some blob".
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(await createdBlobs[1].arrayBuffer());
-    const sheet = wb.worksheets[0];
-    const headerRow = sheet.getRow(1);
-    const correlationColIndex = Array.from({ length: headerRow.cellCount }, (_, i) => i + 1).find(
-      (i) => headerRow.getCell(i).text === i18n.t('audit.columns.correlationId'),
-    );
-    expect(correlationColIndex).toBeDefined();
-    expect(sheet.getRow(2).getCell(correlationColIndex!).text).toBe('wf-download-all');
+    // The second blob must actually be a PDF containing the "Flow Log
+    // (<workflow title>)" heading and a table whose Correlation ID column
+    // carries the workflow's own id — not just "some blob". PDF content
+    // streams escape literal parentheses as \( \), so the title and the
+    // workflow name are asserted separately rather than as one substring.
+    expect(createdBlobs[1].type).toBe('application/pdf');
+    const text = await createdBlobs[1].text();
+    expect(text).toContain('Flow Log');
+    expect(text).toContain('Contract Review');
+    expect(text).toContain('wf-download-all');
   });
 
   it('skips the second download silently when the workflow has no audit events yet', async () => {
@@ -744,5 +759,448 @@ describe('DetailWorkflowDialog — "Download all" also exports the workflow\'s a
     );
     expect(mockGetAuditLog).not.toHaveBeenCalled();
     expect(createdBlobs).toHaveLength(0);
+  });
+});
+
+describe('DetailWorkflowDialog — footer actions', () => {
+  it('"View timeline" navigates away from detail and opens the timeline for this workflow', () => {
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View timeline' }));
+
+    // setDetailWorkflow(null) is navigateFromDetail's own responsibility
+    // (see use-workflows.ts) — covered there, not re-asserted on this mock.
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openTimeline).toHaveBeenCalledWith(wf.id);
+  });
+
+  it('"Edit" shows only for the creator on a DRAFT workflow, and navigates to the edit dialog', () => {
+    const wf = makeWorkflow({ status: 'DRAFT', createdBy: 'user-1' });
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openEdit).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Edit" for a DRAFT workflow created by someone else', () => {
+    const wf = makeWorkflow({ status: 'DRAFT', createdBy: 'someone-else' });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('"Start approval" calls the mutation directly, without navigating away from detail', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: true,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start approval' }));
+
+    expect(hook.mutations.startApprovalMutation.mutate).toHaveBeenCalledWith(wf.id);
+    expect(hook.actions.navigateFromDetail).not.toHaveBeenCalled();
+  });
+
+  it('"Reject" navigates to the reject dialog', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: true,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openReject).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Approve" navigates to the approve dialog', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: true,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openApprove).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Start review cycle" navigates to the review cycle dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: true,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start review cycle' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openReviewCycle).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Complete step" and "Send to optional reviewer" navigate to their dialogs', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: true,
+      canForwardAdminStep: true,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete step' }));
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openCompleteStep).toHaveBeenCalledWith(wf);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send to optional reviewer' }));
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(2);
+    expect(hook.actions.openForwardStep).toHaveBeenCalledWith(wf);
+  });
+
+  it('"Manage" navigates to the manage dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: true,
+      canCloseWorkflow: false,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openManage).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Manage" when canManageWorkflow is false', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument();
+  });
+
+  it('"Finish workflow" navigates to the close dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: true,
+      canCancelWorkflow: false,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish workflow' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openClose).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Finish workflow" when canCloseWorkflow is false', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Finish workflow' })).not.toBeInTheDocument();
+  });
+
+  it('"Cancel workflow" navigates to the cancel dialog when shown', () => {
+    mockGetWorkflowActions.mockReturnValueOnce({
+      canStartApproval: false,
+      canApproveStep: false,
+      canStartReviewCycle: false,
+      canCompleteAdminStep: false,
+      canForwardAdminStep: false,
+      canManageWorkflow: false,
+      canCloseWorkflow: false,
+      canCancelWorkflow: true,
+      canDelete: false,
+    });
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel workflow' }));
+
+    expect(hook.actions.navigateFromDetail).toHaveBeenCalledTimes(1);
+    expect(hook.actions.openCancel).toHaveBeenCalledWith(wf);
+  });
+
+  it('hides "Cancel workflow" when canCancelWorkflow is false', () => {
+    const wf = makeWorkflow();
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Cancel workflow' })).not.toBeInTheDocument();
+  });
+
+  it('plain "Close" clears the detail workflow directly, without navigateFromDetail', () => {
+    // Two elements share the "Close" accessible name: the dialog's own
+    // built-in X button (data-slot="dialog-close") and our footer button —
+    // only the latter is under test here.
+    const wf = makeWorkflow();
+    const hook = makeHook(wf);
+    render(<DetailWorkflowDialog hook={hook} canApprove={false} />);
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+    const footerClose = closeButtons.find((el) => el.getAttribute('data-slot') !== 'dialog-close');
+
+    fireEvent.click(footerClose!);
+
+    expect(hook.dialogs.setDetailWorkflow).toHaveBeenCalledWith(null);
+    expect(hook.actions.navigateFromDetail).not.toHaveBeenCalled();
+  });
+});
+
+describe('DetailWorkflowDialog — rich detail rendering', () => {
+  it('renders support/approval attachments, approval steps with observations, multi-cycle admin history and final users', () => {
+    const wf = makeWorkflow({
+      description: 'A contract pending review',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      approvalSteps: [
+        {
+          id: 'step-1',
+          workflowId: 'wf-1',
+          userId: 'approver-1',
+          stepOrder: 1,
+          status: 'APPROVED',
+          completedAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+      approvalActions: [
+        {
+          id: 'act-1',
+          workflowId: 'wf-1',
+          stepId: 'step-1',
+          userId: 'approver-1',
+          action: 'APPROVED',
+          observations: 'Looks good to me',
+          attemptNumber: 1,
+          attachments: [
+            {
+              storageKey: 'k2',
+              originalName: 'proof.pdf',
+              mimeType: 'application/pdf',
+              fileSizeBytes: 50,
+            },
+          ],
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-1',
+          workflowId: 'wf-1',
+          uploadedBy: 'user-1',
+          storageKey: 'k1',
+          originalName: 'support.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'SUPPORTING',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      ],
+      adminCycles: [
+        {
+          id: 'cycle-1',
+          workflowId: 'wf-1',
+          cycleNumber: 1,
+          initiatedBy: 'final-user-1',
+          status: 'COMPLETED',
+          currentStepOrder: null,
+          completedAt: '2024-01-02T00:00:00Z',
+          allowedOptionalReviewerIds: [],
+          steps: [
+            {
+              id: 'astep-1',
+              cycleId: 'cycle-1',
+              userId: 'admin-1',
+              stepOrder: 1,
+              status: 'COMPLETED',
+              isOptional: false,
+              insertedByStepId: null,
+              completedAt: '2024-01-02T00:00:00Z',
+              notes: [
+                {
+                  id: 'note-1',
+                  content: 'Reviewed and fine',
+                  createdBy: 'admin-1',
+                  createdAt: '2024-01-02T00:00:00Z',
+                },
+              ],
+              attachments: [
+                {
+                  id: 'aatt-1',
+                  storageKey: 'k3',
+                  originalName: 'cycle-note.pdf',
+                  mimeType: 'application/pdf',
+                  fileSizeBytes: 10,
+                  uploadedBy: 'admin-1',
+                  createdAt: '2024-01-02T00:00:00Z',
+                },
+              ],
+            },
+          ],
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 'cycle-2',
+          workflowId: 'wf-1',
+          cycleNumber: 2,
+          initiatedBy: 'final-user-1',
+          status: 'IN_PROGRESS',
+          currentStepOrder: 1,
+          completedAt: null,
+          allowedOptionalReviewerIds: [],
+          steps: [
+            {
+              id: 'astep-2',
+              cycleId: 'cycle-2',
+              userId: 'admin-2',
+              stepOrder: 1,
+              status: 'PENDING',
+              isOptional: true,
+              insertedByStepId: null,
+              completedAt: null,
+            },
+          ],
+          createdAt: '2024-01-03T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.getByText('A contract pending review')).toBeInTheDocument();
+    expect(screen.getByText('support.pdf')).toBeInTheDocument();
+    expect(screen.getByText('proof.pdf')).toBeInTheDocument();
+    expect(screen.getByText('"Looks good to me"')).toBeInTheDocument();
+    expect(screen.getByText('Reviewed and fine')).toBeInTheDocument();
+    expect(screen.getByText('cycle-note.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/Cycle #2/)).toBeInTheDocument();
+    expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
+  });
+
+  it('renders "Gestionar" comments and attachments with the author who added them, separately from supporting attachments', () => {
+    const wf = makeWorkflow({
+      status: 'AVAILABLE_FOR_FINAL_USERS',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      notes: [
+        {
+          id: 'note-mgmt-1',
+          content: 'Client confirmed the delivery address',
+          createdBy: 'final-user-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-support-1',
+          workflowId: 'wf-1',
+          uploadedBy: 'user-1',
+          storageKey: 'k1',
+          originalName: 'support.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'SUPPORTING',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 'att-mgmt-1',
+          workflowId: 'wf-1',
+          uploadedBy: 'final-user-1',
+          storageKey: 'k4',
+          originalName: 'proof-of-delivery.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 200,
+          attachmentType: 'MANAGEMENT',
+          noteId: 'note-mgmt-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    // The comment left via "Gestionar" is visible, attributed to the final user.
+    expect(screen.getByText('Client confirmed the delivery address')).toBeInTheDocument();
+    // The MANAGEMENT attachment shows the same uploader.
+    expect(screen.getByText('proof-of-delivery.pdf')).toBeInTheDocument();
+    const attributions = screen.getAllByText('Ada Lovelace');
+    expect(attributions.length).toBeGreaterThanOrEqual(2); // comment author + attachment uploader
+
+    // Supporting attachments section only lists the SUPPORTING file, not the MANAGEMENT one.
+    const supportingHeading = screen.getByText('Supporting attachments');
+    const supportingSection = supportingHeading.closest('div')!;
+    expect(within(supportingSection).getByText('support.pdf')).toBeInTheDocument();
+    expect(within(supportingSection).queryByText('proof-of-delivery.pdf')).not.toBeInTheDocument();
+  });
+
+  it('hides the management section entirely when there are no "Gestionar" comments or attachments', () => {
+    const wf = makeWorkflow({ notes: [], attachments: [] });
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.queryByText('End user comments and attachments')).not.toBeInTheDocument();
   });
 });

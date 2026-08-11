@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -268,19 +268,19 @@ function UserRow({
 }: UserRowProps) {
   const { t } = useTranslation();
   const isPending = isPendingRegistration(u);
+  const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
   return (
     <TableRow className={isDeleted(u) ? 'opacity-50' : ''}>
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="size-8">
+            {u.avatarUrl && <AvatarImage src={u.avatarUrl} alt={fullName || t('common.unnamed')} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
               {initials(u.firstName)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium">
-              {[u.firstName, u.lastName].filter(Boolean).join(' ') || t('common.unnamed')}
-            </p>
+            <p className="text-sm font-medium">{fullName || t('common.unnamed')}</p>
             <p className="text-xs text-muted-foreground">{u.email}</p>
           </div>
         </div>
