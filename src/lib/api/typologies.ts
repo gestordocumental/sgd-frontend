@@ -47,6 +47,7 @@ export interface ApiTypology {
     }>;
   };
   fuenteCreacion: 'MANUAL' | 'BULK_IMPORT';
+  reviewCycleEnabled: boolean;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -59,6 +60,7 @@ export interface CreateTypologyDto {
   nombre?: string;
   codigo?: string;
   version?: string;
+  reviewCycleEnabled?: boolean;
 }
 
 export interface UpdateTypologyDto {
@@ -68,6 +70,7 @@ export interface UpdateTypologyDto {
   nombre?: string;
   codigo?: string;
   version?: string;
+  reviewCycleEnabled?: boolean;
 }
 
 export type ResolveAction = 'KEEP_DECLARED' | 'ADOPT_EXTRACTED' | 'MANUAL_OVERRIDE';

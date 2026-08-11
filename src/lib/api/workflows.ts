@@ -42,7 +42,20 @@ export interface ApiWorkflowAttachment {
   originalName: string;
   mimeType: string;
   fileSizeBytes: number | null;
-  attachmentType: 'MAIN_DOCUMENT' | 'SUPPORTING';
+  attachmentType: 'MAIN_DOCUMENT' | 'SUPPORTING' | 'MANAGEMENT';
+  // Solo para attachmentType MANAGEMENT — la nota (ver ApiWorkflowNote) que
+  // este adjunto acompaña, si hay una.
+  noteId?: string | null;
+  createdAt: string;
+}
+
+// Comentario agregado vía "Gestionar" (o al cerrar el workflow) — a nivel de
+// workflow, sin cycleId/adminStepId. Los de un ciclo administrativo van en
+// ApiAdminStep.notes en su lugar.
+export interface ApiWorkflowNote {
+  id: string;
+  content: string;
+  createdBy: string;
   createdAt: string;
 }
 
@@ -141,6 +154,10 @@ export interface ApiWorkflow {
   typologyCode: string;
   typologyVersion: string;
   typologyName: string;
+  // Snapshot of the typology's review-cycle flag at the moment this workflow
+  // was created — only for showing/hiding the "Start review cycle" action;
+  // the backend re-checks live against document-service on every transition.
+  reviewCycleEnabled: boolean;
   mainDocumentId: string | null;
   mainDocumentValidated: boolean;
   mainDocumentMetadata: Record<string, unknown> | null;
@@ -156,6 +173,7 @@ export interface ApiWorkflow {
   approvalSteps: ApiApprovalStep[];
   approvalActions: ApiApprovalAction[];
   attachments: ApiWorkflowAttachment[];
+  notes?: ApiWorkflowNote[];
   activeAdminCycle: ApiAdminCycle | null;
   adminCycles?: ApiAdminCycle[];
   createdAt: string;
@@ -368,5 +386,36 @@ export const workflowsApi = {
         dto,
         withIdempotency(idempotencyKey),
       )
+      .then((r) => r.data),
+
+  // Cierre definitivo del workflow (usuario final) — AVAILABLE_FOR_FINAL_USERS -> CLOSED.
+  close: (id: string, dto: { closingNotes?: string }, idempotencyKey?: string) =>
+    apiClient
+      .post<ApiWorkflow>(`/workflows/${id}/close`, dto, withIdempotency(idempotencyKey))
+      .then((r) => r.data),
+
+  // Cancelación del workflow (usuario final, motivo obligatorio) — AVAILABLE_FOR_FINAL_USERS -> CANCELLED.
+  cancel: (id: string, dto: { reason: string }, idempotencyKey?: string) =>
+    apiClient
+      .post<ApiWorkflow>(`/workflows/${id}/cancel`, dto, withIdempotency(idempotencyKey))
+      .then((r) => r.data),
+
+  // "Gestionar" — comentario y/o adjuntos repetibles mientras el workflow está
+  // AVAILABLE_FOR_FINAL_USERS, sin iniciar un ciclo administrativo formal.
+  addNote: (
+    id: string,
+    dto: {
+      content?: string;
+      attachments?: Array<{
+        storageKey: string;
+        originalName: string;
+        mimeType: string;
+        fileSizeBytes?: number;
+      }>;
+    },
+    idempotencyKey?: string,
+  ) =>
+    apiClient
+      .post<ApiWorkflow>(`/workflows/${id}/notes`, dto, withIdempotency(idempotencyKey))
       .then((r) => r.data),
 };

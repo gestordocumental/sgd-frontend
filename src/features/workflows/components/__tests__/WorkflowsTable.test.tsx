@@ -590,6 +590,83 @@ describe('WorkflowsTable — status filter', () => {
   });
 });
 
+// ── Search/status filter on my-tasks and my-available ─────────────────────────
+
+describe('WorkflowsTable — my-tasks/my-available filters', () => {
+  it('shows the same search input and status select on the my-tasks tab', () => {
+    render(<WorkflowsTable hook={makeHook({ dialogs: { innerTab: 'my-tasks' } })} canManage />);
+    expect(screen.getByPlaceholderText(/search/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+  });
+
+  it('filters my-tasks by title on the client side', () => {
+    const tasks = [
+      makeWorkflow({ id: 'wf-1', title: 'Alpha Process' }),
+      makeWorkflow({ id: 'wf-2', title: 'Beta Process' }),
+    ];
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-tasks', search: 'alpha' },
+          queries: { myTasks: tasks },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText('Alpha Process')).toBeInTheDocument();
+    expect(screen.queryByText('Beta Process')).not.toBeInTheDocument();
+  });
+
+  it('filters my-tasks by status on the client side', () => {
+    const tasks = [
+      makeWorkflow({ id: 'wf-1', title: 'Alpha Process', status: 'DRAFT' }),
+      makeWorkflow({ id: 'wf-2', title: 'Beta Process', status: 'PENDING_APPROVAL' }),
+    ];
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-tasks', statusFilter: 'DRAFT' },
+          queries: { myTasks: tasks },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText('Alpha Process')).toBeInTheDocument();
+    expect(screen.queryByText('Beta Process')).not.toBeInTheDocument();
+  });
+
+  it('shows "no results" on my-tasks when the filter matches nothing', () => {
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-tasks', search: 'nonexistent' },
+          queries: { myTasks: [makeWorkflow({ title: 'Alpha Process' })] },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText(/no results/i)).toBeInTheDocument();
+  });
+
+  it('filters my-available by title on the client side', () => {
+    const available = [
+      makeWorkflow({ id: 'wf-1', title: 'Alpha Process' }),
+      makeWorkflow({ id: 'wf-2', title: 'Beta Process' }),
+    ];
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-available', search: 'beta' },
+          queries: { myAvailable: available },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText('Beta Process')).toBeInTheDocument();
+    expect(screen.queryByText('Alpha Process')).not.toBeInTheDocument();
+  });
+});
+
 // ── Pagination ────────────────────────────────────────────────────────────────
 
 describe('WorkflowsTable — pagination', () => {

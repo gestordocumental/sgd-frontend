@@ -34,8 +34,14 @@ vi.mock('@/features/doc-governance/hooks/use-typologies', () => ({
   useTypologies: () => ({}),
 }));
 
+const mockOpenDetailById = vi.fn();
+const mockSetInnerTab = vi.fn();
+
 vi.mock('@/features/workflows/hooks/use-workflows', () => ({
-  useWorkflows: () => ({ actions: { openDetailById: vi.fn() } }),
+  useWorkflows: () => ({
+    actions: { openDetailById: mockOpenDetailById },
+    dialogs: { setInnerTab: mockSetInnerTab },
+  }),
 }));
 
 vi.mock('@/features/audit/hooks/use-audit', () => ({
@@ -158,5 +164,32 @@ describe('useCompanyDashboard — mountedTabs', () => {
 
     navigateTo(result, 'users');
     expect(result.current.mountedTabs.size).toBe(sizeAfterFirst);
+  });
+});
+
+// ── handleMyTasksCardClick ──────────────────────────────────────────────────
+
+describe('useCompanyDashboard — handleMyTasksCardClick', () => {
+  it('navigates to the workflows tab and switches to the my-tasks inner tab when allowed', () => {
+    mockHasPermission.mockImplementation((m, a) => m === 'WORKFLOWS' && a === 'READ');
+    const { result } = renderHook(() => useCompanyDashboard());
+
+    act(() => {
+      result.current.handleMyTasksCardClick();
+    });
+
+    expect(result.current.effectiveTab).toBe('workflows');
+    expect(mockSetInnerTab).toHaveBeenCalledWith('my-tasks');
+  });
+
+  it('does nothing when the user lacks WORKFLOWS:READ', () => {
+    const { result } = renderHook(() => useCompanyDashboard());
+
+    act(() => {
+      result.current.handleMyTasksCardClick();
+    });
+
+    expect(result.current.effectiveTab).toBe('overview');
+    expect(mockSetInnerTab).not.toHaveBeenCalled();
   });
 });

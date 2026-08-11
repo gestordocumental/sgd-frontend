@@ -53,7 +53,7 @@ vi.mock('@/lib/api/org-structure', () => ({
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
 import { ResolveExtractionDialog } from '../ResolveExtractionDialog';
-import { TypologyFormDialog } from '../TypologyFormDialog';
+import { UploadDocumentDialog } from '../UploadDocumentDialog';
 import { useTypologies } from '@/features/doc-governance/hooks/use-typologies';
 import type { ApiTypology } from '@/lib/api/typologies';
 
@@ -101,6 +101,7 @@ function makeTypology(overrides: Partial<ApiTypology> = {}): ApiTypology {
       discrepancias: [],
     },
     fuenteCreacion: 'MANUAL',
+    reviewCycleEnabled: false,
     deletedAt: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -109,7 +110,9 @@ function makeTypology(overrides: Partial<ApiTypology> = {}): ApiTypology {
 }
 
 // Renders both dialogs so we can assert the resolve dialog hands off to the
-// edit dialog when the user chooses to upload a corrected document.
+// upload-document dialog (same declared version, just a corrected file —
+// not the edit/new-version dialog, which would force a version bump) when
+// the user chooses to upload a corrected document.
 function ResolveDialogHarness({ typo }: { typo: ApiTypology }) {
   const hook = useTypologies('org-1');
 
@@ -122,7 +125,7 @@ function ResolveDialogHarness({ typo }: { typo: ApiTypology }) {
   return (
     <>
       <ResolveExtractionDialog hook={hook} />
-      <TypologyFormDialog hook={hook} />
+      <UploadDocumentDialog hook={hook} />
     </>
   );
 }
@@ -192,7 +195,11 @@ describe('ResolveExtractionDialog', () => {
     });
   });
 
-  it('closes the resolve dialog and opens the edit dialog to upload a corrected document', async () => {
+  it('closes the resolve dialog and opens the upload-document dialog (not the edit/new-version dialog) to upload a corrected document', async () => {
+    // Regression: this used to hand off to the edit dialog, whose flow
+    // (createNewVersion) requires the version to strictly increment — a
+    // dead end for fixing a wrong file under the version that's already
+    // declared, since the whole point is to NOT create a new version.
     const user = userEvent.setup();
     const typo = makeTypology();
 
@@ -204,8 +211,44 @@ describe('ResolveExtractionDialog', () => {
     await waitFor(() => {
       expect(screen.queryByText('Review document information')).not.toBeInTheDocument();
     });
-    expect(await screen.findByText('Edit typology')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Upload document' })).toBeInTheDocument();
+    expect(screen.queryByText('Edit typology')).not.toBeInTheDocument();
     expect(mockResolveExtraction).not.toHaveBeenCalled();
+  });
+
+  it('pre-fills the upload-document dialog with the current (unchanged) version and submits it without a version error', async () => {
+    // Regression: the declared version is "v1.0" and the corrected file's
+    // content matches it exactly — resolving the discrepancy this way must
+    // not require bumping to "v1.1"/"v2.0". uploadDocument() (unlike
+    // newVersion()) never validates the version at all, so once routed
+    // there this succeeds with the version left exactly as declared.
+    const user = userEvent.setup();
+    const typo = makeTypology({
+      datosDeclarados: {
+        nombre: 'Security Policy',
+        codigo: 'POL-SEC-001',
+        version: 'v1.0',
+        fuente: 'MANUAL',
+      },
+    });
+
+    render(<ResolveDialogHarness typo={typo} />, { wrapper: makeWrapper() });
+    await screen.findByText('Review document information');
+    await user.click(screen.getByRole('button', { name: /Upload a corrected document/ }));
+    await screen.findByRole('heading', { name: 'Upload document' });
+
+    const versionInput = screen.getByLabelText('Version') as HTMLInputElement;
+    expect(versionInput.value).toBe('v1.0');
+
+    const file = new File(['content'], 'corrected.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file);
+
+    await user.click(screen.getByRole('button', { name: 'Upload document' }));
+
+    expect(
+      screen.queryByText(/must be the same as the current one|incremented by exactly one unit/),
+    ).not.toBeInTheDocument();
   });
 
   it('disables both actions and blocks closing while the resolve mutation is pending', async () => {

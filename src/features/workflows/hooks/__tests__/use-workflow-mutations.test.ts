@@ -16,6 +16,9 @@ const mockSkipReviewCycle = vi.fn();
 const mockCompleteAdminStep = vi.fn();
 const mockForwardAdminStep = vi.fn();
 const mockNotifyNoFinalUsers = vi.fn();
+const mockClose = vi.fn();
+const mockCancel = vi.fn();
+const mockAddNote = vi.fn();
 
 vi.mock('@/lib/api/workflows', () => ({
   workflowsApi: {
@@ -30,6 +33,9 @@ vi.mock('@/lib/api/workflows', () => ({
     completeAdminStep: (...args: unknown[]) => mockCompleteAdminStep(...args),
     forwardAdminStep: (...args: unknown[]) => mockForwardAdminStep(...args),
     notifyNoFinalUsers: (...args: unknown[]) => mockNotifyNoFinalUsers(...args),
+    close: (...args: unknown[]) => mockClose(...args),
+    cancel: (...args: unknown[]) => mockCancel(...args),
+    addNote: (...args: unknown[]) => mockAddNote(...args),
   },
 }));
 
@@ -69,6 +75,9 @@ const NO_OP_DEPS = {
   onSkipCycleError: vi.fn(),
   onCompleteStepSuccess: vi.fn(),
   onForwardStepSuccess: vi.fn(),
+  onCloseSuccess: vi.fn(),
+  onCancelSuccess: vi.fn(),
+  onAddNoteSuccess: vi.fn(),
 };
 
 function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
@@ -81,6 +90,7 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
     typologyCode: 'CM-001',
     typologyVersion: 'v1',
     typologyName: 'Contrato',
+    reviewCycleEnabled: true,
     mainDocumentId: null,
     mainDocumentValidated: false,
     mainDocumentMetadata: null,
@@ -148,6 +158,8 @@ beforeEach(() => {
   mockSkipReviewCycle.mockResolvedValue(fakeWorkflow);
   mockCompleteAdminStep.mockResolvedValue({});
   mockForwardAdminStep.mockResolvedValue({});
+  mockClose.mockResolvedValue(fakeWorkflow);
+  mockAddNote.mockResolvedValue(fakeWorkflow);
   mockUpload.mockResolvedValue({
     storageKey: 'key-1',
     originalName: 'file.pdf',
@@ -279,6 +291,90 @@ describe('useWorkflowMutations — idempotency keys', () => {
       'cycle-1',
       'step-1',
       expect.objectContaining({ optionalReviewerId: 'opt-user-1', notes: 'Please review' }),
+      'mock-uuid-1',
+    );
+  });
+
+  it('closeMutation passes a generated idempotency key to the API and trims closingNotes', async () => {
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), {
+      wrapper: makeWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.closeMutation.mutateAsync({ id: 'wf-1', closingNotes: '  All set  ' });
+    });
+
+    expect(mockClose).toHaveBeenCalledWith('wf-1', { closingNotes: 'All set' }, 'mock-uuid-1');
+  });
+
+  it('closeMutation sends closingNotes: undefined when blank/whitespace', async () => {
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), {
+      wrapper: makeWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.closeMutation.mutateAsync({ id: 'wf-1', closingNotes: '   ' });
+    });
+
+    expect(mockClose).toHaveBeenCalledWith('wf-1', { closingNotes: undefined }, 'mock-uuid-1');
+  });
+
+  it('cancelMutation passes a generated idempotency key to the API and trims the reason', async () => {
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), {
+      wrapper: makeWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.cancelMutation.mutateAsync({
+        id: 'wf-1',
+        reason: '  No longer needed  ',
+      });
+    });
+
+    expect(mockCancel).toHaveBeenCalledWith('wf-1', { reason: 'No longer needed' }, 'mock-uuid-1');
+  });
+
+  it('addNoteMutation uploads files then passes a generated idempotency key to the API', async () => {
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), {
+      wrapper: makeWrapper(),
+    });
+    const file = new File(['x'], 'proof.pdf', { type: 'application/pdf' });
+
+    await act(async () => {
+      await result.current.addNoteMutation.mutateAsync({
+        workflow: makeWorkflow(),
+        content: 'See attached',
+        files: [file],
+      });
+    });
+
+    expect(mockUpload).toHaveBeenCalledWith('org-1', file);
+    expect(mockAddNote).toHaveBeenCalledWith(
+      'wf-1',
+      expect.objectContaining({
+        content: 'See attached',
+        attachments: [expect.objectContaining({ storageKey: 'key-1', originalName: 'file.pdf' })],
+      }),
+      'mock-uuid-1',
+    );
+  });
+
+  it('addNoteMutation sends attachments: undefined when no files are provided', async () => {
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), {
+      wrapper: makeWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.addNoteMutation.mutateAsync({
+        workflow: makeWorkflow(),
+        content: 'Just a comment',
+        files: [],
+      });
+    });
+
+    expect(mockAddNote).toHaveBeenCalledWith(
+      'wf-1',
+      expect.objectContaining({ content: 'Just a comment', attachments: undefined }),
       'mock-uuid-1',
     );
   });

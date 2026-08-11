@@ -86,126 +86,141 @@ export function TypologyFormDialog({ hook }: { hook: TypologiesHook }) {
           </DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 pt-2 overflow-y-auto min-h-0 pr-1"
-        >
-          <OrgStructureSelectors hook={hook} />
+        {/* Scroll area is an inner div, not the <form> itself, so DialogFooter —
+            still a descendant of <form> so its submit button keeps working —
+            stays pinned below it instead of scrolling out of view with the
+            fields (same pattern as UploadDocumentDialog). */}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-2 pr-1">
+            <OrgStructureSelectors hook={hook} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField
-              id="typo-nombre"
-              label={t('docGovernance.form.nameLabel')}
-              error={form.formState.errors.nombre?.message}
-            >
-              <Input
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField
                 id="typo-nombre"
-                placeholder={t('docGovernance.form.namePlaceholder')}
-                {...form.register('nombre')}
-              />
-            </FormField>
+                label={t('docGovernance.form.nameLabel')}
+                error={form.formState.errors.nombre?.message}
+              >
+                <Input
+                  id="typo-nombre"
+                  placeholder={t('docGovernance.form.namePlaceholder')}
+                  {...form.register('nombre')}
+                />
+              </FormField>
+              <FormField
+                id="typo-codigo"
+                label={t('docGovernance.form.codeLabel')}
+                error={form.formState.errors.codigo?.message}
+              >
+                <Input
+                  id="typo-codigo"
+                  placeholder={t('docGovernance.form.codePlaceholder')}
+                  {...form.register('codigo')}
+                  disabled={isEditing}
+                />
+              </FormField>
+            </div>
+
             <FormField
-              id="typo-codigo"
-              label={t('docGovernance.form.codeLabel')}
-              error={form.formState.errors.codigo?.message}
+              id="typo-version"
+              label={t('docGovernance.form.versionLabel')}
+              error={form.formState.errors.version?.message}
             >
               <Input
-                id="typo-codigo"
-                placeholder={t('docGovernance.form.codePlaceholder')}
-                {...form.register('codigo')}
-                disabled={isEditing}
+                id="typo-version"
+                placeholder={t('docGovernance.form.versionPlaceholder')}
+                {...form.register('version')}
               />
             </FormField>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="typo-review-cycle-enabled"
+                {...form.register('reviewCycleEnabled')}
+                className="size-4 rounded border-input"
+              />
+              <label htmlFor="typo-review-cycle-enabled" className="text-sm">
+                {t('docGovernance.form.reviewCycleEnabledLabel')}
+              </label>
+            </div>
+
+            {!isEditing ? (
+              <FormField
+                id="typo-file"
+                label={t('docGovernance.form.documentLabel')}
+                description={
+                  extracting
+                    ? undefined
+                    : createFile
+                      ? t('docGovernance.form.documentHintAfterSelect')
+                      : t('docGovernance.form.documentHintBeforeSelect')
+                }
+              >
+                <>
+                  <FilePicker
+                    file={createFile}
+                    onChange={(f) => {
+                      setCreateFile(f);
+                      previewExtractMutation.mutate(f);
+                    }}
+                    onClear={() => {
+                      setCreateFile(null);
+                      previewExtractMutation.reset();
+                    }}
+                  />
+                  {extracting && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="size-3 animate-spin" />
+                      {t('docGovernance.form.extracting')}
+                    </p>
+                  )}
+                </>
+              </FormField>
+            ) : (
+              <FormField
+                id="typo-file-edit"
+                label={t('docGovernance.form.newDocumentLabel')}
+                description={
+                  extracting
+                    ? undefined
+                    : editFile
+                      ? t('docGovernance.form.editDocumentHintAfterSelect', {
+                          version: currentVersion ?? '—',
+                        })
+                      : t('docGovernance.form.editDocumentHintBeforeSelect')
+                }
+              >
+                <>
+                  <FilePicker
+                    file={editFile}
+                    onChange={(f) => {
+                      setEditFile(f);
+                      previewExtractMutation.mutate(f);
+                    }}
+                    onClear={() => {
+                      setEditFile(null);
+                      previewExtractMutation.reset();
+                      const existing = editTypology!.datosDeclarados;
+                      form.clearErrors(['nombre', 'codigo', 'version']);
+                      form.setValue('nombre', existing.nombre ?? '', { shouldValidate: true });
+                      form.setValue('codigo', existing.codigo ?? '', { shouldValidate: true });
+                      form.setValue('version', existing.version ?? '', { shouldValidate: true });
+                    }}
+                  />
+                  {extracting && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="size-3 animate-spin" />
+                      {t('docGovernance.form.extracting')}
+                    </p>
+                  )}
+                </>
+              </FormField>
+            )}
+
+            {form.formState.errors.root && (
+              <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
+            )}
           </div>
-
-          <FormField
-            id="typo-version"
-            label={t('docGovernance.form.versionLabel')}
-            error={form.formState.errors.version?.message}
-          >
-            <Input
-              id="typo-version"
-              placeholder={t('docGovernance.form.versionPlaceholder')}
-              {...form.register('version')}
-            />
-          </FormField>
-
-          {!isEditing ? (
-            <FormField
-              id="typo-file"
-              label={t('docGovernance.form.documentLabel')}
-              description={
-                extracting
-                  ? undefined
-                  : createFile
-                    ? t('docGovernance.form.documentHintAfterSelect')
-                    : t('docGovernance.form.documentHintBeforeSelect')
-              }
-            >
-              <>
-                <FilePicker
-                  file={createFile}
-                  onChange={(f) => {
-                    setCreateFile(f);
-                    previewExtractMutation.mutate(f);
-                  }}
-                  onClear={() => {
-                    setCreateFile(null);
-                    previewExtractMutation.reset();
-                  }}
-                />
-                {extracting && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="size-3 animate-spin" />
-                    {t('docGovernance.form.extracting')}
-                  </p>
-                )}
-              </>
-            </FormField>
-          ) : (
-            <FormField
-              id="typo-file-edit"
-              label={t('docGovernance.form.newDocumentLabel')}
-              description={
-                extracting
-                  ? undefined
-                  : editFile
-                    ? t('docGovernance.form.editDocumentHintAfterSelect', {
-                        version: currentVersion ?? '—',
-                      })
-                    : t('docGovernance.form.editDocumentHintBeforeSelect')
-              }
-            >
-              <>
-                <FilePicker
-                  file={editFile}
-                  onChange={(f) => {
-                    setEditFile(f);
-                    previewExtractMutation.mutate(f);
-                  }}
-                  onClear={() => {
-                    setEditFile(null);
-                    previewExtractMutation.reset();
-                    const existing = editTypology!.datosDeclarados;
-                    form.clearErrors(['nombre', 'codigo', 'version']);
-                    form.setValue('nombre', existing.nombre ?? '', { shouldValidate: true });
-                    form.setValue('codigo', existing.codigo ?? '', { shouldValidate: true });
-                    form.setValue('version', existing.version ?? '', { shouldValidate: true });
-                  }}
-                />
-                {extracting && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="size-3 animate-spin" />
-                    {t('docGovernance.form.extracting')}
-                  </p>
-                )}
-              </>
-            </FormField>
-          )}
-
-          {form.formState.errors.root && (
-            <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
-          )}
 
           <DialogFooter className="pt-2 shrink-0">
             <Button type="button" variant="outline" onClick={closeForm}>

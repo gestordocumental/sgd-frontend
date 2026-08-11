@@ -410,6 +410,7 @@
     "descriptionPlaceholder": "Description (optional)",
     "deleteConfirmPre": "Are you sure you want to delete",
     "deleteConfirmPost": "? This action cannot be undone.",
+    "deleteError": "Couldn't delete it. Please try again.",
     "excel": {
       "buttonLabel": "Excel",
       "importing": "Importing...",
@@ -569,6 +570,7 @@
         "description": "A new invitation link has been generated for {{email}}. The previous link has been invalidated."
       },
       "userLinkedToOrg": "The user already existed and has been added to the organization.",
+      "userPromotedToSuperAdmin": "The user already existed and has been granted super admin access.",
       "noRoleWarning": "This user has no role assigned. Assign one so they can access the system.",
       "selectRole": "Select role"
     }
@@ -699,7 +701,8 @@
       "createNewVersion": "Create new version",
       "creatingNewVersion": "Creating new version…",
       "saving": "Saving…",
-      "extractingShort": "Extracting…"
+      "extractingShort": "Extracting…",
+      "reviewCycleEnabledLabel": "Enable review cycle on workflows"
     },
     "upload": {
       "title": "Upload document",
@@ -707,12 +710,12 @@
       "nameLabel": "Name",
       "namePlaceholder": "Document name",
       "versionLabel": "Version",
-      "versionHint": "Current version: {{version}} — enter exactly one increment higher",
+      "versionHint": "Current version: {{version}} — leave it as-is to replace the document without creating a new version, or enter exactly one increment higher to create a new version",
       "fileLabel": "File",
       "uploading": "Uploading…",
       "uploadButton": "Upload document",
       "selectFileError": "Please select a file to upload",
-      "versionIncrementError": "Version must be incremented by exactly one unit from the current version ({{version}})",
+      "versionIncrementError": "Version must be the same as the current one ({{version}}) or incremented by exactly one unit",
       "uploadError": "Could not upload the document. Please check the file and try again."
     },
     "delete": {
@@ -754,7 +757,7 @@
     "tabs": {
       "all": "All",
       "myTasks": "My tasks",
-      "myAvailable": "Available to me"
+      "myAvailable": "My workflows"
     },
     "status": {
       "DRAFT": "Draft",
@@ -792,6 +795,7 @@
       "cycleInProgress": "In progress",
       "stepCompleted": "Completed",
       "noCommentsOrAttachments": "No comments or attachments.",
+      "management": "End user comments and attachments",
       "finalUser": "End user",
       "downloadDoc": "Download document",
       "previewDoc": "Preview document",
@@ -804,6 +808,7 @@
       "zipFolderCycles": "review-cycles",
       "downloadError": "Failed to download the file. Please try again.",
       "auditLogDownloadError": "The attachments downloaded, but the audit log couldn't be included. Try again from the audit page if you need it.",
+      "auditLogPdfTitle": "Flow Log ({{name}})",
       "previewLoading": "Loading preview...",
       "previewError": "Couldn't load the preview. Use the download button instead.",
       "previewTruncated": "Showing only the first {{rows}} rows and {{cols}} columns — the file is larger than that.",
@@ -821,6 +826,9 @@
       "completeReviewStep": "Complete review step",
       "completeStep": "Complete step",
       "forwardStep": "Send to optional reviewer",
+      "manage": "Manage",
+      "close": "Finish workflow",
+      "cancelWorkflow": "Cancel workflow",
       "openMenu": "Open workflow actions"
     },
     "empty": "No workflows registered",
@@ -955,7 +963,26 @@
       "forwardStepTitle": "Send to optional reviewer",
       "forwardStepDesc": "Select an optional reviewer to review the workflow before continuing to the next mandatory reviewer.",
       "selectOptionalReviewer": "Optional reviewer",
-      "selectOptionalReviewerPlaceholder": "Select optional reviewer..."
+      "selectOptionalReviewerPlaceholder": "Select optional reviewer...",
+      "closeTitle": "Finish workflow",
+      "closeConfirmPre": "Are you sure you want to permanently finish workflow",
+      "closeConfirmPost": "? No further changes will be allowed once finished.",
+      "closingNotesLabel": "Closing note",
+      "closingNotesPlaceholder": "Optional final comment...",
+      "closeButton": "Finish workflow",
+      "cancelWorkflowTitle": "Cancel workflow",
+      "cancelWorkflowConfirmPre": "Are you sure you want to cancel workflow",
+      "cancelWorkflowConfirmPost": "? This action cannot be undone.",
+      "cancelReasonLabel": "Cancellation reason",
+      "cancelReasonPlaceholder": "Explain why this workflow is being cancelled...",
+      "cancelReasonRequired": "A cancellation reason is required",
+      "cancelWorkflowButton": "Cancel workflow",
+      "manageTitle": "Manage workflow",
+      "manageDescPre": "Add a comment and/or attachments to workflow",
+      "manageDescPost": ". You can do this as many times as you need.",
+      "manageContentLabel": "Comment",
+      "manageContentPlaceholder": "Write a comment...",
+      "manageButton": "Add"
     }
   },
   "session": {
@@ -1039,10 +1066,13 @@
     "REGISTRATION_FAILED": "Registration could not be completed. Please try again.",
     "EMAIL_ALREADY_REGISTERED": "This email is already registered for another account.",
     "CREDENTIALS_DISABLED": "This account's credentials are disabled.",
+    "COMPANY_ALREADY_EXISTS": "A company named \"{{name}}\" is already registered.",
     "DEPARTMENT_ALREADY_EXISTS": "The department \"{{name}}\" already exists in this organization.",
     "DEPARTMENT_NOT_FOUND": "The department was not found.",
+    "DEPARTMENT_HAS_DEPENDENCIES": "This department can't be deleted: it still has {{areasCount}} area(s) and {{cargosCount}} position(s) associated with it. Delete those first.",
     "AREA_ALREADY_EXISTS": "The area \"{{name}}\" already exists in this department.",
     "AREA_NOT_FOUND": "The area was not found.",
+    "AREA_HAS_DEPENDENCIES": "This area can't be deleted: it still has {{cargosCount}} position(s) associated with it. Delete those first.",
     "CARGO_ALREADY_EXISTS_IN_AREA": "The position \"{{name}}\" already exists in this area.",
     "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "The position \"{{name}}\" already exists in this department.",
     "CARGO_NOT_FOUND": "The position was not found.",
@@ -1063,6 +1093,7 @@
     "SYSTEM_ROLE_NOT_MODIFIABLE": "System roles are shared across all organizations and cannot be edited. Create a custom role instead.",
     "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted.",
     "ROLE_HAS_ASSIGNED_USERS_one": "The role \"{{name}}\" still has {{count}} user assigned and cannot be deleted.",
-    "ROLE_HAS_ASSIGNED_USERS_other": "The role \"{{name}}\" still has {{count}} users assigned and cannot be deleted."
+    "ROLE_HAS_ASSIGNED_USERS_other": "The role \"{{name}}\" still has {{count}} users assigned and cannot be deleted.",
+    "MODULE_ACTION_PERMISSION_REQUIRES_READ": "Action permissions cannot be granted for {{modules}} without also granting the View permission for those same modules."
   }
 }

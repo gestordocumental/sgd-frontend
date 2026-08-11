@@ -23,6 +23,13 @@ export function useWorkflowDialogs() {
   const [timelineWorkflowId, setTimelineWorkflowId] = useState<string | null>(null);
   const [deleteWorkflow, setDeleteWorkflow] = useState<ApiWorkflow | null>(null);
 
+  // Set right before a secondary dialog (timeline, approve, reject, edit...) is
+  // opened from the detail dialog's footer, so closing that secondary dialog
+  // (however it closes — Cancel, backdrop click, or a successful submit) can
+  // bring the detail dialog back up. Left null when a dialog is opened from
+  // anywhere else (e.g. the table row menu), so nothing reopens in that case.
+  const [returnToDetailWorkflow, setReturnToDetailWorkflow] = useState<ApiWorkflow | null>(null);
+
   // ── Edit dialog ────────────────────────────────────────────────────────────
   const [editWorkflow, setEditWorkflow] = useState<ApiWorkflow | null>(null);
   const [editApproverIds, setEditApproverIds] = useState<string[]>([]);
@@ -64,6 +71,19 @@ export function useWorkflowDialogs() {
   const [forwardStepOptionalId, setForwardStepOptionalId] = useState('');
   const [forwardStepNotes, setForwardStepNotes] = useState('');
   const [forwardStepFiles, setForwardStepFiles] = useState<File[]>([]);
+
+  // ── Close workflow dialog ──────────────────────────────────────────────────
+  const [closeWorkflow, setCloseWorkflow] = useState<ApiWorkflow | null>(null);
+  const [closingNotes, setClosingNotes] = useState('');
+
+  // ── Cancel workflow dialog ─────────────────────────────────────────────────
+  const [cancelWorkflow, setCancelWorkflow] = useState<ApiWorkflow | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  // ── Manage workflow dialog ("Gestionar") ───────────────────────────────────
+  const [manageWorkflow, setManageWorkflow] = useState<ApiWorkflow | null>(null);
+  const [manageContent, setManageContent] = useState('');
+  const [manageFiles, setManageFiles] = useState<File[]>([]);
 
   // ── List helpers ───────────────────────────────────────────────────────────
   const addApprover = useCallback((userId: string) => {
@@ -119,6 +139,8 @@ export function useWorkflowDialogs() {
     setTimelineWorkflowId,
     deleteWorkflow,
     setDeleteWorkflow,
+    returnToDetailWorkflow,
+    setReturnToDetailWorkflow,
     // Edit
     editWorkflow,
     setEditWorkflow,
@@ -164,6 +186,23 @@ export function useWorkflowDialogs() {
     setForwardStepNotes,
     forwardStepFiles,
     setForwardStepFiles,
+    // Close workflow
+    closeWorkflow,
+    setCloseWorkflow,
+    closingNotes,
+    setClosingNotes,
+    // Cancel workflow
+    cancelWorkflow,
+    setCancelWorkflow,
+    cancelReason,
+    setCancelReason,
+    // Manage workflow
+    manageWorkflow,
+    setManageWorkflow,
+    manageContent,
+    setManageContent,
+    manageFiles,
+    setManageFiles,
     // Helpers
     addApprover,
     removeApprover,

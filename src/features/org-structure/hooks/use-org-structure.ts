@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import {
   orgStructureApi,
   type ApiDepartamento,
@@ -110,6 +111,16 @@ export function useOrgStructure(companyId: string, enabled = true) {
     queryClient.invalidateQueries({ queryKey: ['all-cargos', companyId] });
   };
 
+  // Delete mutations have no form field to attach an error to (unlike
+  // create/edit, which use form.setError), so failures — e.g. the backend
+  // now rejecting deletion of a departamento/area that still has
+  // areas/cargos under it — must surface as a toast or they're silently
+  // swallowed and the user has no idea why nothing happened.
+  const onDeleteError = (e: unknown) => {
+    const fallback = t('orgStructure.deleteError');
+    toast.error(resolveApiError(e, t, fallback) ?? fallback);
+  };
+
   // ── Departamento mutations ─────────────────────────────────────
   const createDeptMutation = useMutation({
     mutationFn: (dto: StructureForm) => orgStructureApi.createDepartamento(companyId, dto),
@@ -148,6 +159,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
         setSelectedAreaId('');
       }
     },
+    onError: onDeleteError,
   });
 
   // ── Area mutations ─────────────────────────────────────────────
@@ -184,6 +196,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
       setDeleteArea(null);
       if (deleteArea?.id === selectedAreaId) setSelectedAreaId('');
     },
+    onError: onDeleteError,
   });
 
   // ── Cargo mutations ────────────────────────────────────────────
@@ -227,6 +240,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
       invalidateCargos();
       setDeleteCargo(null);
     },
+    onError: onDeleteError,
   });
 
   // ── Dept-level cargo mutations ─────────────────────────────────
@@ -268,6 +282,7 @@ export function useOrgStructure(companyId: string, enabled = true) {
       invalidateCargos();
       setDeleteDeptCargo(null);
     },
+    onError: onDeleteError,
   });
 
   // ── Bulk import mutation ────────────────────────────────────────

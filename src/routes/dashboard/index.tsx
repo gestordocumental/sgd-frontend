@@ -105,6 +105,7 @@ function CompanyDashboard() {
     orgDashboard,
     activeUsers,
     handleWorkflowNotificationClick,
+    handleMyTasksCardClick,
   } = useCompanyDashboard();
 
   return (
@@ -196,6 +197,7 @@ function CompanyDashboard() {
                 canViewOrgStructure={canViewOrgStructure}
                 canViewWorkflows={canViewWorkflows}
                 canViewUsers={canViewUsers}
+                onMyTasksClick={handleMyTasksCardClick}
               />
             </Suspense>
           </ErrorBoundary>

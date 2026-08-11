@@ -37,6 +37,9 @@ export interface WorkflowActionContext {
  */
 export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionContext) {
   const { userId, canWrite = false, canApprove = false } = ctx;
+  // Habilitado por tipología (ver ApiWorkflow.reviewCycleEnabled) — snapshot
+  // al crear el workflow, no un flag de empresa.
+  const reviewCycleEnabled = workflow.reviewCycleEnabled;
   const isCreator = workflow.createdBy === userId;
   const isFinalUser = workflow.finalUserIds?.includes(userId ?? '') ?? false;
   const isCurrentApprover = workflow.currentAssignedUserId === userId;
@@ -55,10 +58,15 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
     /** El aprobador actual puede aprobar/rechazar solo en PENDING_APPROVAL */
     canApproveStep: canApprove && isCurrentApprover && workflow.status === 'PENDING_APPROVAL',
 
-    /** Un usuario final puede iniciar ciclo admin solo desde PENDING_REVIEW_CYCLE.
-     *  En AVAILABLE_FOR_FINAL_USERS el documento ya fue publicado y no corresponde
-     *  mostrar "Iniciar revisión" aunque la transición técnica exista en el backend. */
-    canStartReviewCycle: isFinalUser && workflow.status === 'PENDING_REVIEW_CYCLE',
+    /** Un usuario final puede iniciar ciclo admin desde PENDING_REVIEW_CYCLE (antes
+     *  del primer ciclo) o desde AVAILABLE_FOR_FINAL_USERS (tras completarse uno) —
+     *  al terminar un ciclo el usuario final decide si lo deja disponible o inicia
+     *  otro. Solo si la empresa tiene el ciclo de revisión habilitado. */
+    canStartReviewCycle:
+      reviewCycleEnabled &&
+      isFinalUser &&
+      (workflow.status === 'PENDING_REVIEW_CYCLE' ||
+        workflow.status === 'AVAILABLE_FOR_FINAL_USERS'),
 
     /** El usuario asignado al paso actual puede completarlo en ADMIN_CYCLE_IN_PROGRESS */
     canCompleteAdminStep: workflow.status === 'ADMIN_CYCLE_IN_PROGRESS' && isCurrentApprover,
@@ -70,5 +78,18 @@ export function getWorkflowActions(workflow: ApiWorkflow, ctx: WorkflowActionCon
       !!pendingStep &&
       !pendingStep.isOptional &&
       (activeCycle?.allowedOptionalReviewerIds?.length ?? 0) > 0,
+
+    /** Un usuario final puede dejar comentarios/adjuntos ("Gestionar") las veces
+     *  que quiera mientras el workflow está disponible, sin iniciar un ciclo
+     *  administrativo formal con revisores. */
+    canManageWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
+
+    /** Un usuario final puede finalizar definitivamente el workflow solo desde
+     *  AVAILABLE_FOR_FINAL_USERS — una vez finalizado no se permiten más cambios. */
+    canCloseWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
+
+    /** Un usuario final puede cancelar el workflow solo desde
+     *  AVAILABLE_FOR_FINAL_USERS, dejando un motivo obligatorio. */
+    canCancelWorkflow: isFinalUser && workflow.status === 'AVAILABLE_FOR_FINAL_USERS',
   };
 }

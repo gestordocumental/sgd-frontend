@@ -12,6 +12,7 @@ const BASE_WORKFLOW: ApiWorkflow = {
   typologyCode: 'CON-01',
   typologyVersion: '1.0',
   typologyName: 'Contratos',
+  reviewCycleEnabled: true,
   mainDocumentId: null,
   mainDocumentValidated: false,
   mainDocumentMetadata: null,
@@ -184,6 +185,11 @@ export const workflowsHandlers = [
   // Close workflow
   http.post('*/workflows/:id/close', ({ params }) =>
     HttpResponse.json({ ...BASE_WORKFLOW, id: params['id'] as string, status: 'CLOSED' }),
+  ),
+
+  // Cancel workflow
+  http.post('*/workflows/:id/cancel', ({ params }) =>
+    HttpResponse.json({ ...BASE_WORKFLOW, id: params['id'] as string, status: 'CANCELLED' }),
   ),
 
   // Get single workflow by ID

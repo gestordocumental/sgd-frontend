@@ -116,6 +116,12 @@ export function useCompanyDashboard() {
     [canViewWorkflows, handleTabChange, workflows],
   );
 
+  const handleMyTasksCardClick = useCallback(() => {
+    if (!canViewWorkflows) return;
+    handleTabChange('workflows');
+    workflows.dialogs.setInnerTab('my-tasks');
+  }, [canViewWorkflows, handleTabChange, workflows]);
+
   return {
     companyId,
     isSuperAdmin,
@@ -148,5 +154,6 @@ export function useCompanyDashboard() {
     activeUsers,
     // Handlers
     handleWorkflowNotificationClick,
+    handleMyTasksCardClick,
   };
 }
