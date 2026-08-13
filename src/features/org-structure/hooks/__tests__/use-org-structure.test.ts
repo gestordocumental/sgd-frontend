@@ -77,8 +77,8 @@ describe('useOrgStructure — delete error handling', () => {
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
     const shown = mockToastError.mock.calls[0][0] as string;
-    expect(shown).toContain('2 area(s)');
-    expect(shown).toContain('1 position(s)');
+    expect(shown).toContain('2 areas');
+    expect(shown).toContain('1 position');
   });
 
   it('shows a toast with the translated dependency message when deleting an area fails with AREA_HAS_DEPENDENCIES', async () => {
@@ -107,7 +107,7 @@ describe('useOrgStructure — delete error handling', () => {
     });
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
-    expect(mockToastError.mock.calls[0][0]).toContain('3 position(s)');
+    expect(mockToastError.mock.calls[0][0]).toContain('3 positions');
   });
 
   it('falls back to the generic delete-error message when the response has no errorCode', async () => {

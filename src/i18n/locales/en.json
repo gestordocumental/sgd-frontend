@@ -1069,16 +1069,16 @@
     "COMPANY_ALREADY_EXISTS": "A company named \"{{name}}\" is already registered.",
     "DEPARTMENT_ALREADY_EXISTS": "The department \"{{name}}\" already exists in this organization.",
     "DEPARTMENT_NOT_FOUND": "The department was not found.",
-    "DEPARTMENT_HAS_DEPENDENCIES": "This department can't be deleted: it still has {{areasCount}} area(s) and {{cargosCount}} position(s) associated with it. Delete those first.",
-    "DEPARTMENT_HAS_EXTERNAL_REFERENCES": "This department can't be deleted: it is still referenced by {{typologiesCount}} typology(ies) and {{usersCount}} user(s). Reassign or remove those first.",
+    "DEPARTMENT_HAS_DEPENDENCIES": "This department can't be deleted: it still has $t(errors.counts.areas, {\"count\": {{areasCount}} }) and $t(errors.counts.cargos, {\"count\": {{cargosCount}} }) associated with it. Delete those first.",
+    "DEPARTMENT_HAS_EXTERNAL_REFERENCES": "This department can't be deleted: it is still referenced by $t(errors.counts.typologies, {\"count\": {{typologiesCount}} }) and $t(errors.counts.users, {\"count\": {{usersCount}} }). Reassign or remove those first.",
     "AREA_ALREADY_EXISTS": "The area \"{{name}}\" already exists in this department.",
     "AREA_NOT_FOUND": "The area was not found.",
-    "AREA_HAS_DEPENDENCIES": "This area can't be deleted: it still has {{cargosCount}} position(s) associated with it. Delete those first.",
-    "AREA_HAS_EXTERNAL_REFERENCES": "This area can't be deleted: it is still referenced by {{typologiesCount}} typology(ies) and {{usersCount}} user(s). Reassign or remove those first.",
+    "AREA_HAS_DEPENDENCIES": "This area can't be deleted: it still has $t(errors.counts.cargos, {\"count\": {{cargosCount}} }) associated with it. Delete those first.",
+    "AREA_HAS_EXTERNAL_REFERENCES": "This area can't be deleted: it is still referenced by $t(errors.counts.typologies, {\"count\": {{typologiesCount}} }) and $t(errors.counts.users, {\"count\": {{usersCount}} }). Reassign or remove those first.",
     "CARGO_ALREADY_EXISTS_IN_AREA": "The position \"{{name}}\" already exists in this area.",
     "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "The position \"{{name}}\" already exists in this department.",
     "CARGO_NOT_FOUND": "The position was not found.",
-    "CARGO_HAS_EXTERNAL_REFERENCES": "This position can't be deleted: it is still referenced by {{typologiesCount}} typology(ies) and {{usersCount}} user(s). Reassign or remove those first.",
+    "CARGO_HAS_EXTERNAL_REFERENCES": "This position can't be deleted: it is still referenced by $t(errors.counts.typologies, {\"count\": {{typologiesCount}} }) and $t(errors.counts.users, {\"count\": {{usersCount}} }). Reassign or remove those first.",
     "TYPOLOGY_CODE_ALREADY_EXISTS": "An active typology with code \"{{codigo}}\" already exists in this organization. Only one active typology per code is allowed.",
     "TYPOLOGY_NOT_FOUND": "The typology was not found.",
     "TYPOLOGY_INVALID_ID": "The typology identifier is not valid.",
@@ -1098,6 +1098,16 @@
     "SYSTEM_ROLE_NOT_DELETABLE": "System roles are shared across all organizations and cannot be deleted.",
     "ROLE_HAS_ASSIGNED_USERS_one": "The role \"{{name}}\" still has {{count}} user assigned and cannot be deleted.",
     "ROLE_HAS_ASSIGNED_USERS_other": "The role \"{{name}}\" still has {{count}} users assigned and cannot be deleted.",
-    "MODULE_ACTION_PERMISSION_REQUIRES_READ": "Action permissions cannot be granted for {{modules}} without also granting the View permission for those same modules."
+    "MODULE_ACTION_PERMISSION_REQUIRES_READ": "Action permissions cannot be granted for {{modules}} without also granting the View permission for those same modules.",
+    "counts": {
+      "areas_one": "{{count}} area",
+      "areas_other": "{{count}} areas",
+      "cargos_one": "{{count}} position",
+      "cargos_other": "{{count}} positions",
+      "typologies_one": "{{count}} typology",
+      "typologies_other": "{{count}} typologies",
+      "users_one": "{{count}} user",
+      "users_other": "{{count}} users"
+    }
   }
 }

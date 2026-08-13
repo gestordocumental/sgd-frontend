@@ -1069,16 +1069,16 @@
     "COMPANY_ALREADY_EXISTS": "Ya existe una empresa registrada con el nombre \"{{name}}\".",
     "DEPARTMENT_ALREADY_EXISTS": "El departamento \"{{name}}\" ya existe en esta organización.",
     "DEPARTMENT_NOT_FOUND": "El departamento no fue encontrado.",
-    "DEPARTMENT_HAS_DEPENDENCIES": "No se puede eliminar el departamento: tiene {{areasCount}} área(s) y {{cargosCount}} cargo(s) asociados. Elimínelos primero.",
-    "DEPARTMENT_HAS_EXTERNAL_REFERENCES": "No se puede eliminar el departamento: todavía está referenciado por {{typologiesCount}} tipología(s) y {{usersCount}} usuario(s). Reasígnelos o elimínelos primero.",
+    "DEPARTMENT_HAS_DEPENDENCIES": "No se puede eliminar el departamento: tiene $t(errors.counts.areas, {\"count\": {{areasCount}} }) y $t(errors.counts.cargos, {\"count\": {{cargosCount}} }) asociados. Elimínelos primero.",
+    "DEPARTMENT_HAS_EXTERNAL_REFERENCES": "No se puede eliminar el departamento: todavía está referenciado por $t(errors.counts.typologies, {\"count\": {{typologiesCount}} }) y $t(errors.counts.users, {\"count\": {{usersCount}} }). Reasígnelos o elimínelos primero.",
     "AREA_ALREADY_EXISTS": "El área \"{{name}}\" ya existe en este departamento.",
     "AREA_NOT_FOUND": "El área no fue encontrada.",
-    "AREA_HAS_DEPENDENCIES": "No se puede eliminar el área: tiene {{cargosCount}} cargo(s) asociados. Elimínelos primero.",
-    "AREA_HAS_EXTERNAL_REFERENCES": "No se puede eliminar el área: todavía está referenciada por {{typologiesCount}} tipología(s) y {{usersCount}} usuario(s). Reasígnelos o elimínelos primero.",
+    "AREA_HAS_DEPENDENCIES": "No se puede eliminar el área: tiene $t(errors.counts.cargos, {\"count\": {{cargosCount}} }) asociados. Elimínelos primero.",
+    "AREA_HAS_EXTERNAL_REFERENCES": "No se puede eliminar el área: todavía está referenciada por $t(errors.counts.typologies, {\"count\": {{typologiesCount}} }) y $t(errors.counts.users, {\"count\": {{usersCount}} }). Reasígnelos o elimínelos primero.",
     "CARGO_ALREADY_EXISTS_IN_AREA": "El cargo \"{{name}}\" ya existe en esta área.",
     "CARGO_ALREADY_EXISTS_IN_DEPARTMENT": "El cargo \"{{name}}\" ya existe en este departamento.",
     "CARGO_NOT_FOUND": "El cargo no fue encontrado.",
-    "CARGO_HAS_EXTERNAL_REFERENCES": "No se puede eliminar el cargo: todavía está referenciado por {{typologiesCount}} tipología(s) y {{usersCount}} usuario(s). Reasígnelos o elimínelos primero.",
+    "CARGO_HAS_EXTERNAL_REFERENCES": "No se puede eliminar el cargo: todavía está referenciado por $t(errors.counts.typologies, {\"count\": {{typologiesCount}} }) y $t(errors.counts.users, {\"count\": {{usersCount}} }). Reasígnelos o elimínelos primero.",
     "TYPOLOGY_CODE_ALREADY_EXISTS": "Ya existe una tipología activa con el código \"{{codigo}}\" en esta organización. Solo se permite una tipología activa por código.",
     "TYPOLOGY_NOT_FOUND": "La tipología no fue encontrada.",
     "TYPOLOGY_INVALID_ID": "El identificador de la tipología no es válido.",
@@ -1098,6 +1098,16 @@
     "SYSTEM_ROLE_NOT_DELETABLE": "Los roles del sistema son compartidos por todas las organizaciones y no se pueden eliminar.",
     "ROLE_HAS_ASSIGNED_USERS_one": "El rol \"{{name}}\" todavía tiene {{count}} usuario asignado y no se puede eliminar.",
     "ROLE_HAS_ASSIGNED_USERS_other": "El rol \"{{name}}\" todavía tiene {{count}} usuarios asignados y no se puede eliminar.",
-    "MODULE_ACTION_PERMISSION_REQUIRES_READ": "No se pueden otorgar permisos de acción para {{modules}} sin también otorgar el permiso Ver de esos mismos módulos."
+    "MODULE_ACTION_PERMISSION_REQUIRES_READ": "No se pueden otorgar permisos de acción para {{modules}} sin también otorgar el permiso Ver de esos mismos módulos.",
+    "counts": {
+      "areas_one": "{{count}} área",
+      "areas_other": "{{count}} áreas",
+      "cargos_one": "{{count}} cargo",
+      "cargos_other": "{{count}} cargos",
+      "typologies_one": "{{count}} tipología",
+      "typologies_other": "{{count}} tipologías",
+      "users_one": "{{count}} usuario",
+      "users_other": "{{count}} usuarios"
+    }
   }
 }
