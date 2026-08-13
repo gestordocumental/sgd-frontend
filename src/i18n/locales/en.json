@@ -1085,6 +1085,7 @@
     "TYPOLOGY_VERSION_INVALID": "The new version ({{newVersion}}) must be equal to or exactly one increment above the current version ({{oldVersion}}).",
     "TYPOLOGY_NO_PENDING_ACTION": "There is no pending discrepancy or confirmation for this typology.",
     "TYPOLOGY_DECLARED_STILL_MISMATCHED": "The declared data still doesn't match the content of the uploaded document. Choose \"Use what was extracted from the document\", or upload a document whose content matches the declared data.",
+    "TYPOLOGY_UNIQUENESS_UNAVAILABLE": "Couldn't verify the typology code's uniqueness. Try again in a few minutes; if the problem persists, contact an administrator.",
     "USER_PREVIOUSLY_DELETED": "This user was previously deleted. Use the restore option to reactivate them.",
     "USER_ALREADY_IN_ANOTHER_ORG": "A user with this email already exists in another organization.",
     "USER_ALREADY_EXISTS": "A user with this email already exists.",
