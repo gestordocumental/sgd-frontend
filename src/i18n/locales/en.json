@@ -243,7 +243,8 @@
       "active": "Active",
       "inactive": "Inactive"
     },
-    "noData": "No data yet"
+    "noData": "No data yet",
+    "noOverviewAccess": "No overview information is available for your role. Check the other tabs you have access to."
   },
   "audit": {
     "title": "Audit log",
@@ -599,7 +600,7 @@
     "systemDescriptions": {
       "ADMIN": "Organization administrator",
       "MANAGER": "Manager with approval permissions",
-      "EDITOR": "Can create and edit documents",
+      "EDITOR": "Can create, edit and approve workflows, and view document governance",
       "VIEWER": "Read-only",
       "AUDITOR": "Read-only access to the audit log"
     },
@@ -796,6 +797,7 @@
       "stepCompleted": "Completed",
       "noCommentsOrAttachments": "No comments or attachments.",
       "management": "End user comments and attachments",
+      "managementAttachmentsWithoutComment": "Attachments without a comment",
       "finalUser": "End user",
       "downloadDoc": "Download document",
       "previewDoc": "Preview document",
@@ -809,6 +811,11 @@
       "downloadError": "Failed to download the file. Please try again.",
       "auditLogDownloadError": "The attachments downloaded, but the audit log couldn't be included. Try again from the audit page if you need it.",
       "auditLogPdfTitle": "Flow Log ({{name}})",
+      "auditSectionCreation": "Creation",
+      "auditSectionApproval": "Approval",
+      "auditSectionReview": "Review",
+      "auditSectionFinalUser": "Final user",
+      "auditSectionOther": "Other",
       "previewLoading": "Loading preview...",
       "previewError": "Couldn't load the preview. Use the download button instead.",
       "previewTruncated": "Showing only the first {{rows}} rows and {{cols}} columns — the file is larger than that.",
@@ -1002,7 +1009,6 @@
   },
   "permissions": {
     "modules": {
-      "DOCUMENTS": "Documents",
       "WORKFLOWS": "Workflows",
       "USERS": "Users",
       "ROLES": "Roles",
@@ -1019,14 +1025,6 @@
       "MANAGE": "Manage"
     },
     "descriptions": {
-      "DOCUMENTS": {
-        "READ": "View and browse documents",
-        "WRITE": "Create and edit documents",
-        "DELETE": "Delete documents",
-        "APPROVE": "Approve documents",
-        "UPLOAD": "Upload files to the system",
-        "DOWNLOAD": "Download files"
-      },
       "WORKFLOWS": {
         "READ": "View and browse workflows",
         "WRITE": "Create and edit workflows",
