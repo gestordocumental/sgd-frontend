@@ -60,6 +60,7 @@ function renderDashboard(overrides: Partial<Parameters<typeof OrgDashboard>[0]> 
       isLoading={false}
       users={USERS}
       usersLoading={false}
+      permissionsLoading={false}
       canViewOrgStructure={true}
       canViewWorkflows={true}
       canViewUsers={true}
@@ -138,6 +139,26 @@ describe('OrgDashboard — permission-gated sections', () => {
 
   it('does not show the empty-state message when at least one section is visible', () => {
     renderDashboard({ canViewOrgStructure: false, canViewWorkflows: false, canViewUsers: true });
+
+    expect(
+      screen.queryByText(
+        'No overview information is available for your role. Check the other tabs you have access to.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  // Regression: useMyPermissions() returns an empty permission set while its
+  // own queries are still in flight, so every canView* prop is momentarily
+  // false on first mount even for a role that does have access to a
+  // section — without checking permissionsLoading, the empty state would
+  // flash before the real permissions arrive.
+  it('does not show the empty-state message while permissions are still loading, even if every canView* is currently false', () => {
+    renderDashboard({
+      canViewOrgStructure: false,
+      canViewWorkflows: false,
+      canViewUsers: false,
+      permissionsLoading: true,
+    });
 
     expect(
       screen.queryByText(
