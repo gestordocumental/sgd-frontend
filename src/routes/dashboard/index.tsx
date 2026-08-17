@@ -85,6 +85,7 @@ function CompanyDashboard() {
     effectiveTab,
     mountedTabs,
     handleTabChange,
+    permissionsLoading,
     canViewUsers,
     canViewOrgs,
     canViewOrgStructure,
@@ -194,6 +195,7 @@ function CompanyDashboard() {
                 }
                 users={companyUsers.users}
                 usersLoading={companyUsers.usersLoading}
+                permissionsLoading={permissionsLoading}
                 canViewOrgStructure={canViewOrgStructure}
                 canViewWorkflows={canViewWorkflows}
                 canViewUsers={canViewUsers}

@@ -540,11 +540,16 @@ export function DetailWorkflowDialog({
   // the UI can show which attachment belongs to which comment instead of two
   // unrelated flat lists. An attachment submitted with no comment text has no
   // noteId (addNote() only creates a WorkflowNote when content is present) —
-  // those are kept separate, not silently dropped.
+  // those are kept separate, not silently dropped. Same treatment for a
+  // noteId that doesn't match anything in detailWorkflow.notes — grouping it
+  // under a note the UI never renders would make the attachment disappear
+  // instead of just not being nested, so it falls back to the same "no
+  // comment" bucket rather than being silently swallowed.
+  const noteIds = new Set((detailWorkflow.notes ?? []).map((note) => note.id));
   const managementAttachmentsByNoteId = new Map<string, typeof managementAttachments>();
   const orphanManagementAttachments: typeof managementAttachments = [];
   for (const att of managementAttachments) {
-    if (!att.noteId) {
+    if (!att.noteId || !noteIds.has(att.noteId)) {
       orphanManagementAttachments.push(att);
       continue;
     }

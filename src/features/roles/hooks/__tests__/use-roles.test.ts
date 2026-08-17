@@ -110,6 +110,15 @@ describe('useRoles — togglePerm proactively enforces the READ-required-for-act
     expect(result.current.selectedPermIds).toEqual(
       expect.arrayContaining(['org-read', 'org-write']),
     );
+    // The toggle at line 108 must have actually taken effect — an
+    // implementation that silently ignores it would still pass the
+    // assertion above alone.
+    expect(result.current.selectedPermIds).not.toContain('wf-read');
+    // Cascades to wf-approve too (this describe block's own rule: an action
+    // permission can't stay selected without its module's READ) — the point
+    // of this test is that the cascade stays scoped to WORKFLOWS and never
+    // touches ORG_STRUCTURE's selections, not that WORKFLOWS is untouched.
+    expect(result.current.selectedPermIds).not.toContain('wf-approve');
   });
 
   it('unchecking a plain action permission only removes that one permission', async () => {
