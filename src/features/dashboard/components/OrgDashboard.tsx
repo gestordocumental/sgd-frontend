@@ -482,6 +482,23 @@ export function OrgDashboard({
     };
   }, [users]);
 
+  // Every section below is gated behind one of these three — a role holding
+  // none of them (e.g. an auditor-only user, who only has AUDIT:READ) would
+  // otherwise land on this tab (it's the default, unlike users/audit which
+  // are only mounted when the viewer can see them) and see a fully blank
+  // page with no indication of why. Surface that explicitly instead.
+  const hasAnySection = canViewOrgStructure || canViewWorkflows || canViewUsers;
+
+  if (!hasAnySection) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          {t('dashboard.noOverviewAccess')}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* KPIs */}

@@ -37,8 +37,8 @@ const ROLE_WITH_PERMS: ApiRole = {
   isSystem: false,
   createdAt: '2024-01-01T00:00:00Z',
   permissions: [
-    { id: 'p-1', module: 'DOCUMENTS', action: 'READ', description: null },
-    { id: 'p-2', module: 'DOCUMENTS', action: 'WRITE', description: null },
+    { id: 'p-1', module: 'ORG_STRUCTURE', action: 'READ', description: null },
+    { id: 'p-2', module: 'ORG_STRUCTURE', action: 'WRITE', description: null },
     { id: 'p-3', module: 'WORKFLOWS', action: 'READ', description: null },
   ],
 };
@@ -83,7 +83,7 @@ describe('useMyPermissions — isSuperAdmin', () => {
       wrapper: makeWrapper(),
     });
 
-    expect(result.current.hasPermission('DOCUMENTS', 'DELETE')).toBe(true);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'DELETE')).toBe(true);
     expect(result.current.hasPermission('ORG_STRUCTURE', 'WRITE')).toBe(true);
     expect(result.current.hasPermission('AUDIT', 'READ')).toBe(true);
   });
@@ -111,7 +111,7 @@ describe('useMyPermissions — companyId null', () => {
   it('hasPermission returns false for all checks when companyId is null', () => {
     const { result } = renderHook(() => useMyPermissions(null, false), { wrapper: makeWrapper() });
 
-    expect(result.current.hasPermission('DOCUMENTS', 'READ')).toBe(false);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'READ')).toBe(false);
   });
 });
 
@@ -141,8 +141,8 @@ describe('useMyPermissions — user with role and permissions', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.hasPermission('DOCUMENTS', 'READ')).toBe(true);
-    expect(result.current.hasPermission('DOCUMENTS', 'WRITE')).toBe(true);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'READ')).toBe(true);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'WRITE')).toBe(true);
     expect(result.current.hasPermission('WORKFLOWS', 'READ')).toBe(true);
   });
 
@@ -153,7 +153,7 @@ describe('useMyPermissions — user with role and permissions', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.hasPermission('DOCUMENTS', 'DELETE')).toBe(false);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'DELETE')).toBe(false);
     expect(result.current.hasPermission('USERS', 'READ')).toBe(false);
     expect(result.current.hasPermission('AUDIT', 'READ')).toBe(false);
   });
@@ -175,7 +175,7 @@ describe('useMyPermissions — user with role and permissions', () => {
     // role-999 is not in the user's assignments
     expect(result.current.hasPermission('USERS', 'MANAGE')).toBe(false);
     // role-1 perms are still granted
-    expect(result.current.hasPermission('DOCUMENTS', 'READ')).toBe(true);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'READ')).toBe(true);
   });
 
   it('accumulates permissions from multiple roles', async () => {
@@ -198,7 +198,7 @@ describe('useMyPermissions — user with role and permissions', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     // From role-1
-    expect(result.current.hasPermission('DOCUMENTS', 'READ')).toBe(true);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'READ')).toBe(true);
     // From role-2
     expect(result.current.hasPermission('USERS', 'READ')).toBe(true);
     expect(result.current.hasPermission('USERS', 'WRITE')).toBe(true);
@@ -236,7 +236,7 @@ describe('useMyPermissions — user with no role assignments', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.hasPermission('DOCUMENTS', 'READ')).toBe(false);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'READ')).toBe(false);
     expect(result.current.hasPermission('USERS', 'MANAGE')).toBe(false);
   });
 });
@@ -257,6 +257,6 @@ describe('useMyPermissions — org role with null roleId', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockListRoles).not.toHaveBeenCalled();
-    expect(result.current.hasPermission('DOCUMENTS', 'READ')).toBe(false);
+    expect(result.current.hasPermission('ORG_STRUCTURE', 'READ')).toBe(false);
   });
 });

@@ -41,8 +41,8 @@ const PERMISSIONS: ApiPermission[] = [
   { id: 'wf-read', module: 'WORKFLOWS', action: 'READ', description: null },
   { id: 'wf-write', module: 'WORKFLOWS', action: 'WRITE', description: null },
   { id: 'wf-approve', module: 'WORKFLOWS', action: 'APPROVE', description: null },
-  { id: 'doc-read', module: 'DOCUMENTS', action: 'READ', description: null },
-  { id: 'doc-write', module: 'DOCUMENTS', action: 'WRITE', description: null },
+  { id: 'org-read', module: 'ORG_STRUCTURE', action: 'READ', description: null },
+  { id: 'org-write', module: 'ORG_STRUCTURE', action: 'WRITE', description: null },
 ];
 
 async function renderRolesHook() {
@@ -102,13 +102,13 @@ describe('useRoles — togglePerm proactively enforces the READ-required-for-act
 
     act(() => result.current.togglePerm('wf-read'));
     act(() => result.current.togglePerm('wf-approve'));
-    act(() => result.current.togglePerm('doc-read'));
-    act(() => result.current.togglePerm('doc-write'));
+    act(() => result.current.togglePerm('org-read'));
+    act(() => result.current.togglePerm('org-write'));
 
     act(() => result.current.togglePerm('wf-read')); // uncheck WORKFLOWS's READ
 
     expect(result.current.selectedPermIds).toEqual(
-      expect.arrayContaining(['doc-read', 'doc-write']),
+      expect.arrayContaining(['org-read', 'org-write']),
     );
   });
 

@@ -121,6 +121,31 @@ describe('OrgDashboard — permission-gated sections', () => {
     expect(screen.queryByText('Storage used')).not.toBeInTheDocument();
   });
 
+  // Regression: a role holding none of ORG_STRUCTURE/WORKFLOWS/USERS:READ
+  // (e.g. an auditor-only user, who only has AUDIT:READ) landed on this tab
+  // — it's the default one, mounted regardless of permissions — and saw a
+  // fully blank page: every section here is conditionally rendered on those
+  // three, with nothing left over to explain why the page looked empty.
+  it('shows an explicit empty-state message instead of a blank page when no section applies', () => {
+    renderDashboard({ canViewOrgStructure: false, canViewWorkflows: false, canViewUsers: false });
+
+    expect(
+      screen.getByText(
+        'No overview information is available for your role. Check the other tabs you have access to.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the empty-state message when at least one section is visible', () => {
+    renderDashboard({ canViewOrgStructure: false, canViewWorkflows: false, canViewUsers: true });
+
+    expect(
+      screen.queryByText(
+        'No overview information is available for your role. Check the other tabs you have access to.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   // ── "My pending tasks" card click ─────────────────────────────────────────
 
   it('calls onMyTasksClick when the "My pending tasks" card is clicked', () => {

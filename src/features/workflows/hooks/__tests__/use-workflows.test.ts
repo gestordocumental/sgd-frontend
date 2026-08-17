@@ -101,7 +101,7 @@ const READER_ROLE = {
   orgId: 'org-1',
   description: null,
   createdAt: '2024-01-01T00:00:00Z',
-  permissions: [{ id: 'p-2', module: 'DOCUMENTS', action: 'READ', description: null }],
+  permissions: [{ id: 'p-2', module: 'ORG_STRUCTURE', action: 'READ', description: null }],
 };
 
 const ADMIN_ROLE = {
