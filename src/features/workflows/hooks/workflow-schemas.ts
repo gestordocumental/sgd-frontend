@@ -31,3 +31,31 @@ export interface DocumentComparison {
   codigo: boolean | null;
   version: boolean | null;
 }
+
+/**
+ * Compara dos strings de versión ignorando ceros a la izquierda en cada
+ * segmento y un prefijo `v` opcional — así "6" y "06" (o "v1.2" y "1.02")
+ * se consideran la misma versión. Si alguno de los dos valores no es una
+ * versión numérica con puntos, compara como texto plano (recortado), para
+ * no alterar el comportamiento con esquemas de versión no numéricos.
+ */
+export function versionsEqual(a: string | null, b: string | null): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+
+  const parse = (v: string): number[] | null => {
+    const normalized = v.trim().replace(/^v/i, '');
+    if (!/^\d+(\.\d+)*$/.test(normalized)) return null;
+    return normalized.split('.').map(Number);
+  };
+
+  const av = parse(a);
+  const bv = parse(b);
+  if (!av || !bv) return a.trim() === b.trim();
+
+  const len = Math.max(av.length, bv.length);
+  for (let i = 0; i < len; i++) {
+    if ((av[i] ?? 0) !== (bv[i] ?? 0)) return false;
+  }
+  return true;
+}

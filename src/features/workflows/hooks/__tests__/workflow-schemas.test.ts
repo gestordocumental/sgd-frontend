@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createWorkflowSchema, approveSchema, rejectSchema } from '../workflow-schemas';
+import {
+  createWorkflowSchema,
+  approveSchema,
+  rejectSchema,
+  versionsEqual,
+} from '../workflow-schemas';
 
 // ── createWorkflowSchema ───────────────────────────────────────────────────────
 
@@ -100,5 +105,47 @@ describe('rejectSchema', () => {
       const msg = r.error.issues[0].message;
       expect(msg).toContain('10');
     }
+  });
+});
+
+// ── versionsEqual ────────────────────────────────────────────────────────────
+
+describe('versionsEqual', () => {
+  it('treats "6" and "06" as the same version', () => {
+    expect(versionsEqual('6', '06')).toBe(true);
+  });
+
+  it('treats "1.2" and "01.02" as the same version', () => {
+    expect(versionsEqual('1.2', '01.02')).toBe(true);
+  });
+
+  it('ignores an optional leading "v" prefix', () => {
+    expect(versionsEqual('v1', '01')).toBe(true);
+  });
+
+  it('treats different version numbers as not equal', () => {
+    expect(versionsEqual('6', '7')).toBe(false);
+  });
+
+  it('treats "1.2" and "1.20" as different versions (trailing digit is a real segment, not padding)', () => {
+    expect(versionsEqual('1.2', '1.20')).toBe(false);
+  });
+
+  it('falls back to a plain string comparison for non-numeric version schemes', () => {
+    expect(versionsEqual('Rev-A', 'Rev-A')).toBe(true);
+    expect(versionsEqual('Rev-A', 'Rev-B')).toBe(false);
+  });
+
+  it('trims whitespace before comparing', () => {
+    expect(versionsEqual(' 6 ', '06')).toBe(true);
+  });
+
+  it('returns false when only one side is null', () => {
+    expect(versionsEqual(null, '6')).toBe(false);
+    expect(versionsEqual('6', null)).toBe(false);
+  });
+
+  it('returns true when both sides are null', () => {
+    expect(versionsEqual(null, null)).toBe(true);
   });
 });
