@@ -43,10 +43,14 @@ export function versionsEqual(a: string | null, b: string | null): boolean {
   if (a === b) return true;
   if (a === null || b === null) return false;
 
-  const parse = (v: string): number[] | null => {
+  // Segments are compared as strings (after stripping leading zeros), not
+  // converted to Number — a Number round-trip would silently lose precision
+  // past Number.MAX_SAFE_INTEGER and could make two different large version
+  // numbers compare as equal.
+  const parse = (v: string): string[] | null => {
     const normalized = v.trim().replace(/^v/i, '');
     if (!/^\d+(\.\d+)*$/.test(normalized)) return null;
-    return normalized.split('.').map(Number);
+    return normalized.split('.').map((segment) => segment.replace(/^0+(?=\d)/, ''));
   };
 
   const av = parse(a);
@@ -55,7 +59,7 @@ export function versionsEqual(a: string | null, b: string | null): boolean {
 
   const len = Math.max(av.length, bv.length);
   for (let i = 0; i < len; i++) {
-    if ((av[i] ?? 0) !== (bv[i] ?? 0)) return false;
+    if ((av[i] ?? '0') !== (bv[i] ?? '0')) return false;
   }
   return true;
 }

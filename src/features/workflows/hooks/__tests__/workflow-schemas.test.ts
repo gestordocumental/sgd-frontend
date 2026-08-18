@@ -148,4 +148,10 @@ describe('versionsEqual', () => {
   it('returns true when both sides are null', () => {
     expect(versionsEqual(null, null)).toBe(true);
   });
+
+  it('does not lose precision on integers beyond Number.MAX_SAFE_INTEGER', () => {
+    // A Number round-trip would silently collapse these two distinct values
+    // to the same float, wrongly reporting them as the same version.
+    expect(versionsEqual('9007199254740992', '9007199254740993')).toBe(false);
+  });
 });
