@@ -438,6 +438,12 @@ interface OrgDashboardProps {
   isLoading: boolean;
   users: ApiUserWithRoles[];
   usersLoading: boolean;
+  // useMyPermissions() returns an empty permission set while its own queries
+  // are still in flight, so every canView* below is momentarily false on
+  // first mount regardless of the viewer's real role — without this, the
+  // "no access" empty state (below) would flash before the real permissions
+  // arrive for a role that does have access to at least one section.
+  permissionsLoading: boolean;
   // Each section is only rendered when the viewer holds the permission that
   // backs its module — mirrors the guards already applied to the other tabs,
   // so the overview can't leak counts/status data the role isn't authorized to see.
@@ -454,6 +460,7 @@ export function OrgDashboard({
   isLoading,
   users,
   usersLoading,
+  permissionsLoading,
   canViewOrgStructure,
   canViewWorkflows,
   canViewUsers,
@@ -481,6 +488,23 @@ export function OrgDashboard({
       pendingUsers: users.filter((u) => isPendingRegistration(u)).length,
     };
   }, [users]);
+
+  // Every section below is gated behind one of these three — a role holding
+  // none of them (e.g. an auditor-only user, who only has AUDIT:READ) would
+  // otherwise land on this tab (it's the default, unlike users/audit which
+  // are only mounted when the viewer can see them) and see a fully blank
+  // page with no indication of why. Surface that explicitly instead.
+  const hasAnySection = canViewOrgStructure || canViewWorkflows || canViewUsers;
+
+  if (!permissionsLoading && !hasAnySection) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          {t('dashboard.noOverviewAccess')}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">

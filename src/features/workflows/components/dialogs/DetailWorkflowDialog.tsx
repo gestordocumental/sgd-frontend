@@ -31,10 +31,23 @@ import { useAuthStore } from '@/store/authStore';
 import { decodeJwt } from '@/lib/jwt';
 import { workflowFilesApi } from '@/lib/api/workflow-files';
 import { workflowsApi } from '@/lib/api/workflows';
-import { buildAuditExportRows } from '@/features/audit/components/audit-table.utils';
+import {
+  buildAuditExportRows,
+  groupAuditLogsForExport,
+  AUDIT_EXPORT_SECTION_ORDER,
+  type AuditExportSection,
+} from '@/features/audit/components/audit-table.utils';
 import type { WorkflowsHook } from './workflow-dialog.types';
 import { InfoRow, ApprovalStepBadge } from './workflow-dialog-shared';
 import { getWorkflowActions } from '@/features/workflows/workflow-state-machine';
+
+const AUDIT_SECTION_TITLE_KEYS: Record<AuditExportSection, string> = {
+  creation: 'workflows.detail.auditSectionCreation',
+  approval: 'workflows.detail.auditSectionApproval',
+  review: 'workflows.detail.auditSectionReview',
+  finalUser: 'workflows.detail.auditSectionFinalUser',
+  other: 'workflows.detail.auditSectionOther',
+};
 
 const PDF_MIME = 'application/pdf';
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -521,6 +534,29 @@ export function DetailWorkflowDialog({
   // it also feeds the ZIP download and the file count in the footer.
   const supportingAttachments = allAttachments.filter((att) => att.attachmentType !== 'MANAGEMENT');
   const managementAttachments = allAttachments.filter((att) => att.attachmentType === 'MANAGEMENT');
+  // Each MANAGEMENT attachment carries the noteId of the comment it was
+  // submitted alongside (see WorkflowAdminCycleService.addNote() — both are
+  // saved together, in the same "Gestionar" submission) — group by that so
+  // the UI can show which attachment belongs to which comment instead of two
+  // unrelated flat lists. An attachment submitted with no comment text has no
+  // noteId (addNote() only creates a WorkflowNote when content is present) —
+  // those are kept separate, not silently dropped. Same treatment for a
+  // noteId that doesn't match anything in detailWorkflow.notes — grouping it
+  // under a note the UI never renders would make the attachment disappear
+  // instead of just not being nested, so it falls back to the same "no
+  // comment" bucket rather than being silently swallowed.
+  const noteIds = new Set((detailWorkflow.notes ?? []).map((note) => note.id));
+  const managementAttachmentsByNoteId = new Map<string, typeof managementAttachments>();
+  const orphanManagementAttachments: typeof managementAttachments = [];
+  for (const att of managementAttachments) {
+    if (!att.noteId || !noteIds.has(att.noteId)) {
+      orphanManagementAttachments.push(att);
+      continue;
+    }
+    const list = managementAttachmentsByNoteId.get(att.noteId) ?? [];
+    list.push(att);
+    managementAttachmentsByNoteId.set(att.noteId, list);
+  }
   const approvalAttachments = (detailWorkflow.approvalActions ?? []).flatMap((a) =>
     (a.attachments ?? []).map((att) => ({ ...att, userId: a.userId })),
   );
@@ -608,19 +644,46 @@ export function DetailWorkflowDialog({
       const logs = await workflowsApi.getAuditLog(detailWorkflow.id);
       if (logs.length === 0) return;
 
-      const rows = buildAuditExportRows(logs, [], t);
-      const headers = Object.keys(rows[0]);
-
       const doc = new jsPDF({ orientation: 'landscape' });
       doc.setFontSize(14);
       doc.text(t('workflows.detail.auditLogPdfTitle', { name: detailWorkflow.title }), 14, 15);
-      autoTable(doc, {
-        head: [headers],
-        body: rows.map((row) => headers.map((h) => row[h] ?? '')),
-        startY: 20,
-        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-        headStyles: { fillColor: [51, 65, 85] },
-      });
+
+      // Grouped by lifecycle stage (creación/aprobación/revisión/usuario
+      // final) instead of one continuous table — see
+      // groupAuditLogsForExport() for how each event type is assigned.
+      const grouped = groupAuditLogsForExport(logs);
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let cursorY = 20;
+
+      for (const section of AUDIT_EXPORT_SECTION_ORDER) {
+        const sectionLogs = grouped[section];
+        if (sectionLogs.length === 0) continue;
+
+        // Leave room for the section heading — start a fresh page instead of
+        // drawing it right at the bottom margin with no table under it.
+        if (cursorY + 12 > pageHeight - 15) {
+          doc.addPage();
+          cursorY = 15;
+        }
+
+        doc.setFontSize(11);
+        doc.text(t(AUDIT_SECTION_TITLE_KEYS[section]), 14, cursorY);
+
+        const rows = buildAuditExportRows(sectionLogs, [], t);
+        const headers = Object.keys(rows[0]);
+        autoTable(doc, {
+          head: [headers],
+          body: rows.map((row) => headers.map((h) => row[h] ?? '')),
+          startY: cursorY + 4,
+          styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+          headStyles: { fillColor: [51, 65, 85] },
+        });
+
+        // jspdf-autotable attaches this to the doc instance rather than
+        // returning it — not part of jsPDF's own type, hence the cast.
+        cursorY =
+          (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      }
 
       const blob = doc.output('blob');
       const url = URL.createObjectURL(blob);
@@ -1005,45 +1068,84 @@ export function DetailWorkflowDialog({
                   {t('workflows.detail.management')}
                 </p>
                 <div className="space-y-2">
-                  {(detailWorkflow.notes ?? []).map((note) => (
-                    <div
-                      key={note.id}
-                      className="rounded-md bg-muted/40 border border-border px-2.5 py-2"
-                    >
-                      <p className="text-xs font-medium text-foreground">
-                        {userName(note.createdBy)}
-                      </p>
-                      <p className="text-xs text-foreground break-words mt-0.5">{note.content}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(note.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
-                  {managementAttachments.length > 0 && (
-                    <div className="rounded-md border border-border divide-y divide-border">
-                      {managementAttachments.map((att) => (
-                        <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
-                          <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs truncate">{att.originalName}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">
-                              {userName(att.uploadedBy)}
-                            </p>
+                  {(detailWorkflow.notes ?? []).map((note) => {
+                    const noteAttachments = managementAttachmentsByNoteId.get(note.id) ?? [];
+                    return (
+                      <div
+                        key={note.id}
+                        className="rounded-md bg-muted/40 border border-border px-2.5 py-2"
+                      >
+                        <p className="text-xs font-medium text-foreground">
+                          {userName(note.createdBy)}
+                        </p>
+                        <p className="text-xs text-foreground break-words mt-0.5">{note.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {new Date(note.createdAt).toLocaleString()}
+                        </p>
+                        {noteAttachments.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {noteAttachments.map((att) => (
+                              <div
+                                key={att.id}
+                                className="flex items-center gap-2 rounded border border-border/70 bg-background px-2 py-1.5"
+                              >
+                                <Paperclip className="size-3 text-muted-foreground shrink-0" />
+                                <span className="flex-1 text-xs truncate">{att.originalName}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={t('workflows.detail.downloadAttachment')}
+                                  className="size-6 shrink-0"
+                                  onClick={() =>
+                                    handleOpenFile(att.storageKey, att.originalName, att.mimeType)
+                                  }
+                                >
+                                  <Download className="size-3" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={t('workflows.detail.downloadAttachment')}
-                            className="size-7 shrink-0"
-                            onClick={() =>
-                              handleOpenFile(att.storageKey, att.originalName, att.mimeType)
-                            }
-                          >
-                            <Download className="size-3.5" />
-                          </Button>
-                        </div>
-                      ))}
+                        )}
+                      </div>
+                    );
+                  })}
+                  {orphanManagementAttachments.length > 0 && (
+                    <div>
+                      {/* Attachments uploaded via "Gestionar" with no comment text — addNote()
+                          only creates a WorkflowNote (and thus a noteId to group under) when
+                          content is present, so these have nothing to nest under. Labeled
+                          explicitly instead of silently mixed into the list above, which is
+                          what made it impossible to tell which attachment belonged to which
+                          comment in the first place. */}
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                        {t('workflows.detail.managementAttachmentsWithoutComment')}
+                      </p>
+                      <div className="rounded-md border border-border divide-y divide-border">
+                        {orphanManagementAttachments.map((att) => (
+                          <div key={att.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                            <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs truncate">{att.originalName}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {userName(att.uploadedBy)}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={t('workflows.detail.downloadAttachment')}
+                              className="size-7 shrink-0"
+                              onClick={() =>
+                                handleOpenFile(att.storageKey, att.originalName, att.mimeType)
+                              }
+                            >
+                              <Download className="size-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

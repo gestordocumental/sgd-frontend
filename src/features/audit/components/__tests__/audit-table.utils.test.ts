@@ -7,6 +7,9 @@ import {
   formatResourceType,
   resolveResourceName,
   formatDate,
+  sectionForAuditLog,
+  groupAuditLogsForExport,
+  AUDIT_EXPORT_SECTION_ORDER,
   RESOURCE_TYPES,
   CORRELATION_RESOURCE_TYPES,
   ALL_ACTIONS,
@@ -14,6 +17,7 @@ import {
   RESOURCE_TYPE_COLORS,
   type TFn,
   type SimpleUser,
+  type AuditExportLog,
 } from '../audit-table.utils';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
@@ -257,6 +261,114 @@ describe('CORRELATION_RESOURCE_TYPES', () => {
   it('does not include non-correlatable types', () => {
     expect(CORRELATION_RESOURCE_TYPES.has('user')).toBe(false);
     expect(CORRELATION_RESOURCE_TYPES.has('company')).toBe(false);
+  });
+});
+
+// ── sectionForAuditLog / groupAuditLogsForExport ────────────────────────────────
+
+function makeLog(overrides: Partial<AuditExportLog> = {}): AuditExportLog {
+  return {
+    timestamp: '2024-03-15T10:30:00.000Z',
+    action: 'WORKFLOW_CREATED',
+    resourceType: 'workflow',
+    resourceId: 'wf-1',
+    actorId: 'u1',
+    metadata: null,
+    ...overrides,
+  };
+}
+
+describe('sectionForAuditLog', () => {
+  it.each([
+    ['WORKFLOW_CREATED', 'creation'],
+    ['WORKFLOW_UPDATED', 'creation'],
+    ['APPROVAL_STARTED', 'approval'],
+    ['STEP_APPROVED', 'approval'],
+    ['STEP_REJECTED', 'approval'],
+    ['WORKFLOW_RETURNED_TO_CREATOR', 'approval'],
+    ['WORKFLOW_RESUBMITTED', 'approval'],
+    ['ADMIN_CYCLE_STARTED', 'review'],
+    ['ADMIN_STEP_COMPLETED', 'review'],
+    ['ADMIN_CYCLE_COMPLETED', 'review'],
+    ['NOTE_ADDED', 'finalUser'],
+    ['ATTACHMENT_ADDED', 'finalUser'],
+    ['WORKFLOW_CLOSED', 'finalUser'],
+    ['WORKFLOW_CANCELLED', 'finalUser'],
+  ] as const)('maps %s to the "%s" section', (action, section) => {
+    expect(sectionForAuditLog(makeLog({ action }))).toBe(section);
+  });
+
+  it('maps an unknown action to "other" instead of dropping it', () => {
+    expect(sectionForAuditLog(makeLog({ action: 'SOME_FUTURE_ACTION' }))).toBe('other');
+  });
+
+  // Regression: WORKFLOW_APPROVED is emitted from two different places with
+  // the same event type — the normal end of the approval chain, and
+  // skipReviewCycle() (a final user opting out of the review cycle). Only
+  // the latter sets metadata.skippedBy.
+  describe('WORKFLOW_APPROVED disambiguation', () => {
+    it('maps to "approval" when it is the normal end of the approval chain', () => {
+      expect(sectionForAuditLog(makeLog({ action: 'WORKFLOW_APPROVED', metadata: {} }))).toBe(
+        'approval',
+      );
+    });
+
+    it('maps to "approval" when metadata is null', () => {
+      expect(sectionForAuditLog(makeLog({ action: 'WORKFLOW_APPROVED', metadata: null }))).toBe(
+        'approval',
+      );
+    });
+
+    it('maps to "finalUser" when metadata.skippedBy is present (skipped review cycle)', () => {
+      expect(
+        sectionForAuditLog(makeLog({ action: 'WORKFLOW_APPROVED', metadata: { skippedBy: 'u1' } })),
+      ).toBe('finalUser');
+    });
+  });
+});
+
+describe('groupAuditLogsForExport', () => {
+  it('buckets logs into the right sections, preserving relative order within each', () => {
+    const logs = [
+      makeLog({ action: 'WORKFLOW_CREATED', resourceId: '1' }),
+      makeLog({ action: 'APPROVAL_STARTED', resourceId: '2' }),
+      makeLog({ action: 'STEP_APPROVED', resourceId: '3' }),
+      makeLog({ action: 'ADMIN_CYCLE_STARTED', resourceId: '4' }),
+      makeLog({ action: 'WORKFLOW_CLOSED', resourceId: '5' }),
+      makeLog({ action: 'WORKFLOW_UPDATED', resourceId: '6' }),
+    ];
+
+    const grouped = groupAuditLogsForExport(logs);
+
+    expect(grouped.creation.map((l) => l.resourceId)).toEqual(['1', '6']);
+    expect(grouped.approval.map((l) => l.resourceId)).toEqual(['2', '3']);
+    expect(grouped.review.map((l) => l.resourceId)).toEqual(['4']);
+    expect(grouped.finalUser.map((l) => l.resourceId)).toEqual(['5']);
+    expect(grouped.other).toEqual([]);
+  });
+
+  it('returns every section key, even when empty, so callers can skip them uniformly', () => {
+    const grouped = groupAuditLogsForExport([]);
+    for (const section of AUDIT_EXPORT_SECTION_ORDER) {
+      expect(grouped[section]).toEqual([]);
+    }
+  });
+
+  it('does not drop logs with an unrecognized action — routes them to "other"', () => {
+    const grouped = groupAuditLogsForExport([makeLog({ action: 'SOME_FUTURE_ACTION' })]);
+    expect(grouped.other).toHaveLength(1);
+  });
+});
+
+describe('AUDIT_EXPORT_SECTION_ORDER', () => {
+  it('lists creation, approval, review, finalUser, other in that order', () => {
+    expect(AUDIT_EXPORT_SECTION_ORDER).toEqual([
+      'creation',
+      'approval',
+      'review',
+      'finalUser',
+      'other',
+    ]);
   });
 });
 

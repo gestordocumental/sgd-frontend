@@ -4,11 +4,11 @@ import type { ApiRole, ApiPermission } from '@/lib/api/roles';
 // ── Seed data ─────────────────────────────────────────────────────────────────
 
 const MOCK_PERMISSIONS: ApiPermission[] = [
-  { id: 'perm-01', module: 'DOCUMENTS', action: 'READ', description: 'Ver documentos' },
-  { id: 'perm-02', module: 'DOCUMENTS', action: 'WRITE', description: 'Crear y editar documentos' },
-  { id: 'perm-03', module: 'DOCUMENTS', action: 'DELETE', description: 'Eliminar documentos' },
-  { id: 'perm-04', module: 'DOCUMENTS', action: 'UPLOAD', description: 'Subir archivos' },
-  { id: 'perm-05', module: 'DOCUMENTS', action: 'DOWNLOAD', description: 'Descargar archivos' },
+  // perm-01..perm-05 (DOCUMENTS) intentionally removed — that module has no
+  // backend guard anywhere and is no longer part of the real permissions
+  // catalog (see user-service's permissions.seeder.ts). Ids below keep their
+  // original numbering rather than being renumbered, since MOCK_ROLES below
+  // references several of them by id.
   { id: 'perm-06', module: 'WORKFLOWS', action: 'READ', description: 'Ver workflows' },
   { id: 'perm-07', module: 'WORKFLOWS', action: 'WRITE', description: 'Crear y editar workflows' },
   {
@@ -76,9 +76,7 @@ const MOCK_ROLES: ApiRole[] = [
     id: 'role-002',
     name: 'EMPLOYEE',
     description: 'Empleado con acceso básico',
-    permissions: MOCK_PERMISSIONS.filter((p) =>
-      ['perm-01', 'perm-04', 'perm-05', 'perm-06'].includes(p.id),
-    ),
+    permissions: MOCK_PERMISSIONS.filter((p) => ['perm-17', 'perm-06'].includes(p.id)),
     orgId: 'org-001',
     isSystem: false,
     createdAt: '2024-01-01T00:00:00Z',

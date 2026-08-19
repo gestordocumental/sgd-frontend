@@ -60,6 +60,7 @@ function renderDashboard(overrides: Partial<Parameters<typeof OrgDashboard>[0]> 
       isLoading={false}
       users={USERS}
       usersLoading={false}
+      permissionsLoading={false}
       canViewOrgStructure={true}
       canViewWorkflows={true}
       canViewUsers={true}
@@ -119,6 +120,51 @@ describe('OrgDashboard — permission-gated sections', () => {
     // The combined KPIs are also hidden when neither module backing them is visible
     expect(screen.queryByText('Uploaded documents')).not.toBeInTheDocument();
     expect(screen.queryByText('Storage used')).not.toBeInTheDocument();
+  });
+
+  // Regression: a role holding none of ORG_STRUCTURE/WORKFLOWS/USERS:READ
+  // (e.g. an auditor-only user, who only has AUDIT:READ) landed on this tab
+  // — it's the default one, mounted regardless of permissions — and saw a
+  // fully blank page: every section here is conditionally rendered on those
+  // three, with nothing left over to explain why the page looked empty.
+  it('shows an explicit empty-state message instead of a blank page when no section applies', () => {
+    renderDashboard({ canViewOrgStructure: false, canViewWorkflows: false, canViewUsers: false });
+
+    expect(
+      screen.getByText(
+        'No overview information is available for your role. Check the other tabs you have access to.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the empty-state message when at least one section is visible', () => {
+    renderDashboard({ canViewOrgStructure: false, canViewWorkflows: false, canViewUsers: true });
+
+    expect(
+      screen.queryByText(
+        'No overview information is available for your role. Check the other tabs you have access to.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  // Regression: useMyPermissions() returns an empty permission set while its
+  // own queries are still in flight, so every canView* prop is momentarily
+  // false on first mount even for a role that does have access to a
+  // section — without checking permissionsLoading, the empty state would
+  // flash before the real permissions arrive.
+  it('does not show the empty-state message while permissions are still loading, even if every canView* is currently false', () => {
+    renderDashboard({
+      canViewOrgStructure: false,
+      canViewWorkflows: false,
+      canViewUsers: false,
+      permissionsLoading: true,
+    });
+
+    expect(
+      screen.queryByText(
+        'No overview information is available for your role. Check the other tabs you have access to.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   // ── "My pending tasks" card click ─────────────────────────────────────────

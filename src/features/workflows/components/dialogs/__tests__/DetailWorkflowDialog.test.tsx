@@ -1183,18 +1183,167 @@ describe('DetailWorkflowDialog — rich detail rendering', () => {
 
     render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
 
-    // The comment left via "Gestionar" is visible, attributed to the final user.
-    expect(screen.getByText('Client confirmed the delivery address')).toBeInTheDocument();
-    // The MANAGEMENT attachment shows the same uploader.
-    expect(screen.getByText('proof-of-delivery.pdf')).toBeInTheDocument();
-    const attributions = screen.getAllByText('Ada Lovelace');
-    expect(attributions.length).toBeGreaterThanOrEqual(2); // comment author + attachment uploader
+    // The comment left via "Gestionar" is visible, attributed to the final user
+    // — scoped to the comment's own card, since "Ada Lovelace" legitimately
+    // appears elsewhere too (the workflow's final-users list further down).
+    const noteCard = screen.getByText('Client confirmed the delivery address').closest('div');
+    expect(noteCard).not.toBeNull();
+    expect(within(noteCard!).getByText('Ada Lovelace')).toBeInTheDocument();
+    // The MANAGEMENT attachment is nested under that same comment.
+    expect(within(noteCard!).getByText('proof-of-delivery.pdf')).toBeInTheDocument();
 
     // Supporting attachments section only lists the SUPPORTING file, not the MANAGEMENT one.
     const supportingHeading = screen.getByText('Supporting attachments');
     const supportingSection = supportingHeading.closest('div')!;
     expect(within(supportingSection).getByText('support.pdf')).toBeInTheDocument();
     expect(within(supportingSection).queryByText('proof-of-delivery.pdf')).not.toBeInTheDocument();
+  });
+
+  // Regression: MANAGEMENT attachments used to render in a flat list, separate
+  // from the comments list, with no way to tell which attachment belonged to
+  // which comment. Each attachment carries the noteId of the comment it was
+  // submitted alongside (WorkflowAdminCycleService.addNote() saves both
+  // together) — the UI must nest it under that comment instead.
+  it('nests a "Gestionar" attachment under the comment it was submitted with, via noteId', () => {
+    const wf = makeWorkflow({
+      status: 'AVAILABLE_FOR_FINAL_USERS',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      notes: [
+        {
+          id: 'note-A',
+          content: 'First comment',
+          createdBy: 'final-user-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+        {
+          id: 'note-B',
+          content: 'Second comment',
+          createdBy: 'final-user-1',
+          createdAt: '2024-02-02T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-A',
+          workflowId: 'wf-1',
+          uploadedBy: 'final-user-1',
+          storageKey: 'kA',
+          originalName: 'attachment-for-first.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'MANAGEMENT',
+          noteId: 'note-A',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+        {
+          id: 'att-B',
+          workflowId: 'wf-1',
+          uploadedBy: 'final-user-1',
+          storageKey: 'kB',
+          originalName: 'attachment-for-second.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'MANAGEMENT',
+          noteId: 'note-B',
+          createdAt: '2024-02-02T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    const firstNoteCard = screen.getByText('First comment').closest('div')!;
+    const secondNoteCard = screen.getByText('Second comment').closest('div')!;
+
+    expect(within(firstNoteCard).getByText('attachment-for-first.pdf')).toBeInTheDocument();
+    expect(within(firstNoteCard).queryByText('attachment-for-second.pdf')).not.toBeInTheDocument();
+
+    expect(within(secondNoteCard).getByText('attachment-for-second.pdf')).toBeInTheDocument();
+    expect(within(secondNoteCard).queryByText('attachment-for-first.pdf')).not.toBeInTheDocument();
+  });
+
+  // Regression: an attachment-only "Gestionar" submission (no comment text)
+  // has no noteId at all — addNote() only creates a WorkflowNote when content
+  // is present — so it can't be nested under anything. It must still be shown
+  // somewhere, clearly labeled, instead of silently disappearing.
+  it('shows a "Gestionar" attachment with no noteId under a separate "without a comment" label', () => {
+    const wf = makeWorkflow({
+      status: 'AVAILABLE_FOR_FINAL_USERS',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      notes: [
+        {
+          id: 'note-A',
+          content: 'A comment with no attachment',
+          createdBy: 'final-user-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-orphan',
+          workflowId: 'wf-1',
+          uploadedBy: 'final-user-1',
+          storageKey: 'kO',
+          originalName: 'standalone-upload.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'MANAGEMENT',
+          noteId: null,
+          createdAt: '2024-02-03T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.getByText('Attachments without a comment')).toBeInTheDocument();
+    const noteCard = screen.getByText('A comment with no attachment').closest('div')!;
+    expect(within(noteCard).queryByText('standalone-upload.pdf')).not.toBeInTheDocument();
+    expect(screen.getByText('standalone-upload.pdf')).toBeInTheDocument();
+  });
+
+  // Regression: an attachment whose noteId doesn't match any note in
+  // detailWorkflow.notes (a stale reference, or a note the response simply
+  // didn't include) used to disappear entirely — grouped under a note key
+  // that was never rendered. It must fall back to the "without a comment"
+  // bucket instead of vanishing.
+  it('falls back to the "without a comment" bucket for a noteId that has no matching note, instead of dropping the attachment', () => {
+    const wf = makeWorkflow({
+      status: 'AVAILABLE_FOR_FINAL_USERS',
+      finalUserIds: ['final-user-1'],
+      participantNames: { 'final-user-1': 'Ada Lovelace' },
+      notes: [
+        {
+          id: 'note-A',
+          content: 'A comment with no attachment',
+          createdBy: 'final-user-1',
+          createdAt: '2024-02-01T00:00:00Z',
+        },
+      ],
+      attachments: [
+        {
+          id: 'att-stale',
+          workflowId: 'wf-1',
+          uploadedBy: 'final-user-1',
+          storageKey: 'kS',
+          originalName: 'orphaned-by-stale-note.pdf',
+          mimeType: 'application/pdf',
+          fileSizeBytes: 100,
+          attachmentType: 'MANAGEMENT',
+          noteId: 'note-that-does-not-exist',
+          createdAt: '2024-02-03T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<DetailWorkflowDialog hook={makeHook(wf)} canApprove={false} />);
+
+    expect(screen.getByText('Attachments without a comment')).toBeInTheDocument();
+    const noteCard = screen.getByText('A comment with no attachment').closest('div')!;
+    expect(within(noteCard).queryByText('orphaned-by-stale-note.pdf')).not.toBeInTheDocument();
+    expect(screen.getByText('orphaned-by-stale-note.pdf')).toBeInTheDocument();
   });
 
   it('hides the management section entirely when there are no "Gestionar" comments or attachments', () => {

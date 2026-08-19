@@ -189,6 +189,78 @@ export function buildAuditExportRows(
   });
 }
 
+// ── Grouping a workflow's own audit trail into PDF export sections ─────────────
+//
+// Used by DetailWorkflowDialog's "Descargar todo" PDF export. Section per
+// TimelineEventType, traced against workflow-service's actual emitters (not
+// guessed from file/method names — workflow-admin-cycle.service.ts, despite
+// its name, also emits the final-user actions: closeWorkflow()/
+// cancelWorkflow()/addNote() there are all explicitly gated to
+// `finalUserIds.includes(userId)`, not to an active admin cycle).
+export type AuditExportSection = 'creation' | 'approval' | 'review' | 'finalUser' | 'other';
+
+// Order sections appear in the exported PDF.
+export const AUDIT_EXPORT_SECTION_ORDER: AuditExportSection[] = [
+  'creation',
+  'approval',
+  'review',
+  'finalUser',
+  'other',
+];
+
+const ACTION_TO_SECTION: Record<string, AuditExportSection> = {
+  WORKFLOW_CREATED: 'creation',
+  WORKFLOW_UPDATED: 'creation',
+  APPROVAL_STARTED: 'approval',
+  STEP_APPROVED: 'approval',
+  STEP_REJECTED: 'approval',
+  WORKFLOW_RETURNED_TO_CREATOR: 'approval',
+  WORKFLOW_RESUBMITTED: 'approval',
+  ADMIN_CYCLE_STARTED: 'review',
+  ADMIN_STEP_COMPLETED: 'review',
+  ADMIN_CYCLE_COMPLETED: 'review',
+  NOTE_ADDED: 'finalUser',
+  ATTACHMENT_ADDED: 'finalUser',
+  WORKFLOW_CLOSED: 'finalUser',
+  WORKFLOW_CANCELLED: 'finalUser',
+  // WORKFLOW_APPROVED intentionally absent — resolved dynamically below,
+  // since it means two different things depending on where it came from.
+};
+
+/**
+ * WORKFLOW_APPROVED is emitted from two different places with the same event
+ * type but different meaning: the normal end of the approval chain
+ * (workflow-approval.service.ts — belongs in "approval"), and
+ * skipReviewCycle() (workflow-admin-cycle.service.ts — a final user opting
+ * out of the review cycle, belongs in "finalUser"). Only the second one sets
+ * metadata.skippedBy, so that's the disambiguator.
+ */
+export function sectionForAuditLog(
+  log: Pick<AuditExportLog, 'action' | 'metadata'>,
+): AuditExportSection {
+  if (log.action === 'WORKFLOW_APPROVED') {
+    return log.metadata?.['skippedBy'] ? 'finalUser' : 'approval';
+  }
+  return ACTION_TO_SECTION[log.action] ?? 'other';
+}
+
+/** Buckets logs into export sections, preserving each section's relative order. */
+export function groupAuditLogsForExport(
+  logs: AuditExportLog[],
+): Record<AuditExportSection, AuditExportLog[]> {
+  const groups: Record<AuditExportSection, AuditExportLog[]> = {
+    creation: [],
+    approval: [],
+    review: [],
+    finalUser: [],
+    other: [],
+  };
+  for (const log of logs) {
+    groups[sectionForAuditLog(log)].push(log);
+  }
+  return groups;
+}
+
 export function resolveResourceName(log: {
   resourceId: string;
   resourceName?: string | null;
