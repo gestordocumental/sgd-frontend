@@ -92,7 +92,7 @@ export function SearchableSelect({
         )}
       >
         {selected ? (
-          <span className="flex flex-col items-start text-left min-w-0">
+          <span className="flex flex-col text-left min-w-0">
             <span className="font-medium truncate">{selected.label}</span>
             {selected.sublabel && (
               <span className="text-xs text-muted-foreground truncate">{selected.sublabel}</span>

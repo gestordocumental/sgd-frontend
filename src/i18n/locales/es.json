@@ -243,7 +243,8 @@
       "active": "Activa",
       "inactive": "Inactiva"
     },
-    "noData": "Sin datos aún"
+    "noData": "Sin datos aún",
+    "noOverviewAccess": "No hay información de resumen disponible para tu rol. Revisá las otras pestañas a las que tengas acceso."
   },
   "audit": {
     "title": "Registro de auditoría",
@@ -599,7 +600,7 @@
     "systemDescriptions": {
       "ADMIN": "Administrador de la organización",
       "MANAGER": "Gestor con permisos de aprobación",
-      "EDITOR": "Puede crear y editar documentos",
+      "EDITOR": "Puede crear, editar y aprobar flujos de trabajo, y consultar el gobierno documental",
       "VIEWER": "Solo lectura",
       "AUDITOR": "Acceso de solo lectura al registro de auditoría"
     },
@@ -796,6 +797,7 @@
       "stepCompleted": "Completado",
       "noCommentsOrAttachments": "Sin comentarios ni adjuntos.",
       "management": "Comentarios y adjuntos del usuario final",
+      "managementAttachmentsWithoutComment": "Adjuntos sin comentario",
       "finalUser": "Usuario final",
       "downloadDoc": "Descargar documento",
       "previewDoc": "Ver documento",
@@ -809,6 +811,11 @@
       "downloadError": "No se pudo descargar el archivo. Intenta de nuevo.",
       "auditLogDownloadError": "Los adjuntos se descargaron, pero no se pudo incluir el log de auditoría. Intenta de nuevo desde la página de auditoría si lo necesitas.",
       "auditLogPdfTitle": "Log de flujo ({{name}})",
+      "auditSectionCreation": "Creación",
+      "auditSectionApproval": "Aprobación",
+      "auditSectionReview": "Revisión",
+      "auditSectionFinalUser": "Usuario final",
+      "auditSectionOther": "Otros",
       "previewLoading": "Cargando previsualización...",
       "previewError": "No se pudo cargar la previsualización. Usa el botón de descarga.",
       "previewTruncated": "Mostrando solo las primeras {{rows}} filas y {{cols}} columnas — el archivo es más grande.",
@@ -1002,7 +1009,6 @@
   },
   "permissions": {
     "modules": {
-      "DOCUMENTS": "Documentos",
       "WORKFLOWS": "Flujos de trabajo",
       "USERS": "Usuarios",
       "ROLES": "Roles",
@@ -1019,14 +1025,6 @@
       "MANAGE": "Gestionar"
     },
     "descriptions": {
-      "DOCUMENTS": {
-        "READ": "Consultar y visualizar documentos",
-        "WRITE": "Crear y editar documentos",
-        "DELETE": "Eliminar documentos",
-        "APPROVE": "Aprobar documentos",
-        "UPLOAD": "Subir archivos al sistema",
-        "DOWNLOAD": "Descargar archivos"
-      },
       "WORKFLOWS": {
         "READ": "Consultar y visualizar flujos de trabajo",
         "WRITE": "Crear y editar flujos de trabajo",

@@ -1,12 +1,10 @@
 import { apiClient } from './client';
 
-export type PermissionModule =
-  | 'DOCUMENTS'
-  | 'WORKFLOWS'
-  | 'USERS'
-  | 'ROLES'
-  | 'AUDIT'
-  | 'ORG_STRUCTURE';
+// DOCUMENTS intentionally not modeled here anymore — document-service has no
+// RequirePermission guard on any endpoint, so this module was assignable in
+// the roles editor but never actually enforced. See user-service's
+// permissions.seeder.ts / 1776900000000-RemoveDocumentsPermissionsForGood.ts.
+export type PermissionModule = 'WORKFLOWS' | 'USERS' | 'ROLES' | 'AUDIT' | 'ORG_STRUCTURE';
 export type PermissionAction =
   | 'READ'
   | 'WRITE'
