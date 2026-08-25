@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@/i18n';
 import { ForwardStepDialog } from '../ForwardStepDialog';
 import type { WorkflowsHook } from '../workflow-dialog.types';
-import type { ApiWorkflow, ApiAdminCycle } from '@/lib/api/workflows';
+import type { ApiWorkflow, ApiAdminCycle, ApiAdminStep } from '@/lib/api/workflows';
 
 function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
   return {
@@ -133,5 +133,91 @@ describe('ForwardStepDialog — optional reviewer selector', () => {
 
     expect(screen.getByText('From Map')).toBeInTheDocument();
     expect(screen.getByText('optional-2')).toBeInTheDocument();
+  });
+});
+
+// ── "Next reviewer already selected" guard ──────────────────────────────────
+
+function makeStep(overrides: Partial<ApiAdminStep> = {}): ApiAdminStep {
+  return {
+    id: 'step-1',
+    cycleId: 'cycle-1',
+    userId: 'user-1',
+    stepOrder: 1,
+    status: 'PENDING',
+    isOptional: false,
+    insertedByStepId: null,
+    completedAt: null,
+    ...overrides,
+  } as ApiAdminStep;
+}
+
+describe('ForwardStepDialog — next-reviewer guard', () => {
+  it('disables submit and warns when the selected optional reviewer is already the next step', () => {
+    const workflow = makeWorkflow({
+      activeAdminCycle: {
+        id: 'cycle-1',
+        workflowId: 'wf-1',
+        cycleNumber: 1,
+        initiatedBy: 'user-1',
+        status: 'IN_PROGRESS',
+        currentStepOrder: 1,
+        completedAt: null,
+        allowedOptionalReviewerIds: ['optional-1'],
+        steps: [
+          makeStep({ id: 'step-1', stepOrder: 1, userId: 'mandatory-1' }),
+          makeStep({ id: 'step-2', stepOrder: 2, userId: 'optional-1' }),
+        ],
+        createdAt: '2024-01-01T00:00:00Z',
+      } satisfies ApiAdminCycle,
+      participantNames: { 'optional-1': 'Oscar One' },
+    });
+
+    render(
+      <ForwardStepDialog
+        hook={makeHook({
+          dialogs: { forwardStepWorkflow: workflow, forwardStepOptionalId: 'optional-1' },
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText(/next reviewer in the sequence is already the user/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send to optional reviewer/i })).toBeDisabled();
+  });
+
+  it('allows submit when the selected optional reviewer is not the next step', () => {
+    const workflow = makeWorkflow({
+      activeAdminCycle: {
+        id: 'cycle-1',
+        workflowId: 'wf-1',
+        cycleNumber: 1,
+        initiatedBy: 'user-1',
+        status: 'IN_PROGRESS',
+        currentStepOrder: 1,
+        completedAt: null,
+        allowedOptionalReviewerIds: ['optional-1'],
+        steps: [
+          makeStep({ id: 'step-1', stepOrder: 1, userId: 'mandatory-1' }),
+          makeStep({ id: 'step-2', stepOrder: 2, userId: 'someone-else' }),
+        ],
+        createdAt: '2024-01-01T00:00:00Z',
+      } satisfies ApiAdminCycle,
+      participantNames: { 'optional-1': 'Oscar One' },
+    });
+
+    render(
+      <ForwardStepDialog
+        hook={makeHook({
+          dialogs: { forwardStepWorkflow: workflow, forwardStepOptionalId: 'optional-1' },
+        })}
+      />,
+    );
+
+    expect(
+      screen.queryByText(/next reviewer in the sequence is already the user/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send to optional reviewer/i })).not.toBeDisabled();
   });
 });
