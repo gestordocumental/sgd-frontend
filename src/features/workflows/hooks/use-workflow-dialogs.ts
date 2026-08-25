@@ -42,12 +42,18 @@ export function useWorkflowDialogs() {
 
   // ── List filters + server-side pagination ─────────────────────────────────
   const [statusFilter, setStatusFilterRaw] = useState<WorkflowStatus | undefined>(undefined);
+  const [typologyFilter, setTypologyFilterRaw] = useState<string | undefined>(undefined);
   const [search, setSearchRaw] = useState('');
   const [page, setPage] = useState(1);
   const [innerTab, setInnerTab] = useState<WorkflowsInnerTab>('all');
 
   const setStatusFilter = useCallback((v: WorkflowStatus | undefined) => {
     setStatusFilterRaw(v);
+    setPage(1);
+  }, []);
+
+  const setTypologyFilter = useCallback((v: string | undefined) => {
+    setTypologyFilterRaw(v);
     setPage(1);
   }, []);
 
@@ -157,6 +163,8 @@ export function useWorkflowDialogs() {
     // Filters + pagination
     statusFilter,
     setStatusFilter,
+    typologyFilter,
+    setTypologyFilter,
     search,
     setSearch,
     page,

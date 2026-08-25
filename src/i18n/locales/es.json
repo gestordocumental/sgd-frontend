@@ -255,6 +255,7 @@
       "action": "Acción",
       "resourceType": "Tipo de recurso",
       "service": "Servicio",
+      "actor": "Actor",
       "from": "Desde",
       "to": "Hasta",
       "all": "Todos",
@@ -759,6 +760,9 @@
       "all": "Todos",
       "myTasks": "Mis tareas",
       "myAvailable": "Mis flujos"
+    },
+    "filters": {
+      "typology": "Tipología"
     },
     "status": {
       "DRAFT": "Borrador",
