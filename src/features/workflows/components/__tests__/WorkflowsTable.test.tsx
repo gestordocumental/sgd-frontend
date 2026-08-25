@@ -4,6 +4,7 @@ import '@/i18n';
 import { WorkflowsTable } from '../WorkflowsTable';
 import type { useWorkflows } from '@/features/workflows/hooks/use-workflows';
 import type { ApiWorkflow } from '@/lib/api/workflows';
+import type { ApiTypology } from '@/lib/api/typologies';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -52,6 +53,43 @@ function makeWorkflow(overrides: Partial<ApiWorkflow> = {}): ApiWorkflow {
   } as ApiWorkflow;
 }
 
+function makeTypology(overrides: Partial<ApiTypology> = {}): ApiTypology {
+  return {
+    id: 'typ-1',
+    orgId: 'org-1',
+    typologyStatus: 'ACTIVE',
+    estructuraOrg: {
+      departamentoId: 'dep-1',
+      departamentoNombre: 'Legal',
+      areaId: null,
+      areaNombre: null,
+      cargoId: null,
+      cargoNombre: null,
+    },
+    datosDeclarados: { nombre: 'Contract', codigo: 'CON-01', version: '1', fuente: 'MANUAL' },
+    documento: {
+      r2Key: null,
+      originalName: null,
+      mimeType: null,
+      uploadedAt: null,
+      extractionStatus: 'NOT_UPLOADED',
+    },
+    metadataExtraida: {
+      nombre: null,
+      codigo: null,
+      version: null,
+      extractedAt: null,
+      discrepancias: [],
+    },
+    fuenteCreacion: 'MANUAL',
+    reviewCycleEnabled: false,
+    deletedAt: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
 function makeHook(
   overrides: {
     dialogs?: Partial<WorkflowsHook['dialogs']>;
@@ -66,6 +104,8 @@ function makeHook(
       setInnerTab: vi.fn(),
       statusFilter: undefined,
       setStatusFilter: vi.fn(),
+      typologyFilter: undefined,
+      setTypologyFilter: vi.fn(),
       search: '',
       setSearch: vi.fn(),
       page: 1,
@@ -571,7 +611,7 @@ describe('WorkflowsTable — status filter', () => {
   it('calls setStatusFilter with the selected value when changed', () => {
     const setStatusFilter = vi.fn();
     render(<WorkflowsTable hook={makeHook({ dialogs: { setStatusFilter } })} canManage />);
-    const select = screen.getByRole('combobox');
+    const select = screen.getByRole('combobox', { name: 'Status' });
     fireEvent.change(select, { target: { value: 'DRAFT' } });
     expect(setStatusFilter).toHaveBeenCalledWith('DRAFT');
   });
@@ -584,9 +624,66 @@ describe('WorkflowsTable — status filter', () => {
         canManage
       />,
     );
-    const select = screen.getByRole('combobox');
+    const select = screen.getByRole('combobox', { name: 'Status' });
     fireEvent.change(select, { target: { value: 'all' } });
     expect(setStatusFilter).toHaveBeenCalledWith(undefined);
+  });
+});
+
+// ── Typology filter ───────────────────────────────────────────────────────────
+
+describe('WorkflowsTable — typology filter', () => {
+  it('calls setTypologyFilter with the selected value when changed', () => {
+    const setTypologyFilter = vi.fn();
+    const typology = makeTypology({ id: 'typ-1' });
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { setTypologyFilter },
+          queries: { activeTypologies: [typology] },
+        })}
+        canManage
+      />,
+    );
+    const select = screen.getByRole('combobox', { name: 'Typology' });
+    fireEvent.change(select, { target: { value: 'typ-1' } });
+    expect(setTypologyFilter).toHaveBeenCalledWith('typ-1');
+  });
+
+  it('calls setTypologyFilter with undefined when "all" is selected', () => {
+    const setTypologyFilter = vi.fn();
+    const typology = makeTypology({ id: 'typ-1' });
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { typologyFilter: 'typ-1', setTypologyFilter },
+          queries: { activeTypologies: [typology] },
+        })}
+        canManage
+      />,
+    );
+    const select = screen.getByRole('combobox', { name: 'Typology' });
+    fireEvent.change(select, { target: { value: 'all' } });
+    expect(setTypologyFilter).toHaveBeenCalledWith(undefined);
+  });
+
+  it('filters my-tasks by typology on the client side', () => {
+    const typologyA = makeTypology({ id: 'typ-a' });
+    const tasks = [
+      makeWorkflow({ id: 'wf-1', title: 'Alpha', typologyId: 'typ-a' }),
+      makeWorkflow({ id: 'wf-2', title: 'Beta', typologyId: 'typ-b' }),
+    ];
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-tasks', typologyFilter: 'typ-a' },
+          queries: { myTasks: tasks, activeTypologies: [typologyA] },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText('Alpha')).toBeInTheDocument();
+    expect(screen.queryByText('Beta')).not.toBeInTheDocument();
   });
 });
 
@@ -596,7 +693,7 @@ describe('WorkflowsTable — my-tasks/my-available filters', () => {
   it('shows the same search input and status select on the my-tasks tab', () => {
     render(<WorkflowsTable hook={makeHook({ dialogs: { innerTab: 'my-tasks' } })} canManage />);
     expect(screen.getByPlaceholderText(/search/i)).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Status' })).toBeInTheDocument();
   });
 
   it('filters my-tasks by title on the client side', () => {

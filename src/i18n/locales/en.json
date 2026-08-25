@@ -255,6 +255,7 @@
       "action": "Action",
       "resourceType": "Resource type",
       "service": "Service",
+      "actor": "Actor",
       "from": "From",
       "to": "To",
       "all": "All",
@@ -759,6 +760,9 @@
       "all": "All",
       "myTasks": "My tasks",
       "myAvailable": "My workflows"
+    },
+    "filters": {
+      "typology": "Typology"
     },
     "status": {
       "DRAFT": "Draft",

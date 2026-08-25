@@ -51,8 +51,18 @@ export function WorkflowsTable({
   canManage = false,
 }: WorkflowsTableProps) {
   const { t } = useTranslation();
-  const { innerTab, setInnerTab, statusFilter, setStatusFilter, search, setSearch, page, setPage } =
-    hook.dialogs;
+  const {
+    innerTab,
+    setInnerTab,
+    statusFilter,
+    setStatusFilter,
+    typologyFilter,
+    setTypologyFilter,
+    search,
+    setSearch,
+    page,
+    setPage,
+  } = hook.dialogs;
   const {
     workflows,
     workflowsLoading,
@@ -65,6 +75,7 @@ export function WorkflowsTable({
     isRefreshing,
     workflowsDataUpdatedAt,
     invalidateAll,
+    activeTypologies,
   } = hook.queries;
   const { openCreate } = hook.actions;
 
@@ -92,30 +103,45 @@ export function WorkflowsTable({
     [t],
   );
 
+  const TYPOLOGY_OPTIONS = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      ...activeTypologies.map((ty) => ({
+        value: ty.id,
+        label:
+          [ty.datosDeclarados.codigo, ty.datosDeclarados.nombre].filter(Boolean).join(' — ') ||
+          ty.id,
+      })),
+    ],
+    [activeTypologies, t],
+  );
+
   // Search and pagination are server-side; workflows already contains the current page slice.
   const totalPages = workflowsTotalPages;
 
   // "Mis tareas" y "Mis flujos" no están paginados en el servidor (listas
-  // acotadas al usuario), así que el mismo filtro de texto/estado de "Todos"
-  // se aplica en cliente sobre el array ya cargado.
+  // acotadas al usuario), así que el mismo filtro de texto/estado/tipología de
+  // "Todos" se aplica en cliente sobre el array ya cargado.
   const normalizedSearch = search.trim().toLowerCase();
   const filteredMyTasks = useMemo(
     () =>
       myTasks.filter(
         (w) =>
           (!normalizedSearch || w.title.toLowerCase().includes(normalizedSearch)) &&
-          (!statusFilter || w.status === statusFilter),
+          (!statusFilter || w.status === statusFilter) &&
+          (!typologyFilter || w.typologyId === typologyFilter),
       ),
-    [myTasks, normalizedSearch, statusFilter],
+    [myTasks, normalizedSearch, statusFilter, typologyFilter],
   );
   const filteredMyAvailable = useMemo(
     () =>
       myAvailable.filter(
         (w) =>
           (!normalizedSearch || w.title.toLowerCase().includes(normalizedSearch)) &&
-          (!statusFilter || w.status === statusFilter),
+          (!statusFilter || w.status === statusFilter) &&
+          (!typologyFilter || w.typologyId === typologyFilter),
       ),
-    [myAvailable, normalizedSearch, statusFilter],
+    [myAvailable, normalizedSearch, statusFilter, typologyFilter],
   );
 
   return (
@@ -192,6 +218,9 @@ export function WorkflowsTable({
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
               statusOptions={STATUS_OPTIONS}
+              typologyFilter={typologyFilter}
+              setTypologyFilter={setTypologyFilter}
+              typologyOptions={TYPOLOGY_OPTIONS}
             />
 
             <WorkflowList
@@ -200,7 +229,9 @@ export function WorkflowsTable({
               hook={hook}
               canWrite={canWrite}
               canApprove={canApprove}
-              emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.empty'}
+              emptyKey={
+                search || statusFilter || typologyFilter ? 'common.noResults' : 'workflows.empty'
+              }
             />
             {totalPages > 1 && (
               <Pager
@@ -221,6 +252,9 @@ export function WorkflowsTable({
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
             statusOptions={STATUS_OPTIONS}
+            typologyFilter={typologyFilter}
+            setTypologyFilter={setTypologyFilter}
+            typologyOptions={TYPOLOGY_OPTIONS}
           />
           <WorkflowList
             workflows={filteredMyTasks}
@@ -228,7 +262,11 @@ export function WorkflowsTable({
             hook={hook}
             canWrite={false}
             canApprove={canApprove}
-            emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.emptyMyTasks'}
+            emptyKey={
+              search || statusFilter || typologyFilter
+                ? 'common.noResults'
+                : 'workflows.emptyMyTasks'
+            }
           />
         </TabsContent>
 
@@ -239,6 +277,9 @@ export function WorkflowsTable({
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
             statusOptions={STATUS_OPTIONS}
+            typologyFilter={typologyFilter}
+            setTypologyFilter={setTypologyFilter}
+            typologyOptions={TYPOLOGY_OPTIONS}
           />
           <WorkflowList
             workflows={filteredMyAvailable}
@@ -246,7 +287,11 @@ export function WorkflowsTable({
             hook={hook}
             canWrite={false}
             canApprove={false}
-            emptyKey={search || statusFilter ? 'common.noResults' : 'workflows.emptyMyAvailable'}
+            emptyKey={
+              search || statusFilter || typologyFilter
+                ? 'common.noResults'
+                : 'workflows.emptyMyAvailable'
+            }
           />
         </TabsContent>
       </Tabs>
@@ -262,6 +307,9 @@ interface WorkflowFiltersBarProps {
   statusFilter: WorkflowStatus | undefined;
   setStatusFilter: (v: WorkflowStatus | undefined) => void;
   statusOptions: { value: string; label: string }[];
+  typologyFilter: string | undefined;
+  setTypologyFilter: (v: string | undefined) => void;
+  typologyOptions: { value: string; label: string }[];
 }
 
 function WorkflowFiltersBar({
@@ -270,6 +318,9 @@ function WorkflowFiltersBar({
   statusFilter,
   setStatusFilter,
   statusOptions,
+  typologyFilter,
+  setTypologyFilter,
+  typologyOptions,
 }: WorkflowFiltersBarProps) {
   const { t } = useTranslation();
   return (
@@ -285,12 +336,25 @@ function WorkflowFiltersBar({
       </div>
       <select
         value={statusFilter ?? 'all'}
+        aria-label={t('workflows.table.status')}
         onChange={(e) =>
           setStatusFilter(e.target.value === 'all' ? undefined : (e.target.value as WorkflowStatus))
         }
         className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
       >
         {statusOptions.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <select
+        value={typologyFilter ?? 'all'}
+        aria-label={t('workflows.filters.typology')}
+        onChange={(e) => setTypologyFilter(e.target.value === 'all' ? undefined : e.target.value)}
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+      >
+        {typologyOptions.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
