@@ -116,6 +116,12 @@ export async function mockAuthRefresh(page: Page, orgId = 'org-001') {
   await page.route(`${API}/org/${orgId}/departamentos`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/permissions`, (route) => route.fulfill({ json: [] }));
   await page.route(`${API}/roles`, (route) => route.fulfill({ json: [] }));
+
+  // Typologies list fires unconditionally once companyId is known (feeds the
+  // create-workflow dialog and the "Typology" filter on the workflows tabs).
+  // mockApiFallback's paginated shape isn't a plain array like the real
+  // endpoint, so activeTypologies' .filter() would throw and crash the page.
+  await page.route(`${API}/documents/${orgId}/typologies`, (route) => route.fulfill({ json: [] }));
 }
 
 /** Mock token refresh for a super-admin session (no company context needed). */

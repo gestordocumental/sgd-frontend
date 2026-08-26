@@ -31,9 +31,13 @@ export function StartReviewCycleDialog({ hook }: { hook: WorkflowsHook }) {
   const optionalReviewers = activeOrgUsers.filter((u) => u.isOptionalReviewer);
   const optionalReviewerIds = optionalReviewers.map((u) => u.id);
 
-  // Solo se pueden agregar como revisores obligatorios los que no son opcionales
+  // Cualquier usuario activo puede agregarse como revisor obligatorio del
+  // ciclo, incluidos los marcados como revisor opcional — ese flag solo
+  // controla su inclusión automática en el pool informativo de abajo (para
+  // ser llamado ad hoc durante el ciclo), no les impide ser además un paso
+  // numerado normal.
   const availableReviewerOptions = activeOrgUsers
-    .filter((u) => !u.isOptionalReviewer && !reviewCycleReviewerIds.includes(u.id))
+    .filter((u) => !reviewCycleReviewerIds.includes(u.id))
     .map((u) => ({
       value: u.id,
       label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,

@@ -230,6 +230,7 @@ export interface ListWorkflowsParams {
   status?: WorkflowStatus;
   search?: string;
   createdBy?: string;
+  typologyId?: string;
   page?: number;
   limit?: number;
 }

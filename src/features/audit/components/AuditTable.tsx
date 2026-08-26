@@ -33,6 +33,7 @@ import {
   resourceTypeColor,
   formatResourceType,
   resolveResourceName,
+  resolveActorName,
 } from './audit-table.utils';
 import { useActorName } from '../hooks/use-actor-name';
 
@@ -88,6 +89,45 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
     parentRef.current?.scrollTo({ top: 0 });
   }, [page, filters]);
 
+  // The actor column already resolves names server-side (AuditLogEntry.actorName —
+  // see AuditService.resolveActorNames) regardless of whether the viewer's role has
+  // USERS:READ, but the `users` prop (the org directory, fetched separately) is empty
+  // for a viewer without that permission. Without this, the actor filter below would
+  // only ever show "Todos" for such roles even though the table itself shows names
+  // just fine. So we accumulate every actor seen in loaded log pages as a fallback,
+  // merged with `users` when that's available.
+  const [seenActors, setSeenActors] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    setSeenActors((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const log of logs) {
+        if (!next.has(log.actorId)) {
+          next.set(log.actorId, resolveActorName(log.actorId, users, log.actorName));
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [logs, users]);
+
+  useEffect(() => {
+    setSeenActors(new Map());
+  }, [companyId]);
+
+  const actorOptions = (() => {
+    const map = new Map<string, string>();
+    for (const u of users) {
+      map.set(u.id, [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || u.id);
+    }
+    for (const [id, name] of seenActors) {
+      if (!map.has(id)) map.set(id, name);
+    }
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  })();
+
   function isoToLocal(iso: string | undefined): string {
     if (!iso) return '';
     const d = new Date(iso);
@@ -139,344 +179,359 @@ export function AuditTable({ hook, users = [], companyId }: AuditTableProps) {
 
   return (
     <main className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold">{t('audit.title')}</h2>
-          <div className="flex flex-col items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={refresh}
-              disabled={isFetching}
-              title={t('common.refresh')}
-              aria-label={t('common.refresh')}
-            >
-              <RefreshCw
-                className={`size-3.5 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="text-sm font-semibold">{t('audit.title')}</h2>
+            <div className="flex flex-col items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={refresh}
+                disabled={isFetching}
+                title={t('common.refresh')}
+                aria-label={t('common.refresh')}
+              >
+                <RefreshCw
+                  className={`size-3.5 text-muted-foreground ${isFetching ? 'animate-spin' : ''}`}
+                />
+              </Button>
+              <RefreshCountdown
+                duration={60_000}
+                isFetching={isFetching}
+                updatedAt={dataUpdatedAt}
               />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              {total} {t('audit.events')}
+            </span>
+            <Button variant="outline" size="sm" className="h-8" onClick={() => setExportOpen(true)}>
+              <Download className="size-3.5" />
+              {t('audit.export.button')}
             </Button>
-            <RefreshCountdown duration={60_000} isFetching={isFetching} updatedAt={dataUpdatedAt} />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
+
+        {/* Filters */}
+        <form
+          onSubmit={handleSearch}
+          className="flex flex-wrap gap-2 items-end px-5 py-4 border-b border-border"
+        >
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-action" className="text-xs text-muted-foreground">
+              {t('audit.filters.action')}
+            </label>
+            <select
+              id="audit-filter-action"
+              className="h-8 w-52 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+              value={draft.action}
+              onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value }))}
+            >
+              <option value="">{t('audit.filters.all')}</option>
+              {ALL_ACTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {formatAction(a, t)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-resource-type" className="text-xs text-muted-foreground">
+              {t('audit.filters.resourceType')}
+            </label>
+            <select
+              id="audit-filter-resource-type"
+              className="h-8 w-36 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+              value={draft.resourceType}
+              onChange={(e) => setDraft((d) => ({ ...d, resourceType: e.target.value }))}
+            >
+              <option value="">{t('audit.filters.all')}</option>
+              {RESOURCE_TYPES.map((r) => (
+                <option key={r} value={r}>
+                  {formatResourceType(r, t)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-actor" className="text-xs text-muted-foreground">
+              {t('audit.filters.actor')}
+            </label>
+            <select
+              id="audit-filter-actor"
+              className="h-8 w-44 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+              value={draft.actorId}
+              onChange={(e) => setDraft((d) => ({ ...d, actorId: e.target.value }))}
+            >
+              <option value="">{t('audit.filters.all')}</option>
+              {actorOptions.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-resource-id" className="text-xs text-muted-foreground">
+              {t('audit.filters.resourceId')}
+            </label>
+            <Input
+              id="audit-filter-resource-id"
+              className="h-8 w-72 text-xs font-mono"
+              placeholder={t('audit.filters.resourceIdPlaceholder')}
+              value={draft.resourceId}
+              onChange={(e) => setDraft((d) => ({ ...d, resourceId: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-correlation-id" className="text-xs text-muted-foreground">
+              {t('audit.filters.correlationId')}
+            </label>
+            <Input
+              id="audit-filter-correlation-id"
+              className="h-8 w-72 text-xs font-mono"
+              placeholder={t('audit.filters.correlationIdPlaceholder')}
+              value={draft.correlationId}
+              onChange={(e) => setDraft((d) => ({ ...d, correlationId: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-from" className="text-xs text-muted-foreground">
+              {t('audit.filters.from')}
+            </label>
+            <Input
+              id="audit-filter-from"
+              className="h-8 w-40 text-xs"
+              type="datetime-local"
+              value={draft.from}
+              onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="audit-filter-to" className="text-xs text-muted-foreground">
+              {t('audit.filters.to')}
+            </label>
+            <Input
+              id="audit-filter-to"
+              className="h-8 w-40 text-xs"
+              type="datetime-local"
+              value={draft.to}
+              onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))}
+            />
+          </div>
+          <Button type="submit" size="sm" className="h-8">
+            <Search className="size-3.5" />
+            {t('common.search')}
+          </Button>
+          {hasFilters && (
+            <Button type="button" size="sm" variant="ghost" className="h-8" onClick={handleClear}>
+              <X className="size-3.5" />
+              {t('common.clear')}
+            </Button>
+          )}
+        </form>
+
+        {/* Table */}
+        <div
+          ref={parentRef}
+          className="overflow-y-auto overflow-x-auto"
+          style={{ maxHeight: 'calc(100vh - 360px)' }}
+        >
+          <table className="w-full caption-bottom text-sm">
+            <thead className="sticky top-0 z-10 bg-background [&_tr]:border-b">
+              <TableRow>
+                <TableHead>{t('audit.columns.timestamp')}</TableHead>
+                <TableHead>{t('audit.columns.action')}</TableHead>
+                <TableHead>{t('audit.columns.resourceType')}</TableHead>
+                <TableHead>{t('audit.columns.resource')}</TableHead>
+                <TableHead>{t('audit.columns.actor')}</TableHead>
+                <TableHead>{t('audit.columns.correlationId')}</TableHead>
+                <TableHead />
+              </TableRow>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {isLoading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : logs.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center text-muted-foreground py-10 text-sm"
+                  >
+                    {t('audit.empty')}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                (() => {
+                  const virtualItems = rowVirtualizer.getVirtualItems();
+                  const totalSize = rowVirtualizer.getTotalSize();
+                  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+                  const paddingBottom =
+                    virtualItems.length > 0
+                      ? totalSize - virtualItems[virtualItems.length - 1].end
+                      : 0;
+                  return (
+                    <>
+                      {paddingTop > 0 && (
+                        <tr style={{ height: paddingTop }}>
+                          <td colSpan={7} style={{ padding: 0, border: 'none' }} />
+                        </tr>
+                      )}
+                      {virtualItems.map((vr) => {
+                        const log = logs[vr.index];
+                        return (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatDate(log.timestamp)}
+                            </TableCell>
+                            <TableCell className="text-xs">{formatAction(log.action, t)}</TableCell>
+                            <TableCell>
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${resourceTypeColor(log.resourceType)}`}
+                              >
+                                {formatResourceType(log.resourceType, t)}
+                              </span>
+                            </TableCell>
+                            <TableCell
+                              className="text-xs text-muted-foreground max-w-[160px] truncate"
+                              title={log.resourceId}
+                            >
+                              {resolveResourceName(log)}
+                            </TableCell>
+                            <TableCell
+                              className="text-xs text-muted-foreground max-w-[160px] truncate"
+                              title={log.actorId}
+                            >
+                              <ActorCell
+                                actorId={log.actorId}
+                                actorName={log.actorName}
+                                users={users}
+                              />
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {CORRELATION_RESOURCE_TYPES.has(log.resourceType) &&
+                              log.correlationId ? (
+                                <span className="flex items-center gap-1 min-w-0">
+                                  <span
+                                    className="font-mono text-[11px] text-muted-foreground truncate max-w-[100px]"
+                                    title={log.correlationId}
+                                  >
+                                    {log.correlationId.slice(0, 8)}…
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 shrink-0"
+                                    title={t('audit.detail.copy')}
+                                    aria-label={t('audit.detail.copy')}
+                                    onClick={() => {
+                                      if (!navigator.clipboard?.writeText) return;
+                                      void navigator.clipboard
+                                        .writeText(log.correlationId!)
+                                        .then(() => {
+                                          setCopiedCorrelationId(log.correlationId!);
+                                          setTimeout(() => setCopiedCorrelationId(null), 2000);
+                                        })
+                                        .catch(() => undefined);
+                                    }}
+                                  >
+                                    {copiedCorrelationId === log.correlationId ? (
+                                      <Check className="size-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="size-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 shrink-0"
+                                    title={t('audit.detail.filterByCorrelation')}
+                                    aria-label={t('audit.detail.filterByCorrelation')}
+                                    onClick={() => {
+                                      setDraft({
+                                        ...emptyDraft,
+                                        correlationId: log.correlationId!,
+                                      });
+                                      applyFilters({ correlationId: log.correlationId! });
+                                      toast.success(t('audit.detail.filterApplied'));
+                                    }}
+                                  >
+                                    <Filter className="size-3" />
+                                  </Button>
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/40">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="w-8">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setSelectedLog(log)}
+                                title={t('audit.detail.view')}
+                                aria-label={t('audit.detail.view')}
+                              >
+                                <Eye className="size-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {paddingBottom > 0 && (
+                        <tr style={{ height: paddingBottom }}>
+                          <td colSpan={7} style={{ padding: 0, border: 'none' }} />
+                        </tr>
+                      )}
+                    </>
+                  );
+                })()
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-border text-xs text-muted-foreground">
+          <span>
             {total} {t('audit.events')}
           </span>
-          <Button variant="outline" size="sm" className="h-8" onClick={() => setExportOpen(true)}>
-            <Download className="size-3.5" />
-            {t('audit.export.button')}
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <form onSubmit={handleSearch} className="flex flex-wrap gap-2 items-end">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-action" className="text-xs text-muted-foreground">
-            {t('audit.filters.action')}
-          </label>
-          <select
-            id="audit-filter-action"
-            className="h-8 w-52 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
-            value={draft.action}
-            onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value }))}
-          >
-            <option value="">{t('audit.filters.all')}</option>
-            {ALL_ACTIONS.map((a) => (
-              <option key={a} value={a}>
-                {formatAction(a, t)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-resource-type" className="text-xs text-muted-foreground">
-            {t('audit.filters.resourceType')}
-          </label>
-          <select
-            id="audit-filter-resource-type"
-            className="h-8 w-36 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
-            value={draft.resourceType}
-            onChange={(e) => setDraft((d) => ({ ...d, resourceType: e.target.value }))}
-          >
-            <option value="">{t('audit.filters.all')}</option>
-            {RESOURCE_TYPES.map((r) => (
-              <option key={r} value={r}>
-                {formatResourceType(r, t)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-actor" className="text-xs text-muted-foreground">
-            {t('audit.filters.actor')}
-          </label>
-          <select
-            id="audit-filter-actor"
-            className="h-8 w-44 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
-            value={draft.actorId}
-            onChange={(e) => setDraft((d) => ({ ...d, actorId: e.target.value }))}
-          >
-            <option value="">{t('audit.filters.all')}</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || u.id}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-resource-id" className="text-xs text-muted-foreground">
-            {t('audit.filters.resourceId')}
-          </label>
-          <Input
-            id="audit-filter-resource-id"
-            className="h-8 w-72 text-xs font-mono"
-            placeholder={t('audit.filters.resourceIdPlaceholder')}
-            value={draft.resourceId}
-            onChange={(e) => setDraft((d) => ({ ...d, resourceId: e.target.value }))}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-correlation-id" className="text-xs text-muted-foreground">
-            {t('audit.filters.correlationId')}
-          </label>
-          <Input
-            id="audit-filter-correlation-id"
-            className="h-8 w-72 text-xs font-mono"
-            placeholder={t('audit.filters.correlationIdPlaceholder')}
-            value={draft.correlationId}
-            onChange={(e) => setDraft((d) => ({ ...d, correlationId: e.target.value }))}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-from" className="text-xs text-muted-foreground">
-            {t('audit.filters.from')}
-          </label>
-          <Input
-            id="audit-filter-from"
-            className="h-8 w-40 text-xs"
-            type="datetime-local"
-            value={draft.from}
-            onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="audit-filter-to" className="text-xs text-muted-foreground">
-            {t('audit.filters.to')}
-          </label>
-          <Input
-            id="audit-filter-to"
-            className="h-8 w-40 text-xs"
-            type="datetime-local"
-            value={draft.to}
-            onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))}
-          />
-        </div>
-        <Button type="submit" size="sm" className="h-8">
-          <Search className="size-3.5" />
-          {t('common.search')}
-        </Button>
-        {hasFilters && (
-          <Button type="button" size="sm" variant="ghost" className="h-8" onClick={handleClear}>
-            <X className="size-3.5" />
-            {t('common.clear')}
-          </Button>
-        )}
-      </form>
-
-      {/* Table */}
-      <div
-        ref={parentRef}
-        className="rounded-md border overflow-y-auto overflow-x-auto"
-        style={{ maxHeight: 'calc(100vh - 360px)' }}
-      >
-        <table className="w-full caption-bottom text-sm">
-          <thead className="sticky top-0 z-10 bg-background [&_tr]:border-b">
-            <TableRow>
-              <TableHead>{t('audit.columns.timestamp')}</TableHead>
-              <TableHead>{t('audit.columns.action')}</TableHead>
-              <TableHead>{t('audit.columns.resourceType')}</TableHead>
-              <TableHead>{t('audit.columns.resource')}</TableHead>
-              <TableHead>{t('audit.columns.actor')}</TableHead>
-              <TableHead>{t('audit.columns.correlationId')}</TableHead>
-              <TableHead />
-            </TableRow>
-          </thead>
-          <tbody className="[&_tr:last-child]:border-0">
-            {isLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : logs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10 text-sm">
-                  {t('audit.empty')}
-                </TableCell>
-              </TableRow>
-            ) : (
-              (() => {
-                const virtualItems = rowVirtualizer.getVirtualItems();
-                const totalSize = rowVirtualizer.getTotalSize();
-                const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
-                const paddingBottom =
-                  virtualItems.length > 0
-                    ? totalSize - virtualItems[virtualItems.length - 1].end
-                    : 0;
-                return (
-                  <>
-                    {paddingTop > 0 && (
-                      <tr style={{ height: paddingTop }}>
-                        <td colSpan={7} style={{ padding: 0, border: 'none' }} />
-                      </tr>
-                    )}
-                    {virtualItems.map((vr) => {
-                      const log = logs[vr.index];
-                      return (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {formatDate(log.timestamp)}
-                          </TableCell>
-                          <TableCell className="text-xs">{formatAction(log.action, t)}</TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${resourceTypeColor(log.resourceType)}`}
-                            >
-                              {formatResourceType(log.resourceType, t)}
-                            </span>
-                          </TableCell>
-                          <TableCell
-                            className="text-xs text-muted-foreground max-w-[160px] truncate"
-                            title={log.resourceId}
-                          >
-                            {resolveResourceName(log)}
-                          </TableCell>
-                          <TableCell
-                            className="text-xs text-muted-foreground max-w-[160px] truncate"
-                            title={log.actorId}
-                          >
-                            <ActorCell
-                              actorId={log.actorId}
-                              actorName={log.actorName}
-                              users={users}
-                            />
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {CORRELATION_RESOURCE_TYPES.has(log.resourceType) &&
-                            log.correlationId ? (
-                              <span className="flex items-center gap-1 min-w-0">
-                                <span
-                                  className="font-mono text-[11px] text-muted-foreground truncate max-w-[100px]"
-                                  title={log.correlationId}
-                                >
-                                  {log.correlationId.slice(0, 8)}…
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 w-5 p-0 shrink-0"
-                                  title={t('audit.detail.copy')}
-                                  aria-label={t('audit.detail.copy')}
-                                  onClick={() => {
-                                    if (!navigator.clipboard?.writeText) return;
-                                    void navigator.clipboard
-                                      .writeText(log.correlationId!)
-                                      .then(() => {
-                                        setCopiedCorrelationId(log.correlationId!);
-                                        setTimeout(() => setCopiedCorrelationId(null), 2000);
-                                      })
-                                      .catch(() => undefined);
-                                  }}
-                                >
-                                  {copiedCorrelationId === log.correlationId ? (
-                                    <Check className="size-3 text-emerald-500" />
-                                  ) : (
-                                    <Copy className="size-3" />
-                                  )}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 w-5 p-0 shrink-0"
-                                  title={t('audit.detail.filterByCorrelation')}
-                                  aria-label={t('audit.detail.filterByCorrelation')}
-                                  onClick={() => {
-                                    setDraft({ ...emptyDraft, correlationId: log.correlationId! });
-                                    applyFilters({ correlationId: log.correlationId! });
-                                    toast.success(t('audit.detail.filterApplied'));
-                                  }}
-                                >
-                                  <Filter className="size-3" />
-                                </Button>
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground/40">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="w-8">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => setSelectedLog(log)}
-                              title={t('audit.detail.view')}
-                              aria-label={t('audit.detail.view')}
-                            >
-                              <Eye className="size-3.5" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {paddingBottom > 0 && (
-                      <tr style={{ height: paddingBottom }}>
-                        <td colSpan={7} style={{ padding: 0, border: 'none' }} />
-                      </tr>
-                    )}
-                  </>
-                );
-              })()
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-        <span>
-          {total} {t('audit.events')}
-        </span>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            disabled={page <= 1}
-            aria-label={t('common.previous')}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <ChevronLeft className="size-3.5" />
-          </Button>
-          <span className="px-2">
-            {page} / {totalPages}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            disabled={page >= totalPages}
-            aria-label={t('common.next')}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight className="size-3.5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              disabled={page <= 1}
+              aria-label={t('common.previous')}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <span className="px-2">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              disabled={page >= totalPages}
+              aria-label={t('common.next')}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 

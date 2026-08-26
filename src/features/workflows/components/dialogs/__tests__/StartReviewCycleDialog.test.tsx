@@ -164,6 +164,23 @@ describe('StartReviewCycleDialog', () => {
     expect(hook.dialogs.setReviewCycleReviewerIds).toHaveBeenCalledWith(expect.any(Function));
   });
 
+  it('also offers optional reviewers in the "add reviewer" dropdown', () => {
+    const hook = makeHook(makeWorkflow(), [
+      {
+        id: 'opt-1',
+        firstName: 'Grace',
+        lastName: 'Hopper',
+        email: 'grace@x.com',
+        isOptionalReviewer: true,
+      },
+    ]);
+    render(<StartReviewCycleDialog hook={hook} />);
+
+    fireEvent.click(screen.getByText('Add reviewer...'));
+
+    expect(screen.getByRole('option', { name: /Grace Hopper/ })).toBeInTheDocument();
+  });
+
   it("includes the org's optional reviewer pool on submit", () => {
     const hook = makeHook(makeWorkflow(), [
       {

@@ -39,6 +39,7 @@ export function useWorkflows(companyId: string) {
 
   const queries = useWorkflowQueries(companyId, {
     statusFilter: dialogs.statusFilter,
+    typologyFilter: dialogs.typologyFilter,
     search: dialogs.search,
     page: dialogs.page,
     innerTab: dialogs.innerTab,

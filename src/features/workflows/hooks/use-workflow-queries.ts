@@ -33,6 +33,7 @@ function useEligibleUsersByPermission(
 
 interface WorkflowQueriesOptions {
   statusFilter: WorkflowStatus | undefined;
+  typologyFilter: string | undefined;
   search: string;
   page: number;
   innerTab: WorkflowsInnerTab;
@@ -50,6 +51,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
   const queryClient = useQueryClient();
   const {
     statusFilter,
+    typologyFilter,
     search,
     page,
     innerTab,
@@ -75,11 +77,12 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     isFetching: workflowsIsFetching,
     dataUpdatedAt: workflowsUpdatedAt,
   } = useQuery({
-    queryKey: ['workflows', companyId, statusFilter, debouncedSearch, page],
+    queryKey: ['workflows', companyId, statusFilter, typologyFilter, debouncedSearch, page],
     queryFn: ({ signal }) =>
       workflowsApi.list(
         {
           status: statusFilter,
+          typologyId: typologyFilter,
           search: debouncedSearch || undefined,
           page,
           limit: WORKFLOWS_PAGE_SIZE,
@@ -135,12 +138,14 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     enabled: !!detailWorkflowId,
   });
 
-  // Tipologías activas de la organización — para el selector del formulario
+  // Tipologías activas de la organización — para el selector del formulario de
+  // creación y también para el filtro "Tipología" de las pestañas de listado,
+  // así que se cargan en cuanto se conoce companyId (no solo con createOpen).
   const { data: typologies = [] } = useQuery({
     queryKey: ['typologies', companyId],
     queryFn: ({ signal }) => typologiesApi.list(companyId, undefined, signal),
     staleTime: 60_000,
-    enabled: !!companyId && createOpen,
+    enabled: !!companyId,
   });
 
   // Usuarios de la organización — para el selector de aprobadores y resolución de nombres en detalle

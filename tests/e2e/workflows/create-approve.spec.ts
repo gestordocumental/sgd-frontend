@@ -205,7 +205,7 @@ test.describe('Workflow creation', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
     // Dialog header matches the creation form
     await expect(page.getByRole('heading', { name: 'New workflow' })).toBeVisible();
-    await expect(page.getByLabel('Title')).toBeVisible();
+    await expect(page.getByRole('dialog').getByLabel('Title')).toBeVisible();
   });
 
   test('Create workflow button is visible while required fields are missing', async ({ page }) => {
@@ -214,7 +214,7 @@ test.describe('Workflow creation', () => {
     await page.getByRole('button', { name: 'New workflow' }).click();
 
     // Only the title is filled — typology + approver still missing
-    await page.getByLabel('Title').fill('My Workflow');
+    await page.getByRole('dialog').getByLabel('Title').fill('My Workflow');
 
     const submitBtn = page.getByRole('button', { name: 'Create workflow' });
     // Button is enabled (no built-in disable for missing typology — validation fires on submit)
@@ -226,7 +226,7 @@ test.describe('Workflow creation', () => {
     await page.goto('/dashboard');
     await page.getByRole('tab', { name: 'Workflows' }).click();
     await page.getByRole('button', { name: 'New workflow' }).click();
-    await page.getByLabel('Title').fill('Will be cancelled');
+    await page.getByRole('dialog').getByLabel('Title').fill('Will be cancelled');
 
     await page.getByRole('button', { name: 'Cancel' }).click();
 
@@ -256,7 +256,7 @@ test.describe('Workflow creation', () => {
     await page.getByRole('button', { name: 'New workflow' }).click();
 
     // Fill title
-    await page.getByLabel('Title').fill('Security Policy Approval');
+    await page.getByRole('dialog').getByLabel('Title').fill('Security Policy Approval');
 
     // Select typology — click trigger, type to filter, pick option
     await page.getByRole('button', { name: /Select a typology/i }).click();
