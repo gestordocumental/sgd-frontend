@@ -255,6 +255,7 @@
       "action": "Action",
       "resourceType": "Resource type",
       "service": "Service",
+      "actor": "Actor",
       "from": "From",
       "to": "To",
       "all": "All",
@@ -760,6 +761,11 @@
       "myTasks": "My tasks",
       "myAvailable": "My workflows"
     },
+    "filters": {
+      "typology": "Typology",
+      "allTypologies": "All typologies",
+      "typologySearchPlaceholder": "Search by code or name..."
+    },
     "status": {
       "DRAFT": "Draft",
       "PENDING_APPROVAL": "Pending approval",
@@ -971,6 +977,7 @@
       "forwardStepDesc": "Select an optional reviewer to review the workflow before continuing to the next mandatory reviewer.",
       "selectOptionalReviewer": "Optional reviewer",
       "selectOptionalReviewerPlaceholder": "Select optional reviewer...",
+      "forwardStepNextReviewerAlreadySelected": "The next reviewer in the sequence is already the user you're selecting — pick a different optional reviewer.",
       "closeTitle": "Finish workflow",
       "closeConfirmPre": "Are you sure you want to permanently finish workflow",
       "closeConfirmPost": "? No further changes will be allowed once finished.",

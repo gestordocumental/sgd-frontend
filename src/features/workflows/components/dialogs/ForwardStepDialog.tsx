@@ -32,6 +32,21 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
   const cycle = forwardStepWorkflow.activeAdminCycle;
   const allowedIds = cycle?.allowedOptionalReviewerIds ?? [];
 
+  // Same lookup the mutation uses to find the step actually being forwarded
+  // (see use-workflow-mutations.ts#forwardStepMutation) — kept in sync so the
+  // "next reviewer" check below always refers to the same step.
+  const currentStep = cycle
+    ? (cycle.steps.find((s) => s.stepOrder === cycle.currentStepOrder && s.status === 'PENDING') ??
+      cycle.steps.find((s) => s.status === 'PENDING'))
+    : undefined;
+  // Whoever holds this stepOrder today is exactly who ends up right after the
+  // newly inserted step once the backend shifts everything +1 (see
+  // WorkflowAdminCycleService#forwardStep) — so selecting that same person
+  // here would just create two consecutive steps for them, back to back.
+  const nextStep = currentStep
+    ? cycle?.steps.find((s) => s.stepOrder === currentStep.stepOrder + 1)
+    : undefined;
+
   // Prefer names resolved server-side (see WorkflowsService.resolveParticipantNames)
   // — works regardless of the viewer's Users-module permission. orgUsersMap is
   // only a fallback for the rare case the backend couldn't resolve it either.
@@ -39,6 +54,9 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
     value: id,
     label: forwardStepWorkflow.participantNames?.[id] ?? orgUsersMap.get(id) ?? id,
   }));
+
+  const isNextStepReviewer =
+    !!forwardStepOptionalId && !!nextStep && nextStep.userId === forwardStepOptionalId;
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files ?? []);
@@ -50,7 +68,8 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
   const removeFile = (index: number) =>
     setForwardStepFiles((prev) => prev.filter((_, i) => i !== index));
 
-  const canSubmit = !!forwardStepOptionalId && !forwardStepMutation.isPending;
+  const canSubmit =
+    !!forwardStepOptionalId && !isNextStepReviewer && !forwardStepMutation.isPending;
 
   return (
     <Dialog
@@ -81,6 +100,11 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
               searchPlaceholder={t('workflows.dialogs.approverSearch')}
               emptyText={t('workflows.dialogs.noUsersAvailable')}
             />
+            {isNextStepReviewer && (
+              <p role="alert" className="text-sm text-destructive">
+                {t('workflows.dialogs.forwardStepNextReviewerAlreadySelected')}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
