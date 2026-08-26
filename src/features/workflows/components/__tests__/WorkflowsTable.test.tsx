@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@/i18n';
 import { WorkflowsTable } from '../WorkflowsTable';
 import type { useWorkflows } from '@/features/workflows/hooks/use-workflows';
@@ -676,7 +676,14 @@ describe('WorkflowsTable — typology filter', () => {
         canManage
       />,
     );
-    expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: 'Typology' });
+    // The clear button, when SearchableSelect renders one, is always a sibling
+    // of the trigger inside their shared wrapper — asserting on its accessible
+    // name would trivially pass for the wrong reason (any name, not just the
+    // one `clearable` would actually use) now that `clearable` isn't passed at
+    // all. Asserting there's exactly one button in that wrapper (the trigger
+    // itself) stays meaningful even if the component's default clearLabel changes.
+    expect(within(trigger.parentElement!).getAllByRole('button')).toHaveLength(1);
   });
 
   it('filters my-tasks by typology on the client side', () => {
