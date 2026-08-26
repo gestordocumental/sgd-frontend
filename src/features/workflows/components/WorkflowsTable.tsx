@@ -370,7 +370,7 @@ function WorkflowFiltersBar({
         <label htmlFor="workflow-filter-typology" className="text-xs text-muted-foreground">
           {t('workflows.filters.typology')}
         </label>
-        <div className="w-[420px]">
+        <div className="w-[220px]">
           <SearchableSelect
             id="workflow-filter-typology"
             options={typologyOptions}
@@ -379,8 +379,8 @@ function WorkflowFiltersBar({
             placeholder={t('workflows.filters.allTypologies')}
             searchPlaceholder={t('workflows.filters.typologySearchPlaceholder')}
             emptyText={t('common.noResults')}
-            clearable
-            clearLabel={t('common.clear')}
+            hideSelectedSublabel
+            triggerClassName="h-8 rounded-lg bg-transparent px-2.5 py-1 shadow-none"
           />
         </div>
       </div>

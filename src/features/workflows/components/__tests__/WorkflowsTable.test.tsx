@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@/i18n';
 import { WorkflowsTable } from '../WorkflowsTable';
 import type { useWorkflows } from '@/features/workflows/hooks/use-workflows';
@@ -650,20 +650,40 @@ describe('WorkflowsTable — typology filter', () => {
     expect(setTypologyFilter).toHaveBeenCalledWith('typ-1');
   });
 
-  it('calls setTypologyFilter with undefined when the clear (×) button is used', () => {
-    const setTypologyFilter = vi.fn();
+  it('shows only the code (not the name) once a typology is selected', () => {
     const typology = makeTypology({ id: 'typ-1' });
     render(
       <WorkflowsTable
         hook={makeHook({
-          dialogs: { typologyFilter: 'typ-1', setTypologyFilter },
+          dialogs: { typologyFilter: 'typ-1' },
           queries: { activeTypologies: [typology] },
         })}
         canManage
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    expect(setTypologyFilter).toHaveBeenCalledWith(undefined);
+    expect(screen.getByRole('button', { name: 'Typology' })).toHaveTextContent('CON-01');
+    expect(screen.queryByText('Contract')).not.toBeInTheDocument();
+  });
+
+  it('does not render a clear (×) button — clearing is only via the "All typologies" option', () => {
+    const typology = makeTypology({ id: 'typ-1' });
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { typologyFilter: 'typ-1' },
+          queries: { activeTypologies: [typology] },
+        })}
+        canManage
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: 'Typology' });
+    // The clear button, when SearchableSelect renders one, is always a sibling
+    // of the trigger inside their shared wrapper — asserting on its accessible
+    // name would trivially pass for the wrong reason (any name, not just the
+    // one `clearable` would actually use) now that `clearable` isn't passed at
+    // all. Asserting there's exactly one button in that wrapper (the trigger
+    // itself) stays meaningful even if the component's default clearLabel changes.
+    expect(within(trigger.parentElement!).getAllByRole('button')).toHaveLength(1);
   });
 
   it('filters my-tasks by typology on the client side', () => {
