@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SearchableSelect, type SelectOption } from '@/components/ui/searchable-select';
 import { Pager } from '@/components/ui/pager';
 import { RefreshCountdown } from '@/components/ui/refresh-countdown';
 import { type ApiWorkflow, type WorkflowStatus } from '@/lib/api/workflows';
@@ -103,14 +104,16 @@ export function WorkflowsTable({
     [t],
   );
 
+  // value: '' is the "no filter" sentinel — SearchableSelect shows it via its
+  // `placeholder` when nothing is selected, but it's also listed as a real,
+  // clickable first row so it can be picked from inside the open dropdown too.
   const TYPOLOGY_OPTIONS = useMemo(
     () => [
-      { value: 'all', label: t('common.all') },
+      { value: '', label: t('workflows.filters.allTypologies') },
       ...activeTypologies.map((ty) => ({
         value: ty.id,
-        label:
-          [ty.datosDeclarados.codigo, ty.datosDeclarados.nombre].filter(Boolean).join(' — ') ||
-          ty.id,
+        label: ty.datosDeclarados.codigo || ty.id,
+        sublabel: ty.datosDeclarados.nombre ?? undefined,
       })),
     ],
     [activeTypologies, t],
@@ -309,7 +312,7 @@ interface WorkflowFiltersBarProps {
   statusOptions: { value: string; label: string }[];
   typologyFilter: string | undefined;
   setTypologyFilter: (v: string | undefined) => void;
-  typologyOptions: { value: string; label: string }[];
+  typologyOptions: SelectOption[];
 }
 
 function WorkflowFiltersBar({
@@ -324,42 +327,63 @@ function WorkflowFiltersBar({
 }: WorkflowFiltersBarProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('common.search')}
-          className="h-8 pl-8 w-52 text-sm"
-        />
+    <div className="flex items-end gap-3 flex-wrap">
+      <div className="flex flex-col gap-1">
+        <label htmlFor="workflow-filter-title" className="text-xs text-muted-foreground">
+          {t('workflows.table.title')}
+        </label>
+        <div className="relative w-[250px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            id="workflow-filter-title"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('common.search')}
+            className="h-8 w-full pl-8 text-sm"
+          />
+        </div>
       </div>
-      <select
-        value={statusFilter ?? 'all'}
-        aria-label={t('workflows.table.status')}
-        onChange={(e) =>
-          setStatusFilter(e.target.value === 'all' ? undefined : (e.target.value as WorkflowStatus))
-        }
-        className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
-      >
-        {statusOptions.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <select
-        value={typologyFilter ?? 'all'}
-        aria-label={t('workflows.filters.typology')}
-        onChange={(e) => setTypologyFilter(e.target.value === 'all' ? undefined : e.target.value)}
-        className="h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
-      >
-        {typologyOptions.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="workflow-filter-status" className="text-xs text-muted-foreground">
+          {t('workflows.table.status')}
+        </label>
+        <select
+          id="workflow-filter-status"
+          value={statusFilter ?? 'all'}
+          onChange={(e) =>
+            setStatusFilter(
+              e.target.value === 'all' ? undefined : (e.target.value as WorkflowStatus),
+            )
+          }
+          className="h-8 w-[190px] rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring"
+        >
+          {statusOptions.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="workflow-filter-typology" className="text-xs text-muted-foreground">
+          {t('workflows.filters.typology')}
+        </label>
+        <div className="w-[420px]">
+          <SearchableSelect
+            id="workflow-filter-typology"
+            options={typologyOptions}
+            value={typologyFilter ?? ''}
+            onChange={(v) => setTypologyFilter(v || undefined)}
+            placeholder={t('workflows.filters.allTypologies')}
+            searchPlaceholder={t('workflows.filters.typologySearchPlaceholder')}
+            emptyText={t('common.noResults')}
+            clearable
+            clearLabel={t('common.clear')}
+          />
+        </div>
+      </div>
     </div>
   );
 }

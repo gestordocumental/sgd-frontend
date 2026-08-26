@@ -633,7 +633,7 @@ describe('WorkflowsTable — status filter', () => {
 // ── Typology filter ───────────────────────────────────────────────────────────
 
 describe('WorkflowsTable — typology filter', () => {
-  it('calls setTypologyFilter with the selected value when changed', () => {
+  it('calls setTypologyFilter with the selected value when an option is picked', () => {
     const setTypologyFilter = vi.fn();
     const typology = makeTypology({ id: 'typ-1' });
     render(
@@ -645,12 +645,12 @@ describe('WorkflowsTable — typology filter', () => {
         canManage
       />,
     );
-    const select = screen.getByRole('combobox', { name: 'Typology' });
-    fireEvent.change(select, { target: { value: 'typ-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Typology' }));
+    fireEvent.click(screen.getByRole('option', { name: /CON-01/ }));
     expect(setTypologyFilter).toHaveBeenCalledWith('typ-1');
   });
 
-  it('calls setTypologyFilter with undefined when "all" is selected', () => {
+  it('calls setTypologyFilter with undefined when the clear (×) button is used', () => {
     const setTypologyFilter = vi.fn();
     const typology = makeTypology({ id: 'typ-1' });
     render(
@@ -662,8 +662,7 @@ describe('WorkflowsTable — typology filter', () => {
         canManage
       />,
     );
-    const select = screen.getByRole('combobox', { name: 'Typology' });
-    fireEvent.change(select, { target: { value: 'all' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     expect(setTypologyFilter).toHaveBeenCalledWith(undefined);
   });
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useId } from 'react';
-import { ChevronDown, Search, Check } from 'lucide-react';
+import { ChevronDown, Search, Check, X } from 'lucide-react';
 import { Input } from './input';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +18,11 @@ interface SearchableSelectProps {
   emptyText?: string;
   disabled?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Shows an inline "×" in the trigger to reset to `value=""` without opening the dropdown. */
+  clearable?: boolean;
+  clearLabel?: string;
+  /** Set on the trigger button so an external `<label htmlFor>` can point at it. */
+  id?: string;
 }
 
 export function SearchableSelect({
@@ -29,6 +34,9 @@ export function SearchableSelect({
   emptyText = 'Sin resultados',
   disabled = false,
   onOpenChange,
+  clearable = false,
+  clearLabel = 'Limpiar',
+  id,
 }: SearchableSelectProps) {
   const listboxId = useId();
   const [open, setOpen] = useState(false);
@@ -72,6 +80,7 @@ export function SearchableSelect({
     <div ref={containerRef} className="relative">
       {/* Trigger */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
@@ -87,6 +96,7 @@ export function SearchableSelect({
         className={cn(
           'flex items-center justify-between w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors',
           'hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+          clearable && 'pr-8',
           disabled && 'cursor-not-allowed opacity-50',
           open && 'ring-1 ring-ring',
         )}
@@ -99,7 +109,7 @@ export function SearchableSelect({
             )}
           </span>
         ) : (
-          <span className="text-muted-foreground">{placeholder}</span>
+          <span className="text-muted-foreground truncate">{placeholder}</span>
         )}
         <ChevronDown
           className={cn(
@@ -108,6 +118,24 @@ export function SearchableSelect({
           )}
         />
       </button>
+
+      {/* Sibling of the trigger (not nested inside it) so it stays a real,
+          independently focusable button instead of an interactive element
+          nested inside another one. */}
+      {clearable && value !== '' && (
+        <button
+          type="button"
+          disabled={disabled}
+          aria-label={clearLabel}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange('');
+          }}
+          className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <X className="size-3.5" />
+        </button>
+      )}
 
       {/* Dropdown */}
       {open && (
@@ -155,10 +183,12 @@ export function SearchableSelect({
                     option.value === value && 'bg-accent/50',
                   )}
                 >
+                  {/* Unlike the closed trigger, the open list has room to spare —
+                      let long labels/sublabels wrap instead of clipping them. */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{option.label}</p>
+                    <p className="text-sm font-medium break-words">{option.label}</p>
                     {option.sublabel && (
-                      <p className="text-xs text-muted-foreground truncate">{option.sublabel}</p>
+                      <p className="text-xs text-muted-foreground break-words">{option.sublabel}</p>
                     )}
                   </div>
                   {option.value === value && <Check className="size-3.5 text-primary shrink-0" />}

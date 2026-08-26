@@ -762,7 +762,9 @@
       "myAvailable": "Mis flujos"
     },
     "filters": {
-      "typology": "Tipología"
+      "typology": "Tipología",
+      "allTypologies": "Todas las tipologías",
+      "typologySearchPlaceholder": "Buscar por código o nombre..."
     },
     "status": {
       "DRAFT": "Borrador",
@@ -975,6 +977,7 @@
       "forwardStepDesc": "Selecciona un revisor opcional para que revise el workflow antes de que continúe al siguiente revisor obligatorio.",
       "selectOptionalReviewer": "Revisor opcional",
       "selectOptionalReviewerPlaceholder": "Seleccionar revisor opcional...",
+      "forwardStepNextReviewerAlreadySelected": "El siguiente revisor en la secuencia ya es el usuario que estás seleccionando — elige otro revisor opcional.",
       "closeTitle": "Finalizar flujo",
       "closeConfirmPre": "¿Estás seguro de que deseas finalizar definitivamente el flujo",
       "closeConfirmPost": "? No se permitirán más cambios una vez finalizado.",
