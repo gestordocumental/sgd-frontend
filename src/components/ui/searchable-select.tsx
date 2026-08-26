@@ -21,6 +21,8 @@ interface SearchableSelectProps {
   /** Shows an inline "×" in the trigger to reset to `value=""` without opening the dropdown. */
   clearable?: boolean;
   clearLabel?: string;
+  /** Set on the trigger button so an external `<label htmlFor>` can point at it. */
+  id?: string;
 }
 
 export function SearchableSelect({
@@ -34,6 +36,7 @@ export function SearchableSelect({
   onOpenChange,
   clearable = false,
   clearLabel = 'Limpiar',
+  id,
 }: SearchableSelectProps) {
   const listboxId = useId();
   const [open, setOpen] = useState(false);
@@ -77,6 +80,7 @@ export function SearchableSelect({
     <div ref={containerRef} className="relative">
       {/* Trigger */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
@@ -121,12 +125,13 @@ export function SearchableSelect({
       {clearable && value !== '' && (
         <button
           type="button"
+          disabled={disabled}
           aria-label={clearLabel}
           onClick={(e) => {
             e.stopPropagation();
             onChange('');
           }}
-          className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="absolute right-7 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           <X className="size-3.5" />
         </button>

@@ -367,9 +367,12 @@ function WorkflowFiltersBar({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">{t('workflows.filters.typology')}</label>
+        <label htmlFor="workflow-filter-typology" className="text-xs text-muted-foreground">
+          {t('workflows.filters.typology')}
+        </label>
         <div className="w-[420px]">
           <SearchableSelect
+            id="workflow-filter-typology"
             options={typologyOptions}
             value={typologyFilter ?? ''}
             onChange={(v) => setTypologyFilter(v || undefined)}

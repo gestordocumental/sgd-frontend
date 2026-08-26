@@ -101,7 +101,7 @@ export function ForwardStepDialog({ hook }: { hook: WorkflowsHook }) {
               emptyText={t('workflows.dialogs.noUsersAvailable')}
             />
             {isNextStepReviewer && (
-              <p className="text-sm text-destructive">
+              <p role="alert" className="text-sm text-destructive">
                 {t('workflows.dialogs.forwardStepNextReviewerAlreadySelected')}
               </p>
             )}

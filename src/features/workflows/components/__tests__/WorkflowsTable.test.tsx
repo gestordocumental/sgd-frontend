@@ -645,7 +645,7 @@ describe('WorkflowsTable — typology filter', () => {
         canManage
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /all typologies/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Typology' }));
     fireEvent.click(screen.getByRole('option', { name: /CON-01/ }));
     expect(setTypologyFilter).toHaveBeenCalledWith('typ-1');
   });
