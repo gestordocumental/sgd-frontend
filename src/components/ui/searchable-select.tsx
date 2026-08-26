@@ -23,6 +23,13 @@ interface SearchableSelectProps {
   clearLabel?: string;
   /** Set on the trigger button so an external `<label htmlFor>` can point at it. */
   id?: string;
+  /** Merged (via cn/tailwind-merge) onto the trigger button — lets a caller match its
+   *  own filter bar's height/radius/background instead of this component's defaults. */
+  triggerClassName?: string;
+  /** Closed trigger shows only `label`, omitting `sublabel` — e.g. a typology filter
+   *  that wants just the code once selected. The open dropdown list is unaffected;
+   *  it always shows both. */
+  hideSelectedSublabel?: boolean;
 }
 
 export function SearchableSelect({
@@ -37,6 +44,8 @@ export function SearchableSelect({
   clearable = false,
   clearLabel = 'Limpiar',
   id,
+  triggerClassName,
+  hideSelectedSublabel = false,
 }: SearchableSelectProps) {
   const listboxId = useId();
   const [open, setOpen] = useState(false);
@@ -99,12 +108,13 @@ export function SearchableSelect({
           clearable && 'pr-8',
           disabled && 'cursor-not-allowed opacity-50',
           open && 'ring-1 ring-ring',
+          triggerClassName,
         )}
       >
         {selected ? (
           <span className="flex flex-col text-left min-w-0">
             <span className="font-medium truncate">{selected.label}</span>
-            {selected.sublabel && (
+            {!hideSelectedSublabel && selected.sublabel && (
               <span className="text-xs text-muted-foreground truncate">{selected.sublabel}</span>
             )}
           </span>

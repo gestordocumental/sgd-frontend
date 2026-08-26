@@ -650,20 +650,33 @@ describe('WorkflowsTable — typology filter', () => {
     expect(setTypologyFilter).toHaveBeenCalledWith('typ-1');
   });
 
-  it('calls setTypologyFilter with undefined when the clear (×) button is used', () => {
-    const setTypologyFilter = vi.fn();
+  it('shows only the code (not the name) once a typology is selected', () => {
     const typology = makeTypology({ id: 'typ-1' });
     render(
       <WorkflowsTable
         hook={makeHook({
-          dialogs: { typologyFilter: 'typ-1', setTypologyFilter },
+          dialogs: { typologyFilter: 'typ-1' },
           queries: { activeTypologies: [typology] },
         })}
         canManage
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    expect(setTypologyFilter).toHaveBeenCalledWith(undefined);
+    expect(screen.getByRole('button', { name: 'Typology' })).toHaveTextContent('CON-01');
+    expect(screen.queryByText('Contract')).not.toBeInTheDocument();
+  });
+
+  it('does not render a clear (×) button — clearing is only via the "All typologies" option', () => {
+    const typology = makeTypology({ id: 'typ-1' });
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { typologyFilter: 'typ-1' },
+          queries: { activeTypologies: [typology] },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
   });
 
   it('filters my-tasks by typology on the client side', () => {
