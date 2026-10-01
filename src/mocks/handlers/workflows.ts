@@ -82,11 +82,35 @@ export const workflowsHandlers = [
   // Super-admin storage
   http.get('*/workflows/admin/storage-per-org', () => HttpResponse.json([])),
 
-  // My pending tasks (current user as approver)
-  http.get('*/workflows/my-tasks', () => HttpResponse.json([PENDING_WORKFLOW])),
+  // My pending tasks (current user as approver) — paginated, same shape as
+  // GET /workflows (see getMyTasks in workflow-service).
+  http.get('*/workflows/my-tasks', ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get('page') ?? 1);
+    const limit = Number(url.searchParams.get('limit') ?? 20);
+    const data = [PENDING_WORKFLOW];
+    return HttpResponse.json<PaginatedWorkflows>({
+      data,
+      total: data.length,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(data.length / limit)),
+    });
+  }),
 
-  // Workflows available for final user
-  http.get('*/workflows/my-available', () => HttpResponse.json([])),
+  // Workflows available for final user — paginated, same shape as GET /workflows.
+  http.get('*/workflows/my-available', ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get('page') ?? 1);
+    const limit = Number(url.searchParams.get('limit') ?? 20);
+    return HttpResponse.json<PaginatedWorkflows>({
+      data: [],
+      total: 0,
+      page,
+      limit,
+      totalPages: 1,
+    });
+  }),
 
   // Notify when typology has no final users
   http.post('*/workflows/notify-no-final-users', () => new HttpResponse(null, { status: 204 })),

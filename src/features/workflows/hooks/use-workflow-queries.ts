@@ -2,7 +2,7 @@ import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const WORKFLOWS_PAGE_SIZE = 20;
-import { workflowsApi, type WorkflowStatus } from '@/lib/api/workflows';
+import { workflowsApi, type ApiWorkflow, type WorkflowStatus } from '@/lib/api/workflows';
 import { typologiesApi } from '@/lib/api/typologies';
 import { usersApi, type ApiUserWithRoles } from '@/lib/api/users';
 import { rolesApi, type ApiRole } from '@/lib/api/roles';
@@ -46,6 +46,7 @@ interface WorkflowQueriesOptions {
 }
 
 const EMPTY_ORG_USERS: ApiUserWithRoles[] = [];
+const EMPTY_WORKFLOWS: ApiWorkflow[] = [];
 
 export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOptions) {
   const queryClient = useQueryClient();
@@ -96,31 +97,61 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     enabled: innerTab === 'all' && search === debouncedSearch,
   });
 
+  // "Mis tareas" y "Mis flujos" — paginados y filtrados en el servidor (mismos
+  // status/typologyId/search que "Todos"), con el mismo `page` que las demás
+  // pestañas (se resetea a 1 al cambiar de pestaña, ver WorkflowsTable). Se
+  // mantienen siempre activas (sin `enabled` por pestaña) porque el badge de
+  // "Mis tareas" debe reflejar el total incluso mientras se ve otra pestaña.
   const {
-    data: myTasks = [],
+    data: myTasksPage,
     isLoading: myTasksLoading,
     isFetching: myTasksIsFetching,
     dataUpdatedAt: myTasksUpdatedAt,
   } = useQuery({
-    queryKey: ['workflows-my-tasks'],
-    queryFn: ({ signal }) => workflowsApi.myTasks(signal),
+    queryKey: ['workflows-my-tasks', statusFilter, typologyFilter, debouncedSearch, page],
+    queryFn: ({ signal }) =>
+      workflowsApi.myTasks(
+        {
+          status: statusFilter,
+          typologyId: typologyFilter,
+          search: debouncedSearch || undefined,
+          page,
+          limit: WORKFLOWS_PAGE_SIZE,
+        },
+        signal,
+      ),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
+    enabled: search === debouncedSearch,
   });
 
   const {
-    data: myAvailable = [],
+    data: myAvailablePage,
     isLoading: myAvailableLoading,
     isFetching: myAvailableIsFetching,
     dataUpdatedAt: myAvailableUpdatedAt,
   } = useQuery({
-    queryKey: ['workflows-my-available'],
-    queryFn: ({ signal }) => workflowsApi.myAvailable(signal),
+    queryKey: ['workflows-my-available', statusFilter, typologyFilter, debouncedSearch, page],
+    queryFn: ({ signal }) =>
+      workflowsApi.myAvailable(
+        {
+          status: statusFilter,
+          typologyId: typologyFilter,
+          search: debouncedSearch || undefined,
+          page,
+          limit: WORKFLOWS_PAGE_SIZE,
+        },
+        signal,
+      ),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: false,
+    enabled: search === debouncedSearch,
   });
+
+  const myTasks = myTasksPage?.data ?? EMPTY_WORKFLOWS;
+  const myAvailable = myAvailablePage?.data ?? EMPTY_WORKFLOWS;
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['workflow-timeline', timelineWorkflowId],
@@ -235,8 +266,12 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
     workflowsTotalPages: paginatedWorkflows?.totalPages ?? 1,
     myTasks,
     myTasksLoading,
+    myTasksTotal: myTasksPage?.total ?? 0,
+    myTasksTotalPages: myTasksPage?.totalPages ?? 1,
     myAvailable,
     myAvailableLoading,
+    myAvailableTotal: myAvailablePage?.total ?? 0,
+    myAvailableTotalPages: myAvailablePage?.totalPages ?? 1,
     timeline,
     timelineLoading,
     detailWorkflowFull,

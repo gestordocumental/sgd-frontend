@@ -1,8 +1,53 @@
 import { useEffect, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { workflowsApi, type ApiWorkflow, type ApiWorkflowAttachment } from '@/lib/api/workflows';
+import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import {
+  workflowsApi,
+  type ApiWorkflow,
+  type ApiWorkflowAttachment,
+  type PaginatedWorkflows,
+} from '@/lib/api/workflows';
 import { workflowFilesApi, type WorkflowFileUploadResponse } from '@/lib/api/workflow-files';
 import type { CreateWorkflowForm, ApproveForm, RejectForm } from './workflow-schemas';
+
+const MY_TASKS_KEY: QueryKey = ['workflows-my-tasks'];
+
+/**
+ * Optimistically removes a workflow from every cached "my-tasks" page
+ * (one per status/typology/search/page combination — see
+ * use-workflow-queries.ts) so approve/reject feel instant. Partial-key
+ * matching (TanStack's default) reaches every variant, not just the one the
+ * user currently has open.
+ */
+function removeFromMyTasksCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id: string,
+): Array<[QueryKey, PaginatedWorkflows | undefined]> {
+  const previous = queryClient.getQueriesData<PaginatedWorkflows>({ queryKey: MY_TASKS_KEY });
+  queryClient.setQueriesData<PaginatedWorkflows>({ queryKey: MY_TASKS_KEY }, (old) => {
+    // Defensive: skip anything that isn't a {data, total, ...} page — e.g. a
+    // stale cache entry from before this shape existed — instead of crashing
+    // the mutation's onMutate (which would silently block it from ever
+    // calling the API).
+    if (!old || !Array.isArray(old.data)) return old;
+    const stillPresent = old.data.some((w) => w.id === id);
+    if (!stillPresent) return old;
+    return {
+      ...old,
+      data: old.data.filter((w) => w.id !== id),
+      total: Math.max(0, old.total - 1),
+    };
+  });
+  return previous;
+}
+
+function restoreMyTasksCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  previous: Array<[QueryKey, PaginatedWorkflows | undefined]>,
+): void {
+  for (const [key, data] of previous) {
+    queryClient.setQueryData(key, data);
+  }
+}
 
 export interface WorkflowMutationDeps {
   invalidateAll: () => void;
@@ -175,17 +220,13 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
       );
     },
     onMutate: async ({ id }) => {
-      await queryClient.cancelQueries({ queryKey: ['workflows-my-tasks'] });
-      const previousTasks = queryClient.getQueryData<ApiWorkflow[]>(['workflows-my-tasks']);
-      queryClient.setQueryData<ApiWorkflow[]>(
-        ['workflows-my-tasks'],
-        (old) => old?.filter((w) => w.id !== id) ?? [],
-      );
+      await queryClient.cancelQueries({ queryKey: MY_TASKS_KEY });
+      const previousTasks = removeFromMyTasksCache(queryClient, id);
       return { previousTasks };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousTasks !== undefined) {
-        queryClient.setQueryData(['workflows-my-tasks'], context.previousTasks);
+      if (context?.previousTasks) {
+        restoreMyTasksCache(queryClient, context.previousTasks);
       }
     },
     onSuccess: () => {
@@ -198,17 +239,13 @@ export function useWorkflowMutations(companyId: string, deps: WorkflowMutationDe
     mutationFn: ({ id, dto }: { id: string; dto: RejectForm }) =>
       workflowsApi.reject(id, dto, crypto.randomUUID()),
     onMutate: async ({ id }) => {
-      await queryClient.cancelQueries({ queryKey: ['workflows-my-tasks'] });
-      const previousTasks = queryClient.getQueryData<ApiWorkflow[]>(['workflows-my-tasks']);
-      queryClient.setQueryData<ApiWorkflow[]>(
-        ['workflows-my-tasks'],
-        (old) => old?.filter((w) => w.id !== id) ?? [],
-      );
+      await queryClient.cancelQueries({ queryKey: MY_TASKS_KEY });
+      const previousTasks = removeFromMyTasksCache(queryClient, id);
       return { previousTasks };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousTasks !== undefined) {
-        queryClient.setQueryData(['workflows-my-tasks'], context.previousTasks);
+      if (context?.previousTasks) {
+        restoreMyTasksCache(queryClient, context.previousTasks);
       }
     },
     onSuccess: () => {
