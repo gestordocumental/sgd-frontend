@@ -142,8 +142,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Default empty responses so queries don't block
   mockWorkflowsList.mockResolvedValue({ data: [], total: 0 });
-  mockMyTasks.mockResolvedValue([]);
-  mockMyAvailable.mockResolvedValue([]);
+  mockMyTasks.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20, totalPages: 1 });
+  mockMyAvailable.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20, totalPages: 1 });
 });
 
 // ── 1. approverEligibleUsers ──────────────────────────────────────────────────
