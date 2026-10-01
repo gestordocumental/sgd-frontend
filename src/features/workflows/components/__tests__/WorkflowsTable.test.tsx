@@ -181,8 +181,12 @@ function makeHook(
       workflowsLoading: false,
       myTasks: [],
       myTasksLoading: false,
+      myTasksTotal: 0,
+      myTasksTotalPages: 1,
       myAvailable: [],
       myAvailableLoading: false,
+      myAvailableTotal: 0,
+      myAvailableTotalPages: 1,
       isRefreshing: false,
       workflowsDataUpdatedAt: Date.now(),
       invalidateAll: vi.fn(),
@@ -572,10 +576,15 @@ describe('WorkflowsTable — row interactions', () => {
 // ── My-tasks tab badge ────────────────────────────────────────────────────────
 
 describe('WorkflowsTable — my-tasks badge', () => {
-  it('shows a count badge when there are pending tasks', () => {
+  it('shows a count badge with the server-side total, not just the current page length', () => {
+    // Regression: the badge used to read myTasks.length, which is only the
+    // current page's rows now that my-tasks is paginated — it must use the
+    // total pending count across all pages instead.
     render(
       <WorkflowsTable
-        hook={makeHook({ queries: { myTasks: [makeWorkflow(), makeWorkflow({ id: 'wf-2' })] } })}
+        hook={makeHook({
+          queries: { myTasks: [makeWorkflow()], myTasksTotal: 2, myTasksTotalPages: 1 },
+        })}
         canManage
       />,
     );
@@ -686,27 +695,27 @@ describe('WorkflowsTable — typology filter', () => {
     expect(within(trigger.parentElement!).getAllByRole('button')).toHaveLength(1);
   });
 
-  it('filters my-tasks by typology on the client side', () => {
+  it('renders the my-tasks typology filter UI the same as "all"', () => {
     const typologyA = makeTypology({ id: 'typ-a' });
-    const tasks = [
-      makeWorkflow({ id: 'wf-1', title: 'Alpha', typologyId: 'typ-a' }),
-      makeWorkflow({ id: 'wf-2', title: 'Beta', typologyId: 'typ-b' }),
-    ];
     render(
       <WorkflowsTable
         hook={makeHook({
-          dialogs: { innerTab: 'my-tasks', typologyFilter: 'typ-a' },
-          queries: { myTasks: tasks, activeTypologies: [typologyA] },
+          dialogs: { innerTab: 'my-tasks' },
+          queries: { activeTypologies: [typologyA] },
         })}
         canManage
       />,
     );
-    expect(screen.getByText('Alpha')).toBeInTheDocument();
-    expect(screen.queryByText('Beta')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Typology' })).toBeInTheDocument();
   });
 });
 
-// ── Search/status filter on my-tasks and my-available ─────────────────────────
+// ── Search/status/typology filters on my-tasks and my-available ───────────────
+//
+// search/statusFilter/typologyFilter are now resolved server-side (see
+// use-workflow-queries.ts) — myTasks/myAvailable already arrive pre-filtered
+// for whatever page is loaded, so these tests only check that the table
+// renders exactly what the hook hands it, without re-filtering on its own.
 
 describe('WorkflowsTable — my-tasks/my-available filters', () => {
   it('shows the same search input and status select on the my-tasks tab', () => {
@@ -715,48 +724,30 @@ describe('WorkflowsTable — my-tasks/my-available filters', () => {
     expect(screen.getByRole('combobox', { name: 'Status' })).toBeInTheDocument();
   });
 
-  it('filters my-tasks by title on the client side', () => {
-    const tasks = [
-      makeWorkflow({ id: 'wf-1', title: 'Alpha Process' }),
-      makeWorkflow({ id: 'wf-2', title: 'Beta Process' }),
-    ];
-    render(
-      <WorkflowsTable
-        hook={makeHook({
-          dialogs: { innerTab: 'my-tasks', search: 'alpha' },
-          queries: { myTasks: tasks },
-        })}
-        canManage
-      />,
-    );
-    expect(screen.getByText('Alpha Process')).toBeInTheDocument();
-    expect(screen.queryByText('Beta Process')).not.toBeInTheDocument();
-  });
-
-  it('filters my-tasks by status on the client side', () => {
+  it('renders every my-tasks row the server returned for the active filters, without re-filtering them', () => {
     const tasks = [
       makeWorkflow({ id: 'wf-1', title: 'Alpha Process', status: 'DRAFT' }),
-      makeWorkflow({ id: 'wf-2', title: 'Beta Process', status: 'PENDING_APPROVAL' }),
+      makeWorkflow({ id: 'wf-2', title: 'Beta Process', status: 'DRAFT' }),
     ];
     render(
       <WorkflowsTable
         hook={makeHook({
-          dialogs: { innerTab: 'my-tasks', statusFilter: 'DRAFT' },
-          queries: { myTasks: tasks },
+          dialogs: { innerTab: 'my-tasks', search: 'process', statusFilter: 'DRAFT' },
+          queries: { myTasks: tasks, myTasksTotal: 2 },
         })}
         canManage
       />,
     );
     expect(screen.getByText('Alpha Process')).toBeInTheDocument();
-    expect(screen.queryByText('Beta Process')).not.toBeInTheDocument();
+    expect(screen.getByText('Beta Process')).toBeInTheDocument();
   });
 
-  it('shows "no results" on my-tasks when the filter matches nothing', () => {
+  it('shows "no results" on my-tasks when the active filter returns nothing from the server', () => {
     render(
       <WorkflowsTable
         hook={makeHook({
           dialogs: { innerTab: 'my-tasks', search: 'nonexistent' },
-          queries: { myTasks: [makeWorkflow({ title: 'Alpha Process' })] },
+          queries: { myTasks: [], myTasksTotal: 0 },
         })}
         canManage
       />,
@@ -764,22 +755,73 @@ describe('WorkflowsTable — my-tasks/my-available filters', () => {
     expect(screen.getByText(/no results/i)).toBeInTheDocument();
   });
 
-  it('filters my-available by title on the client side', () => {
-    const available = [
-      makeWorkflow({ id: 'wf-1', title: 'Alpha Process' }),
-      makeWorkflow({ id: 'wf-2', title: 'Beta Process' }),
-    ];
+  it('renders every my-available row the server returned for the active filter, without re-filtering them', () => {
+    const available = [makeWorkflow({ id: 'wf-2', title: 'Beta Process' })];
     render(
       <WorkflowsTable
         hook={makeHook({
           dialogs: { innerTab: 'my-available', search: 'beta' },
-          queries: { myAvailable: available },
+          queries: { myAvailable: available, myAvailableTotal: 1 },
         })}
         canManage
       />,
     );
     expect(screen.getByText('Beta Process')).toBeInTheDocument();
-    expect(screen.queryByText('Alpha Process')).not.toBeInTheDocument();
+  });
+});
+
+// ── Pagination on my-tasks / my-available ──────────────────────────────────────
+//
+// These tabs used to load up to 100 rows with no pager at all (see the
+// getMyTasks/getMyAvailable backend fix) — a user with more pending items
+// than fit on screen had no way to reach the rest. Now they paginate the
+// same way "all" does.
+
+describe('WorkflowsTable — my-tasks/my-available pagination', () => {
+  it('hides the my-tasks pager when there is only one page', () => {
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-tasks' },
+          queries: { myTasks: [makeWorkflow()], myTasksTotal: 1, myTasksTotalPages: 1 },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.queryByText(/\d+ \/ \d+/)).not.toBeInTheDocument();
+  });
+
+  it('shows the my-tasks pager and calls setPage when there are multiple pages', () => {
+    const setPage = vi.fn();
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-tasks', page: 1, setPage },
+          queries: { myTasks: [makeWorkflow()], myTasksTotal: 45, myTasksTotalPages: 3 },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /next page/i }));
+    expect(setPage).toHaveBeenCalledWith(2);
+  });
+
+  it('shows the my-available pager when there are multiple pages', () => {
+    render(
+      <WorkflowsTable
+        hook={makeHook({
+          dialogs: { innerTab: 'my-available', page: 2 },
+          queries: {
+            myAvailable: [makeWorkflow()],
+            myAvailableTotal: 50,
+            myAvailableTotalPages: 3,
+          },
+        })}
+        canManage
+      />,
+    );
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
   });
 });
 

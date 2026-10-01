@@ -62,6 +62,20 @@ function makeWrapper() {
     createElement(QueryClientProvider, { client }, children);
 }
 
+/** Same as makeWrapper(), but also hands back the QueryClient so a test can
+ * seed/inspect its cache (needed for the my-tasks optimistic-update tests). */
+function makeWrapperWithClient() {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+  return { wrapper, client };
+}
+
 const NO_OP_DEPS = {
   invalidateAll: vi.fn(),
   approveAttachmentFiles: [] as File[],
@@ -439,5 +453,111 @@ describe('useWorkflowMutations — idempotency keys', () => {
       expect.objectContaining({ allowedOptionalReviewerIds: ['opt-1', 'opt-2'] }),
       expect.any(String),
     );
+  });
+});
+
+// ── my-tasks optimistic cache update ─────────────────────────────────────────
+//
+// "Mis tareas" is now paginated/filtered server-side (see
+// use-workflow-queries.ts), so its cache holds one PaginatedWorkflows entry
+// PER filter/page combination under keys like
+// ['workflows-my-tasks', status, typologyId, search, page] — not a single
+// flat array under ['workflows-my-tasks']. approve/reject must still remove
+// the acted-on workflow from every one of those cached pages so the list
+// feels instant, and must roll every one of them back on failure.
+
+describe('useWorkflowMutations — my-tasks optimistic cache update', () => {
+  function seedMyTasksPage(
+    client: QueryClient,
+    key: unknown[],
+    data: ApiWorkflow[],
+    total = data.length,
+  ) {
+    client.setQueryData(key, { data, total, page: 1, limit: 20, totalPages: 1 });
+  }
+
+  it('removes the acted-on workflow from every cached my-tasks page on approve', async () => {
+    const { wrapper, client } = makeWrapperWithClient();
+    const wfA = makeWorkflow({ id: 'wf-1' });
+    const wfB = makeWorkflow({ id: 'wf-2' });
+    // Two cached variants — e.g. the "all statuses" page and a status-filtered one.
+    seedMyTasksPage(client, ['workflows-my-tasks', undefined, undefined, '', 1], [wfA, wfB], 2);
+    seedMyTasksPage(client, ['workflows-my-tasks', 'PENDING_APPROVAL', undefined, '', 1], [wfA], 1);
+
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), { wrapper });
+
+    await act(async () => {
+      await result.current.approveMutation.mutateAsync({ id: 'wf-1', dto: {} });
+    });
+
+    const unfiltered = client.getQueryData<{ data: ApiWorkflow[]; total: number }>([
+      'workflows-my-tasks',
+      undefined,
+      undefined,
+      '',
+      1,
+    ]);
+    const filtered = client.getQueryData<{ data: ApiWorkflow[]; total: number }>([
+      'workflows-my-tasks',
+      'PENDING_APPROVAL',
+      undefined,
+      '',
+      1,
+    ]);
+
+    expect(unfiltered?.data.map((w) => w.id)).toEqual(['wf-2']);
+    expect(unfiltered?.total).toBe(1);
+    expect(filtered?.data).toEqual([]);
+    expect(filtered?.total).toBe(0);
+  });
+
+  it('rolls back every cached my-tasks page when approve fails', async () => {
+    mockApprove.mockRejectedValueOnce(new Error('network error'));
+    const { wrapper, client } = makeWrapperWithClient();
+    const wfA = makeWorkflow({ id: 'wf-1' });
+    seedMyTasksPage(client, ['workflows-my-tasks', undefined, undefined, '', 1], [wfA], 1);
+
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), { wrapper });
+
+    await act(async () => {
+      await expect(
+        result.current.approveMutation.mutateAsync({ id: 'wf-1', dto: {} }),
+      ).rejects.toThrow('network error');
+    });
+
+    const restored = client.getQueryData<{ data: ApiWorkflow[]; total: number }>([
+      'workflows-my-tasks',
+      undefined,
+      undefined,
+      '',
+      1,
+    ]);
+    expect(restored?.data.map((w) => w.id)).toEqual(['wf-1']);
+    expect(restored?.total).toBe(1);
+  });
+
+  it('removes the acted-on workflow from cached my-tasks pages on reject', async () => {
+    const { wrapper, client } = makeWrapperWithClient();
+    const wfA = makeWorkflow({ id: 'wf-1' });
+    seedMyTasksPage(client, ['workflows-my-tasks', undefined, undefined, '', 1], [wfA], 1);
+
+    const { result } = renderHook(() => useWorkflowMutations('org-1', NO_OP_DEPS), { wrapper });
+
+    await act(async () => {
+      await result.current.rejectMutation.mutateAsync({
+        id: 'wf-1',
+        dto: { observations: 'Not good' },
+      });
+    });
+
+    const updated = client.getQueryData<{ data: ApiWorkflow[]; total: number }>([
+      'workflows-my-tasks',
+      undefined,
+      undefined,
+      '',
+      1,
+    ]);
+    expect(updated?.data).toEqual([]);
+    expect(updated?.total).toBe(0);
   });
 });

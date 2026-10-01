@@ -235,6 +235,10 @@ export interface ListWorkflowsParams {
   limit?: number;
 }
 
+// "Mis tareas" / "Mis flujos" — mismos filtros que ListWorkflowsParams salvo
+// createdBy (no aplica: el scope ya está fijado al usuario autenticado).
+export type ListMyWorkflowsParams = Omit<ListWorkflowsParams, 'createdBy'>;
+
 // ── API object ────────────────────────────────────────────────────────────────
 
 export interface WorkflowStats {
@@ -278,11 +282,20 @@ export const workflowsApi = {
 
   remove: (id: string) => apiClient.delete<void>(`/workflows/${id}`).then((r) => r.data),
 
-  myTasks: (signal?: AbortSignal) =>
-    apiClient.get<ApiWorkflow[]>('/workflows/my-tasks', { signal }).then((r) => r.data),
+  // Paginados y filtrables en el servidor (status/typologyId/search), igual que
+  // `list()` — antes traían hasta 100 registros sin filtros y el filtrado se
+  // hacía en el cliente sobre ese array ya truncado, por lo que un flujo fuera
+  // de esos 100 (por fecha de actualización) quedaba invisible sin importar
+  // que cumpliera las reglas.
+  myTasks: (params?: ListMyWorkflowsParams, signal?: AbortSignal) =>
+    apiClient
+      .get<PaginatedWorkflows>('/workflows/my-tasks', { params, signal })
+      .then((r) => r.data),
 
-  myAvailable: (signal?: AbortSignal) =>
-    apiClient.get<ApiWorkflow[]>('/workflows/my-available', { signal }).then((r) => r.data),
+  myAvailable: (params?: ListMyWorkflowsParams, signal?: AbortSignal) =>
+    apiClient
+      .get<PaginatedWorkflows>('/workflows/my-available', { params, signal })
+      .then((r) => r.data),
 
   startApproval: (id: string, idempotencyKey?: string) =>
     apiClient

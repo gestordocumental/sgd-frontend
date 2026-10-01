@@ -71,8 +71,12 @@ export function WorkflowsTable({
     workflowsTotalPages,
     myTasks,
     myTasksLoading,
+    myTasksTotal,
+    myTasksTotalPages,
     myAvailable,
     myAvailableLoading,
+    myAvailableTotal,
+    myAvailableTotalPages,
     isRefreshing,
     workflowsDataUpdatedAt,
     invalidateAll,
@@ -119,33 +123,12 @@ export function WorkflowsTable({
     [activeTypologies, t],
   );
 
-  // Search and pagination are server-side; workflows already contains the current page slice.
+  // Search, filtros y paginación de las 3 pestañas son server-side; cada
+  // array (workflows/myTasks/myAvailable) ya contiene solo la página actual
+  // filtrada en SQL — por eso un flujo puntual se encuentra sin importar
+  // cuántos tenga el usuario en total, en vez de depender de que haya caído
+  // dentro de un lote cargado de antemano.
   const totalPages = workflowsTotalPages;
-
-  // "Mis tareas" y "Mis flujos" no están paginados en el servidor (listas
-  // acotadas al usuario), así que el mismo filtro de texto/estado/tipología de
-  // "Todos" se aplica en cliente sobre el array ya cargado.
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredMyTasks = useMemo(
-    () =>
-      myTasks.filter(
-        (w) =>
-          (!normalizedSearch || w.title.toLowerCase().includes(normalizedSearch)) &&
-          (!statusFilter || w.status === statusFilter) &&
-          (!typologyFilter || w.typologyId === typologyFilter),
-      ),
-    [myTasks, normalizedSearch, statusFilter, typologyFilter],
-  );
-  const filteredMyAvailable = useMemo(
-    () =>
-      myAvailable.filter(
-        (w) =>
-          (!normalizedSearch || w.title.toLowerCase().includes(normalizedSearch)) &&
-          (!statusFilter || w.status === statusFilter) &&
-          (!typologyFilter || w.typologyId === typologyFilter),
-      ),
-    [myAvailable, normalizedSearch, statusFilter, typologyFilter],
-  );
 
   return (
     <main className="p-6 space-y-4">
@@ -198,12 +181,12 @@ export function WorkflowsTable({
           <TabsTrigger value="my-tasks">
             <AlertCircle className="size-4" />
             {t('workflows.tabs.myTasks')}
-            {myTasks.length > 0 && (
+            {myTasksTotal > 0 && (
               <span
                 data-testid="my-tasks-badge"
                 className="ml-1.5 flex items-center justify-center size-4 rounded-full text-[9px] text-white font-bold bg-brand"
               >
-                {myTasks.length}
+                {myTasksTotal}
               </span>
             )}
           </TabsTrigger>
@@ -260,7 +243,7 @@ export function WorkflowsTable({
             typologyOptions={TYPOLOGY_OPTIONS}
           />
           <WorkflowList
-            workflows={filteredMyTasks}
+            workflows={myTasks}
             isLoading={myTasksLoading}
             hook={hook}
             canWrite={false}
@@ -271,6 +254,15 @@ export function WorkflowsTable({
                 : 'workflows.emptyMyTasks'
             }
           />
+          {myTasksTotalPages > 1 && (
+            <Pager
+              page={page}
+              totalPages={myTasksTotalPages}
+              total={myTasksTotal}
+              onChange={setPage}
+              className="px-1 py-2"
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="my-available" className="mt-4 space-y-3">
@@ -285,7 +277,7 @@ export function WorkflowsTable({
             typologyOptions={TYPOLOGY_OPTIONS}
           />
           <WorkflowList
-            workflows={filteredMyAvailable}
+            workflows={myAvailable}
             isLoading={myAvailableLoading}
             hook={hook}
             canWrite={false}
@@ -296,6 +288,15 @@ export function WorkflowsTable({
                 : 'workflows.emptyMyAvailable'
             }
           />
+          {myAvailableTotalPages > 1 && (
+            <Pager
+              page={page}
+              totalPages={myAvailableTotalPages}
+              total={myAvailableTotal}
+              onChange={setPage}
+              className="px-1 py-2"
+            />
+          )}
         </TabsContent>
       </Tabs>
     </main>
