@@ -7,7 +7,7 @@ import { useDocumentExtraction } from './use-document-extraction';
 import { useWorkflowForms } from './use-workflow-forms';
 import { useWorkflowQueries } from './use-workflow-queries';
 import { useWorkflowMutations } from './use-workflow-mutations';
-import { versionsEqual, type DocumentComparison } from './workflow-schemas';
+import { namesEqual, versionsEqual, type DocumentComparison } from './workflow-schemas';
 
 // Re-export shared types so consumers keep a single import point
 export type {
@@ -303,7 +303,10 @@ export function useWorkflows(companyId: string) {
         ? {
             nombre:
               selectedTypology.datosDeclarados.nombre !== null
-                ? extraction.documentExtraction.nombre === selectedTypology.datosDeclarados.nombre
+                ? namesEqual(
+                    extraction.documentExtraction.nombre,
+                    selectedTypology.datosDeclarados.nombre,
+                  )
                 : null,
             codigo:
               selectedTypology.datosDeclarados.codigo !== null
