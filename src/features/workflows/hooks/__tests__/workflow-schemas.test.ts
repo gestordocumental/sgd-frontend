@@ -3,6 +3,7 @@ import {
   createWorkflowSchema,
   approveSchema,
   rejectSchema,
+  namesEqual,
   versionsEqual,
 } from '../workflow-schemas';
 
@@ -105,6 +106,49 @@ describe('rejectSchema', () => {
       const msg = r.error.issues[0].message;
       expect(msg).toContain('10');
     }
+  });
+});
+
+// ── namesEqual ───────────────────────────────────────────────────────────────
+
+describe('namesEqual', () => {
+  // Regresión: el título del Excel F-F-002 V8 viene en Title Case y sin tilde
+  // en "Viaticos"; la tipología lo declara en minúsculas con "viáticos".
+  it('treats the F-F-002 Excel title and the declared typology name as equal', () => {
+    expect(
+      namesEqual(
+        'Formato para Reembolso/Legalización de Gastos Caja Menor, Anticipos, Viaticos y Transportes',
+        'Formato para reembolso/legalización de gastos caja menor, anticipos, viáticos y transportes',
+      ),
+    ).toBe(true);
+  });
+
+  it('ignores surrounding and repeated whitespace', () => {
+    expect(namesEqual('  Manual   de calidad ', 'Manual de calidad')).toBe(true);
+  });
+
+  it('treats different words as not equal', () => {
+    expect(namesEqual('Formato de viáticos', 'Formato de anticipos')).toBe(false);
+  });
+
+  it('keeps ñ as a distinct letter ("Año" ≠ "Ano")', () => {
+    expect(namesEqual('Informe del Año', 'Informe del Ano')).toBe(false);
+    expect(namesEqual('INFORME DEL AÑO', 'informe del año')).toBe(true);
+  });
+
+  it('keeps ñ distinct even when it arrives decomposed (n + U+0303)', () => {
+    expect(namesEqual('Año', 'Año')).toBe(true);
+    expect(namesEqual('Año', 'Ano')).toBe(false);
+  });
+
+  it('does not normalize punctuation', () => {
+    expect(namesEqual('Reembolso/Legalización', 'Reembolso Legalización')).toBe(false);
+  });
+
+  it('handles nulls', () => {
+    expect(namesEqual(null, null)).toBe(true);
+    expect(namesEqual('A', null)).toBe(false);
+    expect(namesEqual(null, 'A')).toBe(false);
   });
 });
 
