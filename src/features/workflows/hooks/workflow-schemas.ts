@@ -33,6 +33,28 @@ export interface DocumentComparison {
 }
 
 /**
+ * Compara dos nombres de documento ignorando mayúsculas, tildes y espacios
+ * sobrantes — "Formato para Reembolso … Viaticos" y "Formato para
+ * reembolso … viáticos" son el mismo título. La puntuación y las palabras NO
+ * se normalizan, así que un título realmente distinto sigue sin coincidir.
+ * La "ñ" es una letra distinta, no una "n" con tilde ("Año" ≠ "Ano"), así
+ * que se conserva: las tildes se quitan carácter por carácter, salvo ñ/Ñ.
+ * Mantener alineado con namesEqual() de document-service (typologies.service.ts).
+ */
+export function namesEqual(a: string | null, b: string | null): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  const normalize = (s: string) =>
+    s
+      .normalize('NFC')
+      .replace(/[^\x20-\x7eñÑ]/g, (c) => c.normalize('NFD').replace(/[̀-ͯ]/g, ''))
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  return normalize(a) === normalize(b);
+}
+
+/**
  * Compara dos strings de versión ignorando ceros a la izquierda en cada
  * segmento y un prefijo `v` opcional — así "6" y "06" (o "v1.2" y "1.02")
  * se consideran la misma versión. Si alguno de los dos valores no es una
