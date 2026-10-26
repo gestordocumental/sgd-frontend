@@ -131,6 +131,16 @@ describe('namesEqual', () => {
     expect(namesEqual('Formato de viáticos', 'Formato de anticipos')).toBe(false);
   });
 
+  it('keeps ñ as a distinct letter ("Año" ≠ "Ano")', () => {
+    expect(namesEqual('Informe del Año', 'Informe del Ano')).toBe(false);
+    expect(namesEqual('INFORME DEL AÑO', 'informe del año')).toBe(true);
+  });
+
+  it('keeps ñ distinct even when it arrives decomposed (n + U+0303)', () => {
+    expect(namesEqual('Año', 'Año')).toBe(true);
+    expect(namesEqual('Año', 'Ano')).toBe(false);
+  });
+
   it('does not normalize punctuation', () => {
     expect(namesEqual('Reembolso/Legalización', 'Reembolso Legalización')).toBe(false);
   });
