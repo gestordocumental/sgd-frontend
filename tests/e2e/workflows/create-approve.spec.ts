@@ -320,7 +320,10 @@ test.describe('Workflow approval', () => {
     const startApprovalBtn = page.getByRole('button', { name: /Start approval/i });
     await expect(startApprovalBtn).toBeVisible();
     await startApprovalBtn.click();
-    expect(startApprovalCalled).toBe(true);
+    // El click resuelve antes de que la petición salga del navegador (la mutación
+    // es asíncrona), así que se espera a que el endpoint sea llamado en vez de
+    // comprobar el flag de forma síncrona.
+    await expect.poll(() => startApprovalCalled, { timeout: 5_000 }).toBe(true);
   });
 
   test('workflow status badge is visible in the list', async ({ page }) => {
