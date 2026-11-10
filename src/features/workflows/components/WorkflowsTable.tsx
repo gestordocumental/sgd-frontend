@@ -115,7 +115,7 @@ export function WorkflowsTable({
     () => [
       { value: '', label: t('workflows.filters.allTypologies') },
       ...activeTypologies.map((ty) => ({
-        value: ty.id,
+        value: ty.datosDeclarados.codigo || ty.id,
         label: ty.datosDeclarados.codigo || ty.id,
         sublabel: ty.datosDeclarados.nombre ?? undefined,
       })),

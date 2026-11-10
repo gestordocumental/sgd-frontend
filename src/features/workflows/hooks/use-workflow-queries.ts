@@ -83,7 +83,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
       workflowsApi.list(
         {
           status: statusFilter,
-          typologyId: typologyFilter,
+          typologyCode: typologyFilter,
           search: debouncedSearch || undefined,
           page,
           limit: WORKFLOWS_PAGE_SIZE,
@@ -113,7 +113,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
       workflowsApi.myTasks(
         {
           status: statusFilter,
-          typologyId: typologyFilter,
+          typologyCode: typologyFilter,
           search: debouncedSearch || undefined,
           page,
           limit: WORKFLOWS_PAGE_SIZE,
@@ -137,7 +137,7 @@ export function useWorkflowQueries(companyId: string, options: WorkflowQueriesOp
       workflowsApi.myAvailable(
         {
           status: statusFilter,
-          typologyId: typologyFilter,
+          typologyCode: typologyFilter,
           search: debouncedSearch || undefined,
           page,
           limit: WORKFLOWS_PAGE_SIZE,
