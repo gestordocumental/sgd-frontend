@@ -231,6 +231,8 @@ export interface ListWorkflowsParams {
   search?: string;
   createdBy?: string;
   typologyId?: string;
+  /** Filtra por código: incluye los flujos de todas las versiones de la tipología. */
+  typologyCode?: string;
   page?: number;
   limit?: number;
 }

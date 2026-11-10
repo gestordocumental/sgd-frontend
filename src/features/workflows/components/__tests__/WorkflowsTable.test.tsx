@@ -642,7 +642,7 @@ describe('WorkflowsTable — status filter', () => {
 // ── Typology filter ───────────────────────────────────────────────────────────
 
 describe('WorkflowsTable — typology filter', () => {
-  it('calls setTypologyFilter with the selected value when an option is picked', () => {
+  it('calls setTypologyFilter with the typology code (not the version id) when an option is picked', () => {
     const setTypologyFilter = vi.fn();
     const typology = makeTypology({ id: 'typ-1' });
     render(
@@ -656,7 +656,7 @@ describe('WorkflowsTable — typology filter', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Typology' }));
     fireEvent.click(screen.getByRole('option', { name: /CON-01/ }));
-    expect(setTypologyFilter).toHaveBeenCalledWith('typ-1');
+    expect(setTypologyFilter).toHaveBeenCalledWith('CON-01');
   });
 
   it('shows only the code (not the name) once a typology is selected', () => {
@@ -664,7 +664,7 @@ describe('WorkflowsTable — typology filter', () => {
     render(
       <WorkflowsTable
         hook={makeHook({
-          dialogs: { typologyFilter: 'typ-1' },
+          dialogs: { typologyFilter: 'CON-01' },
           queries: { activeTypologies: [typology] },
         })}
         canManage
