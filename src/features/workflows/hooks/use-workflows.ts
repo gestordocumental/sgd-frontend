@@ -296,6 +296,14 @@ export function useWorkflows(companyId: string) {
     [selectedTypology, queries.activeOrgUsers],
   );
 
+  // El nombre de la tipología viaja con la extracción para que el backend lo
+  // verifique contra el documento; si cambia con un archivo ya cargado, se re-extrae.
+  const expectedNombre = selectedTypology?.datosDeclarados.nombre ?? null;
+  const { setExpectedNombre } = extraction;
+  useEffect(() => {
+    setExpectedNombre(expectedNombre);
+  }, [expectedNombre, setExpectedNombre]);
+
   /** Comparación campo a campo: true=coincide, false=no coincide, null=tipología sin valor declarado */
   const documentComparison: DocumentComparison | null = useMemo(
     () =>
