@@ -180,10 +180,16 @@ export const typologiesApi = {
       .get<ApiTypology[]>(`${base(orgId)}/history/${encodeURIComponent(codigo)}`, { signal })
       .then((r) => r.data),
 
-  previewExtract: (orgId: string, file: File, orgName?: string) => {
+  /**
+   * `expectedNombre`: nombre que se espera encontrar en el documento (p. ej. el de la
+   * tipología seleccionada). Si el documento lo contiene, el backend lo devuelve como
+   * `nombre` en vez de intentar adivinar el título a partir del texto.
+   */
+  previewExtract: (orgId: string, file: File, orgName?: string, expectedNombre?: string) => {
     const form = new FormData();
     form.append('file', file);
     if (orgName) form.append('orgName', orgName);
+    if (expectedNombre) form.append('expectedNombre', expectedNombre);
     return apiClient
       .post<{
         nombre: string | null;
