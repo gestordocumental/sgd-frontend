@@ -1,0 +1,499 @@
+/*
+ * Pantalla de login — estilos propios.
+ *
+ * Todas las variables llevan el prefijo --login-* y viven en `.gd-login`, para
+ * no chocar con los tokens de shadcn (--accent, --border…). El modo oscuro es
+ * SOLO de esta pantalla (clase `.dark` en `.gd-login`, no en <html>).
+ *
+ * Referencia de diseño: "Gestor Documental · Login" (mockup).
+ */
+
+.gd-login {
+  /* tema claro */
+  --login-accent: #004fbd;
+  --login-text-faint: #5e687b; /* #7D8596 del mockup no llega a 4.5:1 (AA) sobre el fondo */
+  --login-text-label: #24365a;
+  --login-text-primary: #0f1e3a;
+  --login-text-secondary: #5a6478;
+  --login-input-border: #e1e5ec;
+  --login-input-bg: #ffffff;
+  --login-icon: #56688a;
+  --login-icon-hover: #0f1e3a;
+  --login-error: #b42318;
+  --login-btn: #0f1e3a;
+  --login-btn-hover: #004fbd;
+  --login-btn-text: #ffffff;
+  --login-link: #004fbd;
+  --login-card-border: #e1e5ec;
+  --login-glass: rgba(255, 255, 255, 0.8);
+  --login-glass-line: rgba(255, 255, 255, 0.9);
+  --login-scene-bg: radial-gradient(1200px 700px at 68% 52%, #ecf1f8 0%, #f3f5f8 55%, #f5f6f8 100%);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-x: clip;
+  background: var(--login-scene-bg);
+  color: var(--login-text-primary);
+  font-family:
+    Poppins,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  animation: gd-login-screen-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.gd-login.dark {
+  --login-accent: #7fd3ff;
+  --login-text-faint: #7f8ba0;
+  --login-text-label: #dce6f7;
+  --login-text-primary: #eaf1ff;
+  --login-text-secondary: #a3aec2;
+  --login-input-border: #253350;
+  --login-input-bg: #0e1628;
+  --login-icon: #a3b3cf;
+  --login-icon-hover: #eaf1ff;
+  --login-error: #ff7a7a;
+  --login-btn: #eaf1ff;
+  --login-btn-hover: #7fd3ff;
+  --login-btn-text: #0a1631;
+  --login-link: #7fd3ff;
+  --login-card-border: #253350;
+  --login-glass: rgba(20, 30, 51, 0.8);
+  --login-glass-line: rgba(234, 241, 255, 0.08);
+  --login-scene-bg: radial-gradient(1200px 700px at 68% 52%, #14213a 0%, #0d1526 58%, #0a0f1b 100%);
+}
+
+/* ── Escena animada ─────────────────────────────────────────────────────── */
+.gd-login-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.gd-login-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Controles superiores (idioma + tema) ───────────────────────────────── */
+.gd-login-controls {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gd-login-theme {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--login-card-border);
+  background: var(--login-glass);
+  color: var(--login-text-primary);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.gd-login-theme:hover {
+  transform: scale(1.06);
+}
+.gd-login-theme-icon {
+  display: flex;
+  animation: gd-login-icon-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ── Columna del formulario ─────────────────────────────────────────────── */
+.gd-login-main {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  /* el padding superior deja libre la fila de controles */
+  padding: 80px 7% 24px;
+}
+.gd-login-col {
+  width: 430px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s ease;
+}
+.gd-login-col.is-leaving {
+  opacity: 0;
+  transform: translateX(-28px);
+  filter: blur(3px);
+  pointer-events: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.45s ease;
+}
+.gd-login-logo {
+  display: block;
+  height: 96px;
+  width: auto;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: gd-login-logo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards;
+}
+
+.gd-login-card {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 40px 40px 32px;
+  border-radius: 26px;
+  background: var(--login-glass);
+  border: 1px solid var(--login-glass-line);
+  box-shadow: 0 30px 80px rgba(11, 42, 91, 0.16);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.gd-login-title {
+  margin: 0;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--login-text-primary);
+}
+.gd-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.gd-login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.gd-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gd-login-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--login-text-label);
+}
+.gd-login-label svg {
+  flex-shrink: 0;
+}
+
+.gd-login-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 50px;
+  padding: 0 14px;
+  border: 1.5px solid var(--login-input-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--login-text-primary);
+  background: var(--login-input-bg);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.gd-login-input::placeholder {
+  color: var(--login-text-faint);
+}
+.gd-login-input:focus {
+  outline: none;
+  border-color: var(--login-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--login-accent) 16%, transparent);
+}
+.gd-login-input[aria-invalid='true'] {
+  border-color: var(--login-error);
+}
+.gd-login-input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--login-error) 18%, transparent);
+}
+.gd-login-input:disabled {
+  opacity: 0.7;
+}
+.gd-login-input.has-toggle {
+  padding-right: 44px;
+}
+
+.gd-login-password {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.gd-login-eye {
+  position: absolute;
+  right: 8px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--login-icon);
+  cursor: pointer;
+}
+.gd-login-eye:hover {
+  color: var(--login-icon-hover);
+}
+.gd-login-eye:focus-visible,
+.gd-login-theme:focus-visible,
+.gd-login-link:focus-visible,
+.gd-login-btn:focus-visible {
+  outline: 2px solid var(--login-accent);
+  outline-offset: 2px;
+}
+
+.gd-login-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--login-error);
+}
+.gd-login-error svg {
+  flex-shrink: 0;
+}
+
+.gd-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: var(--login-btn);
+  color: var(--login-btn-text);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.gd-login-btn:hover:not(:disabled) {
+  background: var(--login-btn-hover);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.gd-login.dark .gd-login-btn:hover:not(:disabled) {
+  color: var(--login-btn-text);
+}
+.gd-login-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.gd-login-spn {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--login-btn-text) 35%, transparent);
+  border-top-color: var(--login-btn-text);
+  animation: gd-login-spin 0.7s linear infinite;
+}
+
+.gd-login-link-row {
+  display: flex;
+  justify-content: center;
+}
+.gd-login-link {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--login-link);
+  text-decoration: none;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+.gd-login-link:hover {
+  color: var(--login-text-primary);
+}
+
+.gd-login-legal {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--login-text-secondary);
+}
+.gd-login-legal a {
+  color: var(--login-text-label);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+.gd-login-legal a:hover {
+  color: var(--login-accent);
+  text-decoration-thickness: 2px;
+}
+.gd-login-legal-text {
+  font-weight: 600;
+  color: var(--login-text-label);
+}
+
+.gd-login-dev {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid var(--login-card-border);
+  background: var(--login-glass);
+  font-size: 12px;
+  color: var(--login-text-secondary);
+}
+
+/* ── Pie ────────────────────────────────────────────────────────────────── */
+.gd-login-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 32px 28px 7%;
+  font-size: 14px;
+  color: var(--login-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Mensaje de ingreso ─────────────────────────────────────────────────── */
+.gd-login-msg {
+  position: absolute;
+  left: 40%;
+  right: 0;
+  bottom: 11%;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--login-text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.gd-login-msg.is-on {
+  opacity: 1;
+  transition-delay: 0.5s;
+}
+.gd-login-msg-spn {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--login-accent) 30%, transparent);
+  border-top-color: var(--login-accent);
+  animation: gd-login-spin 0.7s linear infinite;
+}
+
+/* ── Animaciones ────────────────────────────────────────────────────────── */
+@keyframes gd-login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes gd-login-screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gd-login-logo-in {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gd-login-icon-in {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Transición de tema (View Transitions): sólo el círculo del script anima. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+.gd-vt-run * {
+  transition: none !important;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .gd-login-stage,
+  .gd-login-msg {
+    display: none;
+  }
+  .gd-login-main {
+    justify-content: center;
+    padding: 80px 16px 24px;
+  }
+  .gd-login-card {
+    padding: 32px 24px 26px;
+  }
+  .gd-login-footer {
+    padding: 0 16px 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gd-login,
+  .gd-login-logo,
+  .gd-login-theme-icon {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .gd-login-col,
+  .gd-login-col.is-leaving,
+  .gd-login-btn,
+  .gd-login-msg {
+    transition: none;
+  }
+}
