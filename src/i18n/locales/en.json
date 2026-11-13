@@ -116,6 +116,29 @@
     "loginLockedButton": "Paused ({{seconds}}s)",
     "idleLogoutNotice": "Your session was automatically closed due to inactivity.",
     "accountDisabledMessage": "Your account was disabled by an administrator.",
+    "login": {
+      "submit": "Sign in",
+      "emailPlaceholder": "you@company.com",
+      "passwordPlaceholder": "Your password",
+      "forgotPassword": "Forgot your password?",
+      "legal": "By signing in to the platform, you accept our <terms>Terms and Conditions</terms> and <privacy>Personal Data Processing Policy</privacy>.",
+      "openingFile": "Opening your archive…",
+      "switchToDark": "Switch to dark mode",
+      "switchToLight": "Switch to light mode",
+      "copyright": "© {{year}} Proasistemas S.A.",
+      "version": "Version {{version}}",
+      "docTypes": [
+        "Contract",
+        "Invoice",
+        "Minutes",
+        "Payroll",
+        "Policy",
+        "Report",
+        "Certificate",
+        "Purchase order",
+        "Résumé"
+      ]
+    },
     "forgotPasswordPage": {
       "title": "Recover password",
       "subtitle": "Enter your email address and we will send you a link to reset your password.",
