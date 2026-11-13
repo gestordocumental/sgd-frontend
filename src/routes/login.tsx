@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { AxiosError } from 'axios';
-import { Eye, EyeOff, Loader2, AlertCircle, TriangleAlert, Info } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Eye, EyeOff, AlertCircle, TriangleAlert, Info, Mail, Lock, Moon, Sun } from 'lucide-react';
+import { useTranslation, Trans } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { LoginScene } from '@/features/auth/LoginScene';
+import { computeSceneProgress } from '@/features/auth/login-scene';
+import { useLoginTheme } from '@/features/auth/use-login-theme';
+import '@/features/auth/login.css';
 import { authApi } from '@/lib/api/auth';
 import { resolveApiError, type ApiErrorData } from '@/lib/utils/api-error';
 import { useAuthStore } from '@/store/authStore';
@@ -34,6 +35,29 @@ export const Route = createFileRoute('/login')({
   },
   component: LoginPage,
 });
+
+/** Versión mostrada en el pie. */
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
+
+/** Sólo se aceptan enlaces http(s); cualquier otra cosa se ignora. */
+function safeUrl(value: string | undefined): string | undefined {
+  return value && /^https?:\/\//i.test(value) ? value : undefined;
+}
+const TERMS_URL = safeUrl(import.meta.env.VITE_TERMS_URL);
+const PRIVACY_URL = safeUrl(import.meta.env.VITE_PRIVACY_URL);
+
+/**
+ * Enlace legal del pie del formulario. Si no hay URL configurada se muestra
+ * como texto (no como un enlace muerto).
+ */
+function LegalLink({ href, children }: { href?: string; children?: React.ReactNode }) {
+  if (!href) return <span className="gd-login-legal-text">{children}</span>;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
 
 function useLoginThrottle() {
   const [state, setState] = useState(() => readState());
@@ -75,6 +99,9 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSwitchingCompany, setIsSwitchingCompany] = useState(false);
+  // true una vez que el login fue aceptado: dispara la animación de ingreso.
+  const [opening, setOpening] = useState(false);
+  const { theme, isDark, toggle: toggleTheme } = useLoginTheme();
   const [revokedCompany] = useState<string | null>(() => {
     const name = localStorage.getItem('sgd-revoked-company');
     if (name) localStorage.removeItem('sgd-revoked-company');
@@ -102,11 +129,23 @@ function LoginPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isValid },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: 'onTouched',
   });
+
+  // La escena de fondo "organiza el archivo" a medida que se completa el formulario.
+  const [emailValue, passwordValue] = useWatch({ control, name: ['email', 'password'] });
+  const progress = computeSceneProgress(emailValue ?? '', passwordValue ?? '', isValid || opening);
+
+  const docTypes: unknown = t('auth.login.docTypes', { returnObjects: true });
+  const sceneLabels =
+    Array.isArray(docTypes) && docTypes.every((d) => typeof d === 'string')
+      ? (docTypes as string[])
+      : undefined;
+  const themeLabel = isDark ? t('auth.login.switchToLight') : t('auth.login.switchToDark');
 
   const { mutate: login, isPending } = useMutation({
     mutationFn: authApi.login,
@@ -119,6 +158,10 @@ function LoginPage() {
         setServerError(t('auth.serverErrorFallback'));
         return;
       }
+
+      // Credenciales aceptadas: arranca la animación de ingreso. Se revierte si falla
+      // el cambio de empresa, para que un error no deje el formulario oculto.
+      setOpening(true);
 
       // Build user from JWT payload — auth-service returns only tokens, no user object
       const baseUser = data.user ?? {
@@ -150,6 +193,7 @@ function LoginPage() {
         }
       } catch {
         useAuthStore.getState().clearAuth();
+        setOpening(false);
         setServerError(t('auth.serverErrorFallback'));
         return;
       } finally {
@@ -169,204 +213,232 @@ function LoginPage() {
   });
 
   const onSubmit = (values: LoginFormValues) => {
-    if (locked) return;
+    if (locked || opening) return;
     setServerError(null);
     login(values);
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* ══════════════════════════════════════════
-          Panel izquierdo — ilustración + logo
-          Visible solo en pantallas lg+
-      ══════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col relative border-r border-border/50 overflow-hidden">
-        {/* Ilustración de fondo */}
-        <img
-          src="/illustration-login.svg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-contain"
-        />
+    <div className={`gd-login${isDark ? ' dark' : ''}`}>
+      <LoginScene progress={progress} entering={opening} dark={isDark} labels={sceneLabels} />
+
+      {/* Controles superiores: idioma + modo claro/oscuro (el tema sólo afecta al login) */}
+      <div className="gd-login-controls">
+        <LanguageSwitcher />
+        <button
+          type="button"
+          className="gd-login-theme"
+          onClick={(e) => toggleTheme(e.currentTarget)}
+          aria-label={themeLabel}
+          title={themeLabel}
+        >
+          <span className="gd-login-theme-icon" key={theme} aria-hidden="true">
+            {isDark ? <Sun className="size-[19px]" /> : <Moon className="size-[19px]" />}
+          </span>
+        </button>
       </div>
 
-      {/* ══════════════════════════════════════════
-          Panel derecho — formulario de acceso
-      ══════════════════════════════════════════ */}
-      <div className="flex-1 lg:w-1/2 flex items-center justify-center p-8 bg-muted/30 relative">
-        {/* Language switcher — top right */}
-        <div className="absolute top-4 right-4">
-          <LanguageSwitcher />
-        </div>
+      <main className="gd-login-main">
+        <div className={`gd-login-col${opening ? ' is-leaving' : ''}`}>
+          <img
+            className="gd-login-logo"
+            src={isDark ? '/logo-gestor-dark.svg' : '/logo-gestor-light.svg'}
+            alt="Gestor Documental by HELISA"
+          />
 
-        <div className="w-full max-w-sm">
-          {/* Logo en móvil (se oculta en lg porque ya aparece en el panel izquierdo) */}
-          <div className="lg:hidden flex justify-center mb-8">
-            <img
-              src="/logo.svg"
-              alt="SGD — Document Management System"
-              className="h-20 w-auto mix-blend-multiply dark:mix-blend-screen"
-            />
-          </div>
+          <div className="gd-login-card">
+            <h1 className="gd-login-title">{t('auth.signIn')}</h1>
 
-          {/* Formulario */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
-            {/* Aviso de acceso revocado */}
-            {revokedCompany && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
-                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
-                <span>{t('auth.revokedCompanyMessage', { company: revokedCompany })}</span>
-              </div>
-            )}
-
-            {/* Aviso de privilegios de super admin revocados */}
-            {superAdminRevoked && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
-                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
-                <span>{t('auth.superAdminRevokedMessage')}</span>
-              </div>
-            )}
-
-            {/* Aviso de cierre de sesión automático por inactividad */}
-            {idleLogout && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2.5 text-sm text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
-                <Info className="size-4 mt-0.5 shrink-0" />
-                <span>{t('auth.idleLogoutNotice')}</span>
-              </div>
-            )}
-
-            {/* Aviso de cuenta desactivada por un administrador */}
-            {accountDisabled && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
-                <AlertCircle className="size-4 mt-0.5 shrink-0" />
-                <span>{t('auth.accountDisabledMessage')}</span>
-              </div>
-            )}
-
-            {/* Error del servidor */}
-            {serverError && !locked && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
-                <AlertCircle className="size-4 mt-0.5 shrink-0" />
-                <span>{serverError}</span>
-              </div>
-            )}
-
-            {/* Aviso de acercarse al límite de intentos */}
-            {!locked && failCount >= WARN_THRESHOLD && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
-                <TriangleAlert className="size-4 mt-0.5 shrink-0" />
-                <span>
-                  {t('auth.loginAttemptsWarning', {
-                    count: failCount,
-                    threshold: FAIL_LOCK_THRESHOLD,
-                  })}
-                </span>
-              </div>
-            )}
-
-            {/* Bloqueo temporal por demasiados intentos fallidos */}
-            {locked && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
-                <AlertCircle className="size-4 mt-0.5 shrink-0" />
-                <span>{t('auth.loginLocked', { seconds: secondsLeft })}</span>
-              </div>
-            )}
-
-            {/* Correo electrónico */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">{t('auth.emailLabel')}</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder={t('auth.emailPlaceholder')}
-                autoComplete="email"
-                autoFocus
-                disabled={isPending}
-                aria-invalid={!!errors.email}
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="text-xs text-destructive">{t(errors.email.message!)}</p>
+            <form onSubmit={handleSubmit(onSubmit)} className="gd-login-form" noValidate>
+              {/* Aviso de acceso revocado */}
+              {revokedCompany && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                  <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                  <span>{t('auth.revokedCompanyMessage', { company: revokedCompany })}</span>
+                </div>
               )}
-            </div>
 
-            {/* Contraseña */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">{t('auth.passwordLabel')}</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  disabled={isPending}
-                  aria-invalid={!!errors.password}
-                  className="pr-9"
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-                >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{t(errors.password.message!)}</p>
+              {/* Aviso de privilegios de super admin revocados */}
+              {superAdminRevoked && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                  <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                  <span>{t('auth.superAdminRevokedMessage')}</span>
+                </div>
               )}
-            </div>
 
-            {/* ¿Olvidaste tu contraseña? */}
-            <div className="flex justify-end">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-primary hover:underline underline-offset-4"
+              {/* Aviso de cierre de sesión automático por inactividad */}
+              {idleLogout && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2.5 text-sm text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200">
+                  <Info className="size-4 mt-0.5 shrink-0" />
+                  <span>{t('auth.idleLogoutNotice')}</span>
+                </div>
+              )}
+
+              {/* Aviso de cuenta desactivada por un administrador */}
+              {accountDisabled && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
+                  <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                  <span>{t('auth.accountDisabledMessage')}</span>
+                </div>
+              )}
+
+              {/* Error del servidor */}
+              {serverError && !locked && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
+                  <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                  <span>{serverError}</span>
+                </div>
+              )}
+
+              {/* Aviso de acercarse al límite de intentos */}
+              {!locked && failCount >= WARN_THRESHOLD && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                  <TriangleAlert className="size-4 mt-0.5 shrink-0" />
+                  <span>
+                    {t('auth.loginAttemptsWarning', {
+                      count: failCount,
+                      threshold: FAIL_LOCK_THRESHOLD,
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {/* Bloqueo temporal por demasiados intentos fallidos */}
+              {locked && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+                  <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                  <span>{t('auth.loginLocked', { seconds: secondsLeft })}</span>
+                </div>
+              )}
+
+              <div className="gd-login-fields">
+                {/* Correo electrónico */}
+                <div className="gd-login-field">
+                  <label htmlFor="email" className="gd-login-label">
+                    <Mail className="size-[18px]" strokeWidth={1.8} aria-hidden="true" />
+                    {t('auth.emailLabel')}
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    className="gd-login-input"
+                    placeholder={t('auth.login.emailPlaceholder')}
+                    autoComplete="email"
+                    autoFocus
+                    disabled={isPending}
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
+                    {...register('email')}
+                  />
+                  {errors.email && (
+                    <p id="email-error" role="alert" className="gd-login-error">
+                      <AlertCircle className="size-3.5" aria-hidden="true" />
+                      <span>{t(errors.email.message!)}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Contraseña */}
+                <div className="gd-login-field">
+                  <label htmlFor="password" className="gd-login-label">
+                    <Lock className="size-[18px]" strokeWidth={1.8} aria-hidden="true" />
+                    {t('auth.passwordLabel')}
+                  </label>
+                  <div className="gd-login-password">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="gd-login-input has-toggle"
+                      placeholder={t('auth.login.passwordPlaceholder')}
+                      autoComplete="current-password"
+                      disabled={isPending}
+                      aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? 'password-error' : undefined}
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="gd-login-eye"
+                      aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-[18px]" strokeWidth={1.8} />
+                      ) : (
+                        <Eye className="size-[18px]" strokeWidth={1.8} />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p id="password-error" role="alert" className="gd-login-error">
+                      <AlertCircle className="size-3.5" aria-hidden="true" />
+                      <span>{t(errors.password.message!)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Botón de acceso */}
+              <button
+                type="submit"
+                className="gd-login-btn"
+                disabled={isPending || isSwitchingCompany || opening || !isValid || locked}
               >
-                {t('auth.forgotPassword')}
+                {locked ? (
+                  t('auth.loginLockedButton', { seconds: secondsLeft })
+                ) : isSwitchingCompany || opening ? (
+                  <>
+                    <span className="gd-login-spn" aria-hidden="true" />
+                    {t('auth.loadingWorkspace')}
+                  </>
+                ) : isPending ? (
+                  <>
+                    <span className="gd-login-spn" aria-hidden="true" />
+                    {t('auth.verifyingCredentials')}
+                  </>
+                ) : (
+                  t('auth.login.submit')
+                )}
+              </button>
+            </form>
+
+            <div className="gd-login-link-row">
+              <Link to="/forgot-password" className="gd-login-link">
+                {t('auth.login.forgotPassword')}
               </Link>
             </div>
 
-            {/* Botón de acceso */}
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isPending || isSwitchingCompany || !isValid || locked}
-            >
-              {locked ? (
-                t('auth.loginLockedButton', { seconds: secondsLeft })
-              ) : isSwitchingCompany ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  {t('auth.loadingWorkspace')}
-                </>
-              ) : isPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  {t('auth.verifyingCredentials')}
-                </>
-              ) : (
-                t('auth.signIn')
-              )}
-            </Button>
-          </form>
+            <p className="gd-login-legal">
+              <Trans
+                i18nKey="auth.login.legal"
+                components={{
+                  terms: <LegalLink href={TERMS_URL} />,
+                  privacy: <LegalLink href={PRIVACY_URL} />,
+                }}
+              />
+            </p>
+          </div>
 
           {/* Credenciales de prueba — solo visible cuando VITE_USE_MOCKS=true */}
           {import.meta.env.VITE_USE_MOCKS === 'true' && (
-            <div className="mt-6 rounded-lg bg-muted border border-border px-4 py-3 text-center">
-              <p className="text-xs font-medium text-muted-foreground">{t('auth.devMode')}</p>
-              <p className="text-xs text-muted-foreground/60 mt-0.5">{t('auth.devCredentials')}</p>
+            <div className="gd-login-dev">
+              <p className="font-medium">{t('auth.devMode')}</p>
+              <p className="mt-0.5 opacity-70">{t('auth.devCredentials')}</p>
             </div>
           )}
-
-          <p className="text-center text-xs text-muted-foreground mt-8" aria-hidden="true">
-            {t('auth.footer')}
-          </p>
         </div>
+      </main>
+
+      {/* Mensaje que acompaña la animación de ingreso */}
+      <div className={`gd-login-msg${opening ? ' is-on' : ''}`} aria-live="polite">
+        <span className="gd-login-msg-spn" aria-hidden="true" />
+        {opening ? t('auth.login.openingFile') : ''}
       </div>
+
+      <footer className="gd-login-footer">
+        <span>{t('auth.login.copyright', { year: new Date().getFullYear() })}</span>
+        <span>{t('auth.login.version', { version: APP_VERSION })}</span>
+      </footer>
     </div>
   );
 }

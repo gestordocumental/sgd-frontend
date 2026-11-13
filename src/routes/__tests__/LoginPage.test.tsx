@@ -349,3 +349,176 @@ describe('LoginPage — password visibility toggle', () => {
     expect(passwordInput).toHaveAttribute('type', 'password');
   });
 });
+
+// ── Rediseño del login (escena animada, tema, textos legales) ─────────────────
+
+describe('LoginPage — redesigned layout', () => {
+  it('renders the logo, the heading and a decorative (aria-hidden) background scene', () => {
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.getByAltText('Gestor Documental by HELISA')).toHaveAttribute(
+      'src',
+      '/logo-gestor-light.svg',
+    );
+    expect(container.querySelector('.gd-login-stage')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps browser autofill working: email/current-password, not off/new-password', () => {
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByLabelText('Email')).toHaveAttribute('autocomplete', 'email');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete', 'current-password');
+  });
+
+  it('keeps the password visibility toggle reachable with the keyboard', () => {
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByLabelText('Show password')).not.toHaveAttribute('tabindex', '-1');
+  });
+
+  it('shows the copyright with the current year and the app version', () => {
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByText(`© ${new Date().getFullYear()} Proasistemas S.A.`)).toBeInTheDocument();
+    expect(screen.getByText('Version 1.0.0')).toBeInTheDocument();
+  });
+
+  it('renders the terms and data-policy text WITHOUT dead links when no URLs are configured', () => {
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByText('Terms and Conditions')).toBeInTheDocument();
+    expect(screen.getByText('Personal Data Processing Policy')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Terms and Conditions/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Personal Data Processing Policy/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('links to the forgot-password page', () => {
+    render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
+});
+
+describe('LoginPage — light/dark theme (login screen only)', () => {
+  const THEME_KEY = 'helisa-theme-gestor';
+
+  it('starts in light mode by default', () => {
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(container.querySelector('.gd-login')).not.toHaveClass('dark');
+    expect(screen.getByRole('button', { name: 'Switch to dark mode' })).toBeInTheDocument();
+  });
+
+  it('starts in dark mode when the shared preference says so', () => {
+    localStorage.setItem(THEME_KEY, 'dark');
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+    expect(container.querySelector('.gd-login')).toHaveClass('dark');
+    expect(screen.getByAltText('Gestor Documental by HELISA')).toHaveAttribute(
+      'src',
+      '/logo-gestor-dark.svg',
+    );
+  });
+
+  it('toggles the theme, persists it under the shared key and never touches <html>', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
+    expect(container.querySelector('.gd-login')).toHaveClass('dark');
+    expect(localStorage.getItem(THEME_KEY)).toBe('dark');
+    expect(document.documentElement).not.toHaveClass('dark');
+
+    await user.click(screen.getByRole('button', { name: 'Switch to light mode' }));
+    expect(container.querySelector('.gd-login')).not.toHaveClass('dark');
+    expect(localStorage.getItem(THEME_KEY)).toBe('light');
+  });
+
+  it('keeps working when the theme preference cannot be read or saved', async () => {
+    const user = userEvent.setup();
+    // Sólo se bloquea la clave del tema: el resto del login ya lee otras claves
+    // de localStorage sin protección (comportamiento previo, fuera de este cambio).
+    const realGetItem = Storage.prototype.getItem;
+    const realSetItem = Storage.prototype.setItem;
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+    ) {
+      if (key === THEME_KEY) throw new Error('blocked');
+      return realGetItem.call(this, key);
+    });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key === THEME_KEY) throw new Error('blocked');
+      realSetItem.call(this, key, value);
+    });
+    try {
+      const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+      expect(container.querySelector('.gd-login')).not.toHaveClass('dark');
+      await user.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
+      expect(container.querySelector('.gd-login')).toHaveClass('dark');
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+  });
+});
+
+describe('LoginPage — opening animation only after an accepted login', () => {
+  it('does not hide the form on a rejected login', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.type(screen.getByLabelText('Email'), 'wrong@test.com');
+    await user.type(screen.getByLabelText('Password'), 'WrongPass1!');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Invalid credentials. Please check your email and password.'),
+      ).toBeInTheDocument();
+    });
+    expect(container.querySelector('.gd-login-col')).not.toHaveClass('is-leaving');
+    expect(container.querySelector('.gd-login-msg')).not.toHaveClass('is-on');
+  });
+
+  it('hides the form and shows the opening message once the login is accepted', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.type(screen.getByLabelText('Email'), 'admin@test.com');
+    await user.type(screen.getByLabelText('Password'), 'Admin123!');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/dashboard/admin' }));
+    expect(container.querySelector('.gd-login-col')).toHaveClass('is-leaving');
+    expect(container.querySelector('.gd-login-msg')).toHaveClass('is-on');
+    expect(screen.getByText('Opening your archive…')).toBeInTheDocument();
+  });
+
+  it('brings the form back when switching to the company fails after a valid login', async () => {
+    server.use(
+      http.get('*/auth/me/companies', () =>
+        HttpResponse.json({ message: 'boom' }, { status: 400 }),
+      ),
+    );
+    const user = userEvent.setup();
+    const { container } = render(<LoginPage />, { wrapper: makeWrapper() });
+
+    await user.type(screen.getByLabelText('Email'), 'user@test.com');
+    await user.type(screen.getByLabelText('Password'), 'User1234!');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Error connecting to the server. Please try again.'),
+      ).toBeInTheDocument();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(container.querySelector('.gd-login-col')).not.toHaveClass('is-leaving');
+    // el formulario sigue operativo: los campos no quedaron deshabilitados
+    expect(screen.getByLabelText('Email')).toBeEnabled();
+    expect(screen.getByLabelText('Password')).toBeEnabled();
+  });
+});
