@@ -17,6 +17,9 @@ test.describe('Visual — login', () => {
   });
 
   test('login page', async ({ page }) => {
+    // La escena del login se anima con requestAnimationFrame: con movimiento
+    // reducido dibuja un único fotograma estático y la captura es determinista.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/login');
     await page.locator('form').first().waitFor();
     await argosScreenshot(page, 'login');

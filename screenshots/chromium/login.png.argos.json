@@ -14,7 +14,8 @@
   },
   "browser": { "name": "chromium", "version": "148.0.7778.96" },
   "automationLibrary": { "version": "1.60.0", "name": "@playwright/test" },
-  "sdk": { "name": "@argos-ci/playwright", "version": "7.0.6" },
+  "sdk": { "name": "@argos-ci/playwright", "version": "7.8.0" },
   "viewport": { "width": 1280, "height": 720 },
+  "capture": { "index": 0 },
   "transient": {}
 }

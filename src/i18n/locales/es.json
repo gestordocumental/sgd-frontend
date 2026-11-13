@@ -116,6 +116,29 @@
     "loginLockedButton": "Pausado ({{seconds}}s)",
     "idleLogoutNotice": "Tu sesión se cerró automáticamente por inactividad.",
     "accountDisabledMessage": "Tu cuenta fue desactivada por un administrador.",
+    "login": {
+      "submit": "Ingresar",
+      "emailPlaceholder": "ejemplo@empresa.com",
+      "passwordPlaceholder": "Su contraseña",
+      "forgotPassword": "¿Olvidó su contraseña?",
+      "legal": "Al ingresar a la plataforma, acepta nuestros <terms>Términos y Condiciones</terms> y <privacy>Política de Tratamiento de Datos Personales</privacy>.",
+      "openingFile": "Abriendo tu archivo…",
+      "switchToDark": "Cambiar a modo oscuro",
+      "switchToLight": "Cambiar a modo claro",
+      "copyright": "© {{year}} Proasistemas S.A.",
+      "version": "Versión {{version}}",
+      "docTypes": [
+        "Contrato",
+        "Factura",
+        "Acta",
+        "Nómina",
+        "Póliza",
+        "Informe",
+        "Certificado",
+        "Orden de compra",
+        "Hoja de vida"
+      ]
+    },
     "forgotPasswordPage": {
       "title": "Recuperar contraseña",
       "subtitle": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
